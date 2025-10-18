@@ -68,6 +68,63 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Emily Chen',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-001-01',
+        type: 'periapical',
+        file_url: '/xrays/dental-16.jpg',
+        thumbnail_url: '/xrays/dental-16.jpg',
+        date_taken: '2024-02-24',
+        dentist_notes: 'Slight bone loss evident in posterior regions',
+        ai_analysis: {
+          summary: 'Automated screening identified conditions requiring review',
+          detected_issues: []
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 4.46
+        }
+      },
+      {
+        id: 'xr-001-02',
+        type: 'periapical',
+        file_url: '/xrays/dental-12.jpg',
+        thumbnail_url: '/xrays/dental-12.jpg',
+        date_taken: '2024-09-15',
+        dentist_notes: 'Healthy tooth structure, no abnormalities detected',
+        ai_analysis: {
+          summary: 'Automated screening identified conditions requiring review',
+          detected_issues: []
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 3.0
+        }
+      },
+      {
+        id: 'xr-001-03',
+        type: 'cbct',
+        file_url: '/xrays/dental-3.jpg',
+        thumbnail_url: '/xrays/dental-3.jpg',
+        date_taken: '2024-09-24',
+        dentist_notes: 'Minor calculus buildup visible',
+        ai_analysis: {
+          summary: 'AI analysis detected potential areas of concern',
+          detected_issues: [
+            {
+              type: 'cavity',
+              location: 'Tooth #14, distal surface',
+              confidence_score: 92,
+              severity: 'medium'
+            }
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 3.91
+        }
+      }
+    ],
   },
 
   // Michael Rodriguez - demo-p-002
@@ -132,6 +189,60 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. James Wilson',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-002-01',
+        type: 'periapical',
+        file_url: '/xrays/dental-8.jpg',
+        thumbnail_url: '/xrays/dental-8.jpg',
+        date_taken: '2024-08-24',
+        dentist_notes: 'Excellent bone density throughout',
+        ai_analysis: {
+          summary: 'Comprehensive AI analysis shows healthy structures',
+          detected_issues: [
+            {
+              type: 'cavity',
+              location: 'Tooth #14, distal surface',
+              confidence_score: 92,
+              severity: 'medium'
+            },
+            {
+              type: 'calculus',
+              location: 'Lower anterior teeth',
+              confidence_score: 95,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 4.42
+        }
+      },
+      {
+        id: 'xr-002-02',
+        type: 'periapical',
+        file_url: '/xrays/dental-16.jpg',
+        thumbnail_url: '/xrays/dental-16.jpg',
+        date_taken: '2024-09-06',
+        dentist_notes: 'Some marginal bone resorption present',
+        ai_analysis: {
+          summary: 'Comprehensive AI analysis shows healthy structures',
+          detected_issues: [
+            {
+              type: 'impacted_tooth',
+              location: 'Tooth #32, horizontal impaction',
+              confidence_score: 91,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 2.93
+        }
+      },
+    ],
   },
 
   // Emily Chen - demo-p-003
@@ -196,6 +307,37 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Emily Chen',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-003-01',
+        type: 'bitewing',
+        file_url: '/xrays/dental-15.jpg',
+        thumbnail_url: '/xrays/dental-15.jpg',
+        date_taken: '2024-10-14',
+        dentist_notes: 'Slight bone loss evident in posterior regions',
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 4.58
+        }
+      },
+      {
+        id: 'xr-003-02',
+        type: 'periapical',
+        file_url: '/xrays/dental-12.jpg',
+        thumbnail_url: '/xrays/dental-12.jpg',
+        date_taken: '2024-02-08',
+        dentist_notes: 'Minor calculus buildup visible',
+        ai_analysis: {
+          summary: 'AI analysis detected potential areas of concern',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 4.12
+        }
+      },
+    ],
   },
 
   // David Thompson - demo-p-004
@@ -260,6 +402,37 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Sarah Martinez',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-004-01',
+        type: 'cbct',
+        file_url: '/xrays/dental-7.jpg',
+        thumbnail_url: '/xrays/dental-7.jpg',
+        date_taken: '2024-06-20',
+        dentist_notes: 'Minor calculus buildup visible',
+        ai_analysis: {
+          summary: 'AI analysis complete: No significant issues detected',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 3.7
+        }
+      },
+      {
+        id: 'xr-004-02',
+        type: 'cbct',
+        file_url: '/xrays/dental-13.jpg',
+        thumbnail_url: '/xrays/dental-13.jpg',
+        date_taken: '2024-10-07',
+        dentist_notes: 'No significant pathology detected',
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 2.55
+        }
+      },
+    ],
   },
 
   // Jennifer Lee - demo-p-005
@@ -324,6 +497,90 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. James Wilson',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-005-01',
+        type: 'periapical',
+        file_url: '/xrays/dental-14.jpg',
+        thumbnail_url: '/xrays/dental-14.jpg',
+        date_taken: '2024-12-08',
+        dentist_notes: 'Some marginal bone resorption present',
+        ai_analysis: {
+          summary: 'AI analysis detected potential areas of concern',
+          detected_issues: [
+            {
+              type: 'impacted_tooth',
+              location: 'Tooth #32, horizontal impaction',
+              confidence_score: 91,
+              severity: 'medium'
+            },
+            {
+              type: 'periapical_lesion',
+              location: 'Tooth #19 apex',
+              confidence_score: 88,
+              severity: 'high'
+            },
+            {
+              type: 'bone_loss',
+              location: 'Posterior mandible',
+              confidence_score: 85,
+              severity: 'high'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 2.49
+        }
+      },
+      {
+        id: 'xr-005-02',
+        type: 'bitewing',
+        file_url: '/xrays/dental-18.jpg',
+        thumbnail_url: '/xrays/dental-18.jpg',
+        date_taken: '2024-09-05',
+        dentist_notes: 'Root canal filling appears adequate',
+        ai_analysis: {
+          summary: 'AI analysis complete: No significant issues detected',
+          detected_issues: [
+            {
+              type: 'decay',
+              location: 'Tooth #3, occlusal',
+              confidence_score: 78,
+              severity: 'low'
+            },
+            {
+              type: 'periapical_lesion',
+              location: 'Tooth #19 apex',
+              confidence_score: 88,
+              severity: 'high'
+            },
+            {
+              type: 'impacted_tooth',
+              location: 'Tooth #32, horizontal impaction',
+              confidence_score: 91,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 3.91
+        }
+      },
+      {
+        id: 'xr-005-03',
+        type: 'bitewing',
+        file_url: '/xrays/dental-3.jpg',
+        thumbnail_url: '/xrays/dental-3.jpg',
+        date_taken: '2024-11-24',
+        dentist_notes: 'Slight bone loss evident in posterior regions',
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 3.94
+        }
+      },
+    ],
   },
 
   // Robert Martinez - demo-p-006
@@ -388,6 +645,43 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Emily Chen',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-006-01',
+        type: 'cbct',
+        file_url: '/xrays/dental-1.jpg',
+        thumbnail_url: '/xrays/dental-1.jpg',
+        date_taken: '2024-10-18',
+        dentist_notes: 'Root canal filling appears adequate',
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 2.23
+        }
+      },
+      {
+        id: 'xr-006-02',
+        type: 'cbct',
+        file_url: '/xrays/dental-8.jpg',
+        thumbnail_url: '/xrays/dental-8.jpg',
+        date_taken: '2024-05-27',
+        dentist_notes: 'Crown margins appear well-adapted',
+        ai_analysis: {
+          summary: 'AI analysis detected potential areas of concern',
+          detected_issues: [
+            {
+              type: 'bone_loss',
+              location: 'Anterior maxilla',
+              confidence_score: 79,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 2.72
+        }
+      },
+    ],
   },
 
   // Amanda Taylor - demo-p-007
@@ -452,6 +746,61 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Sarah Martinez',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-007-01',
+        type: 'bitewing',
+        file_url: '/xrays/dental-10.jpg',
+        thumbnail_url: '/xrays/dental-10.jpg',
+        date_taken: '2024-04-20',
+        dentist_notes: 'Crown margins appear well-adapted',
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 2.22
+        }
+      },
+      {
+        id: 'xr-007-02',
+        type: 'periapical',
+        file_url: '/xrays/dental-19.jpg',
+        thumbnail_url: '/xrays/dental-19.jpg',
+        date_taken: '2024-01-20',
+        dentist_notes: 'Some marginal bone resorption present',
+        ai_analysis: {
+          summary: 'AI analysis detected potential areas of concern',
+          detected_issues: [
+            {
+              type: 'cavity',
+              location: 'Tooth #18, mesial surface',
+              confidence_score: 87,
+              severity: 'high'
+            },
+            {
+              type: 'bone_loss',
+              location: 'Anterior maxilla',
+              confidence_score: 79,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 1.96
+        }
+      },
+      {
+        id: 'xr-007-03',
+        type: 'periapical',
+        file_url: '/xrays/dental-12.jpg',
+        thumbnail_url: '/xrays/dental-12.jpg',
+        date_taken: '2024-08-14',
+        dentist_notes: 'Clear bilateral bitewings showing no interproximal decay',
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 3.16
+        }
+      },
+    ],
   },
 
   // Christopher Anderson - demo-p-008
@@ -516,6 +865,78 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. James Wilson',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-008-01',
+        type: 'cbct',
+        file_url: '/xrays/dental-1.jpg',
+        thumbnail_url: '/xrays/dental-1.jpg',
+        date_taken: '2024-07-23',
+        dentist_notes: 'Excellent bone density throughout',
+        ai_analysis: {
+          summary: 'AI analysis complete: No significant issues detected',
+          detected_issues: [
+            {
+              type: 'periapical_lesion',
+              location: 'Tooth #19 apex',
+              confidence_score: 88,
+              severity: 'high'
+            },
+            {
+              type: 'impacted_tooth',
+              location: 'Tooth #32, horizontal impaction',
+              confidence_score: 91,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 2.13
+        }
+      },
+      {
+        id: 'xr-008-02',
+        type: 'periapical',
+        file_url: '/xrays/dental-3.jpg',
+        thumbnail_url: '/xrays/dental-3.jpg',
+        date_taken: '2024-11-03',
+        dentist_notes: 'Some marginal bone resorption present',
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 2.36
+        }
+      },
+      {
+        id: 'xr-008-03',
+        type: 'bitewing',
+        file_url: '/xrays/dental-13.jpg',
+        thumbnail_url: '/xrays/dental-13.jpg',
+        date_taken: '2024-01-08',
+        dentist_notes: 'Slight bone loss evident in posterior regions',
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 4.28
+        }
+      },
+      {
+        id: 'xr-008-04',
+        type: 'panoramic',
+        file_url: '/xrays/dental-8.jpg',
+        thumbnail_url: '/xrays/dental-8.jpg',
+        date_taken: '2024-12-01',
+        dentist_notes: 'Well-defined periapical radiolucency noted',
+        ai_analysis: {
+          summary: 'AI screening complete: Recommend follow-up examination',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 3.93
+        }
+      },
+    ],
   },
 
   // Lisa White - demo-p-009
@@ -580,6 +1001,77 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Emily Chen',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-009-01',
+        type: 'bitewing',
+        file_url: '/xrays/dental-5.jpg',
+        thumbnail_url: '/xrays/dental-5.jpg',
+        date_taken: '2024-10-21',
+        dentist_notes: 'Healthy tooth structure, no abnormalities detected',
+        ai_analysis: {
+          summary: 'AI analysis complete: No significant issues detected',
+          detected_issues: [
+            {
+              type: 'impacted_tooth',
+              location: 'Tooth #32, horizontal impaction',
+              confidence_score: 91,
+              severity: 'medium'
+            },
+            {
+              type: 'cavity',
+              location: 'Tooth #18, mesial surface',
+              confidence_score: 87,
+              severity: 'high'
+            },
+            {
+              type: 'bone_loss',
+              location: 'Posterior mandible',
+              confidence_score: 85,
+              severity: 'high'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 3.37
+        }
+      },
+      {
+        id: 'xr-009-02',
+        type: 'cbct',
+        file_url: '/xrays/dental-6.jpg',
+        thumbnail_url: '/xrays/dental-6.jpg',
+        date_taken: '2024-05-09',
+        dentist_notes: 'Some marginal bone resorption present',
+        ai_analysis: {
+          summary: 'Automated screening identified conditions requiring review',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 1.28
+        }
+      },
+      {
+        id: 'xr-009-03',
+        type: 'periapical',
+        file_url: '/xrays/dental-14.jpg',
+        thumbnail_url: '/xrays/dental-14.jpg',
+        date_taken: '2024-04-14',
+        dentist_notes: 'Root canal filling appears adequate',
+        ai_analysis: {
+          summary: 'AI analysis complete: No significant issues detected',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 3.14
+        }
+      },
+    ],
   },
 
   // James Brown - demo-p-010
@@ -644,6 +1136,37 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Sarah Martinez',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-010-01',
+        type: 'panoramic',
+        file_url: '/xrays/dental-6.jpg',
+        thumbnail_url: '/xrays/dental-6.jpg',
+        date_taken: '2024-01-04',
+        dentist_notes: 'Healthy tooth structure, no abnormalities detected',
+        ai_analysis: {
+          summary: 'AI screening complete: Recommend follow-up examination',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 2.27
+        }
+      },
+      {
+        id: 'xr-010-02',
+        type: 'bitewing',
+        file_url: '/xrays/dental-7.jpg',
+        thumbnail_url: '/xrays/dental-7.jpg',
+        date_taken: '2024-02-05',
+        dentist_notes: 'No significant pathology detected',
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 2.13
+        }
+      },
+    ],
   },
 
   // Patricia Garcia - demo-p-011
@@ -708,6 +1231,49 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. James Wilson',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-011-01',
+        type: 'bitewing',
+        file_url: '/xrays/dental-9.jpg',
+        thumbnail_url: '/xrays/dental-9.jpg',
+        date_taken: '2024-09-24',
+        dentist_notes: 'Minor calculus buildup visible',
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 4.29
+        }
+      },
+      {
+        id: 'xr-011-02',
+        type: 'panoramic',
+        file_url: '/xrays/dental-13.jpg',
+        thumbnail_url: '/xrays/dental-13.jpg',
+        date_taken: '2024-07-02',
+        dentist_notes: 'Slight bone loss evident in posterior regions',
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 4.34
+        }
+      },
+      {
+        id: 'xr-011-03',
+        type: 'panoramic',
+        file_url: '/xrays/dental-20.jpg',
+        thumbnail_url: '/xrays/dental-20.jpg',
+        date_taken: '2024-09-04',
+        dentist_notes: 'Excellent bone density throughout',
+        ai_analysis: {
+          summary: 'Automated screening identified conditions requiring review',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 4.29
+        }
+      },
+    ],
   },
 
   // Daniel Miller - demo-p-012
@@ -772,6 +1338,124 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Emily Chen',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-012-01',
+        type: 'panoramic',
+        file_url: '/xrays/dental-5.jpg',
+        thumbnail_url: '/xrays/dental-5.jpg',
+        date_taken: '2024-07-28',
+        dentist_notes: 'Root canal filling appears adequate',
+        ai_analysis: {
+          summary: 'AI analysis detected potential areas of concern',
+          detected_issues: [
+            {
+              type: 'impacted_tooth',
+              location: 'Tooth #32, horizontal impaction',
+              confidence_score: 91,
+              severity: 'medium'
+            },
+            {
+              type: 'calculus',
+              location: 'Lower anterior teeth',
+              confidence_score: 95,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 2.61
+        }
+      },
+      {
+        id: 'xr-012-02',
+        type: 'periapical',
+        file_url: '/xrays/dental-11.jpg',
+        thumbnail_url: '/xrays/dental-11.jpg',
+        date_taken: '2024-06-09',
+        dentist_notes: 'Clear bilateral bitewings showing no interproximal decay',
+        ai_analysis: {
+          summary: 'Comprehensive AI analysis shows healthy structures',
+          detected_issues: [
+            {
+              type: 'cavity',
+              location: 'Tooth #14, distal surface',
+              confidence_score: 92,
+              severity: 'medium'
+            },
+            {
+              type: 'decay',
+              location: 'Tooth #3, occlusal',
+              confidence_score: 78,
+              severity: 'low'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 2.99
+        }
+      },
+      {
+        id: 'xr-012-03',
+        type: 'cbct',
+        file_url: '/xrays/dental-10.jpg',
+        thumbnail_url: '/xrays/dental-10.jpg',
+        date_taken: '2024-10-15',
+        dentist_notes: 'Healthy tooth structure, no abnormalities detected',
+        ai_analysis: {
+          summary: 'Automated screening identified conditions requiring review',
+          detected_issues: [
+            {
+              type: 'periapical_lesion',
+              location: 'Tooth #19 apex',
+              confidence_score: 88,
+              severity: 'high'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 3.05
+        }
+      },
+      {
+        id: 'xr-012-04',
+        type: 'periapical',
+        file_url: '/xrays/dental-13.jpg',
+        thumbnail_url: '/xrays/dental-13.jpg',
+        date_taken: '2024-03-04',
+        dentist_notes: 'Clear bilateral bitewings showing no interproximal decay',
+        ai_analysis: {
+          summary: 'AI analysis detected potential areas of concern',
+          detected_issues: [
+            {
+              type: 'cavity',
+              location: 'Tooth #18, mesial surface',
+              confidence_score: 87,
+              severity: 'high'
+            },
+            {
+              type: 'cavity',
+              location: 'Tooth #14, distal surface',
+              confidence_score: 92,
+              severity: 'medium'
+            },
+            {
+              type: 'calculus',
+              location: 'Lower anterior teeth',
+              confidence_score: 95,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 2.31
+        }
+      },
+    ],
   },
 
   // Nancy Wilson - demo-p-013
@@ -836,6 +1520,77 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Sarah Martinez',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-013-01',
+        type: 'cbct',
+        file_url: '/xrays/dental-4.jpg',
+        thumbnail_url: '/xrays/dental-4.jpg',
+        date_taken: '2024-09-25',
+        dentist_notes: 'Clear bilateral bitewings showing no interproximal decay',
+        ai_analysis: {
+          summary: 'Automated screening identified conditions requiring review',
+          detected_issues: [
+            {
+              type: 'impacted_tooth',
+              location: 'Tooth #32, horizontal impaction',
+              confidence_score: 91,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Kodak 8000C',
+          file_size_mb: 4.66
+        }
+      },
+      {
+        id: 'xr-013-02',
+        type: 'periapical',
+        file_url: '/xrays/dental-9.jpg',
+        thumbnail_url: '/xrays/dental-9.jpg',
+        date_taken: '2024-11-23',
+        dentist_notes: 'Root canal filling appears adequate',
+        ai_analysis: {
+          summary: 'Comprehensive AI analysis shows healthy structures',
+          detected_issues: [
+          ]
+        },
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 4.34
+        }
+      },
+      {
+        id: 'xr-013-03',
+        type: 'periapical',
+        file_url: '/xrays/dental-8.jpg',
+        thumbnail_url: '/xrays/dental-8.jpg',
+        date_taken: '2024-08-06',
+        dentist_notes: 'Slight bone loss evident in posterior regions',
+        ai_analysis: {
+          summary: 'Comprehensive AI analysis shows healthy structures',
+          detected_issues: [
+            {
+              type: 'calculus',
+              location: 'Lower anterior teeth',
+              confidence_score: 95,
+              severity: 'medium'
+            },
+            {
+              type: 'decay',
+              location: 'Tooth #3, occlusal',
+              confidence_score: 78,
+              severity: 'low'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 4.63
+        }
+      },
+    ],
   },
 
   // Kevin Moore - demo-p-014
@@ -900,6 +1655,90 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. James Wilson',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-014-01',
+        type: 'periapical',
+        file_url: '/xrays/dental-18.jpg',
+        thumbnail_url: '/xrays/dental-18.jpg',
+        date_taken: '2024-11-22',
+        dentist_notes: 'Well-defined periapical radiolucency noted',
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 3.3
+        }
+      },
+      {
+        id: 'xr-014-02',
+        type: 'cbct',
+        file_url: '/xrays/dental-3.jpg',
+        thumbnail_url: '/xrays/dental-3.jpg',
+        date_taken: '2024-03-17',
+        dentist_notes: 'No significant pathology detected',
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 1.97
+        }
+      },
+      {
+        id: 'xr-014-03',
+        type: 'cbct',
+        file_url: '/xrays/dental-10.jpg',
+        thumbnail_url: '/xrays/dental-10.jpg',
+        date_taken: '2024-02-10',
+        dentist_notes: 'Well-defined periapical radiolucency noted',
+        ai_analysis: {
+          summary: 'AI analysis complete: No significant issues detected',
+          detected_issues: [
+            {
+              type: 'cavity',
+              location: 'Tooth #18, mesial surface',
+              confidence_score: 87,
+              severity: 'high'
+            },
+            {
+              type: 'cavity',
+              location: 'Tooth #14, distal surface',
+              confidence_score: 92,
+              severity: 'medium'
+            },
+            {
+              type: 'periapical_lesion',
+              location: 'Tooth #19 apex',
+              confidence_score: 88,
+              severity: 'high'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 4.43
+        }
+      },
+      {
+        id: 'xr-014-04',
+        type: 'bitewing',
+        file_url: '/xrays/dental-9.jpg',
+        thumbnail_url: '/xrays/dental-9.jpg',
+        date_taken: '2024-08-06',
+        dentist_notes: 'No significant pathology detected',
+        ai_analysis: {
+          summary: 'AI screening complete: Recommend follow-up examination',
+          detected_issues: [
+            {
+              type: 'cavity',
+              location: 'Tooth #18, mesial surface',
+              confidence_score: 87,
+              severity: 'high'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 2.48
+        }
+      },
+    ],
   },
 
   // Karen Davis - demo-p-015
@@ -964,6 +1803,61 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
       dentist_name: 'Dr. Emily Chen',
       status: 'confirmed',
     },
+    radiographic_records: [
+      {
+        id: 'xr-015-01',
+        type: 'bitewing',
+        file_url: '/xrays/dental-1.jpg',
+        thumbnail_url: '/xrays/dental-1.jpg',
+        date_taken: '2024-04-26',
+        dentist_notes: 'Excellent bone density throughout',
+        metadata: {
+          equipment: 'Dentsply Sirona ORTHOPHOS',
+          file_size_mb: 4.42
+        }
+      },
+      {
+        id: 'xr-015-02',
+        type: 'bitewing',
+        file_url: '/xrays/dental-12.jpg',
+        thumbnail_url: '/xrays/dental-12.jpg',
+        date_taken: '2024-03-15',
+        dentist_notes: 'Slight bone loss evident in posterior regions',
+        ai_analysis: {
+          summary: 'AI screening complete: Recommend follow-up examination',
+          detected_issues: [
+            {
+              type: 'decay',
+              location: 'Tooth #3, occlusal',
+              confidence_score: 78,
+              severity: 'low'
+            },
+            {
+              type: 'bone_loss',
+              location: 'Anterior maxilla',
+              confidence_score: 79,
+              severity: 'medium'
+            },
+          ]
+        },
+        metadata: {
+          equipment: 'Planmeca ProMax 3D',
+          file_size_mb: 3.08
+        }
+      },
+      {
+        id: 'xr-015-03',
+        type: 'panoramic',
+        file_url: '/xrays/dental-2.jpg',
+        thumbnail_url: '/xrays/dental-2.jpg',
+        date_taken: '2024-06-20',
+        dentist_notes: 'Crown margins appear well-adapted',
+        metadata: {
+          equipment: 'Carestream CS 8100',
+          file_size_mb: 3.9
+        }
+      },
+    ],
   },
 
 };

@@ -20,6 +20,7 @@ export interface PatientProfile {
   insurance?: InsuranceInfo;
   financial: FinancialInfo;
   next_appointment?: NextAppointment;
+  radiographic_records?: RadiographicRecord[]; // Simplified X-ray records for quick access
 }
 
 export interface PatientContact {
@@ -80,6 +81,29 @@ export interface NextAppointment {
   procedure_type: string;
   dentist_name: string;
   status: 'scheduled' | 'confirmed' | 'pending';
+}
+
+// Simplified Radiographic Record for patient profile quick access
+export interface RadiographicRecord {
+  id: string;
+  type: 'bitewing' | 'periapical' | 'panoramic' | 'cbct' | 'occlusal' | 'cephalometric' | 'intraoral_photo';
+  file_url: string;
+  thumbnail_url: string;
+  date_taken: string;
+  dentist_notes?: string;
+  ai_analysis?: {
+    summary: string;
+    detected_issues: Array<{
+      type: string;
+      location: string;
+      confidence_score: number;
+      severity: 'low' | 'medium' | 'high';
+    }>;
+  };
+  metadata?: {
+    equipment?: string;
+    file_size_mb?: number;
+  };
 }
 
 // ============================================================================
@@ -347,17 +371,29 @@ export interface AIDetection {
 
 export interface PeriodontalRecords {
   patient_id: string;
-  examinations: PeriodontalExam[];
+  exams: PeriodontalExam[];  // Renamed from 'examinations' for consistency
   summary: PeriodontalSummary;
   treatment_history: PeriodontalTreatment[];
 }
 
 export interface PeriodontalExam {
-  id: string;
+  exam_id: string;  // Renamed from 'id' for consistency
   exam_date: string;
   examiner_name: string;
-  measurements: PeriodontalMeasurement[];
+  tooth_measurements: ToothMeasurement[];  // Simplified from nested measurements
   overall_diagnosis: string;
+  treatment_recommendations?: string[];  // Added for recommendations
+  notes?: string;
+}
+
+// Simplified tooth measurement for periodontal charting
+export interface ToothMeasurement {
+  tooth_number: number;
+  pocket_depths: number[];  // Array of 6 depths [MB, B, DB, ML, L, DL]
+  bleeding_on_probing: boolean[];  // Array of 6 bleeding indicators
+  recession_mm: number[];  // Array of 6 recession measurements
+  mobility_grade: number;  // 0-3
+  furcation_involvement?: 'none' | 'class_i' | 'class_ii' | 'class_iii';
   notes?: string;
 }
 

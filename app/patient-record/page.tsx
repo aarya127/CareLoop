@@ -23,8 +23,474 @@ import {
   Clock,
 } from 'lucide-react';
 import PatientOverview from '@/components/dental-records/patient-overview-section';
+import RadiographicFilesSection from '@/components/dental-records/radiographic-files-section';
+import MedicalHistorySection from '@/components/dental-records/medical-history-section';
+import ClinicalChartingSection from '@/components/dental-records/clinical-charting-section';
+import PeriodontalRecordsSection from '@/components/dental-records/periodontal-records-section';
+import AdminDocumentsSection from '@/components/dental-records/administrative-documents-section';
 import { getDentalRecordById } from '@/lib/data/mock-dental-records';
-import type { PatientProfile } from '@/lib/types/dental-record';
+import type { 
+  PatientProfile, 
+  MedicalHistory, 
+  ClinicalChart,
+  PeriodontalRecords,
+  AdministrativeDocuments,
+  ToothMeasurement
+} from '@/lib/types/dental-record';
+
+// Temporary mock medical history generator (will be moved to mock data file)
+const getMockMedicalHistory = (patientId: string): MedicalHistory => {
+  return {
+    patient_id: patientId,
+    allergies: [
+      {
+        id: 'allergy-001',
+        allergen: 'Penicillin',
+        severity: 'severe',
+        reaction: 'Hives and difficulty breathing',
+        date_identified: '2018-03-15',
+        notes: 'Confirmed by allergist Dr. Smith'
+      },
+      {
+        id: 'allergy-002',
+        allergen: 'Latex',
+        severity: 'moderate',
+        reaction: 'Skin rash and itching',
+        date_identified: '2020-06-22',
+      }
+    ],
+    current_medications: [
+      {
+        id: 'med-001',
+        name: 'Lisinopril',
+        dosage: '10mg',
+        frequency: 'Once daily',
+        purpose: 'Blood pressure control',
+        start_date: '2022-01-15',
+        prescribing_doctor: 'Dr. Johnson'
+      },
+      {
+        id: 'med-002',
+        name: 'Metformin',
+        dosage: '500mg',
+        frequency: 'Twice daily',
+        purpose: 'Type 2 diabetes management',
+        start_date: '2021-08-10',
+        prescribing_doctor: 'Dr. Williams'
+      }
+    ],
+    systemic_conditions: [
+      {
+        id: 'cond-001',
+        condition: 'Type 2 Diabetes',
+        diagnosed_date: '2021-07-20',
+        status: 'controlled',
+        severity: 'moderate',
+        treatment: 'Metformin and diet modification'
+      },
+      {
+        id: 'cond-002',
+        condition: 'Hypertension',
+        diagnosed_date: '2022-01-05',
+        status: 'controlled',
+        severity: 'mild',
+        treatment: 'Lisinopril'
+      }
+    ],
+    past_surgeries: [
+      {
+        id: 'surg-001',
+        procedure: 'Appendectomy',
+        date: '2015-06-12',
+        hospital: 'San Diego Medical Center',
+        surgeon: 'Dr. Anderson'
+      }
+    ],
+    lifestyle_factors: {
+      smoking: {
+        status: 'former',
+        packs_per_day: 0.5,
+        years: 10,
+        quit_date: '2020-01-01'
+      },
+      alcohol: {
+        frequency: 'occasional',
+        drinks_per_week: 2
+      },
+      diet_notes: 'Low-carb diet for diabetes management',
+      exercise_frequency: '3-4 times per week, moderate intensity'
+    },
+    family_health_history: [
+      {
+        id: 'fam-001',
+        relation: 'Mother',
+        conditions: ['diabetes', 'osteoporosis']
+      },
+      {
+        id: 'fam-002',
+        relation: 'Father',
+        conditions: ['hypertension', 'heart disease']
+      }
+    ],
+    dental_history: {
+      last_cleaning_date: '2024-08-15',
+      last_exam_date: '2024-09-20',
+      previous_orthodontics: true,
+      orthodontics_details: 'Braces for 2 years (2005-2007)',
+      previous_implants: false,
+      dental_anxiety_level: 'mild',
+      treatment_history_summary: [
+        {
+          id: 'treat-001',
+          date: '2024-09-20',
+          procedure: 'Routine Cleaning & Exam',
+          teeth_involved: [],
+          dentist_name: 'Dr. Emily Chen',
+          cost: 180,
+          insurance_covered: 126
+        },
+        {
+          id: 'treat-002',
+          date: '2024-06-10',
+          procedure: 'Composite Filling',
+          teeth_involved: [14, 15],
+          dentist_name: 'Dr. Emily Chen',
+          cost: 350,
+          insurance_covered: 245,
+          notes: 'Two posterior fillings completed successfully'
+        },
+        {
+          id: 'treat-003',
+          date: '2023-12-15',
+          procedure: 'Root Canal Therapy',
+          teeth_involved: [19],
+          dentist_name: 'Dr. James Wilson',
+          cost: 1200,
+          insurance_covered: 840,
+          notes: 'Root canal with crown placement'
+        }
+      ]
+    }
+  };
+};
+
+// Mock Clinical Chart generator
+const getMockClinicalChart = (patientId: string): ClinicalChart => {
+  const toothStatuses: Array<'healthy' | 'decayed' | 'filled' | 'crowned' | 'missing' | 'implant' | 'bridge' | 'root_canal'> = 
+    ['healthy', 'decayed', 'filled', 'crowned', 'missing', 'implant', 'bridge', 'root_canal'];
+  
+  const teeth = Array.from({ length: 32 }, (_, i) => {
+    const toothNumber = i + 1;
+    const hasIssue = Math.random() > 0.7; // 30% chance of having an issue
+    
+    return {
+      tooth_number: toothNumber,
+      status: hasIssue ? toothStatuses[Math.floor(Math.random() * toothStatuses.length)] : 'healthy' as const,
+      color_code: hasIssue ? '#ef4444' : '#10b981',
+      surfaces_affected: hasIssue ? ['occlusal' as const, 'mesial' as const] : [],
+      notes: hasIssue ? 'Requires attention' : undefined,
+    };
+  });
+
+  return {
+    patient_id: patientId,
+    last_updated: '2024-10-15',
+    teeth,
+    gum_health_summary: {
+      overall_health: 'good',
+      periodontal_diagnosis: 'Mild gingivitis',
+      bleeding_on_probing: true,
+      pocket_depths_average: 3.2,
+      bone_loss_detected: false,
+      notes: 'Improved from last visit',
+    },
+    treatment_plans: [
+      {
+        id: 'plan-001',
+        created_date: '2024-10-01',
+        status: 'accepted',
+        procedures: [
+          {
+            id: 'proc-001',
+            procedure_name: 'Composite Filling',
+            teeth_involved: [14, 15],
+            estimated_cost: 350,
+            estimated_duration_minutes: 60,
+            scheduled_date: '2024-11-05',
+            completed: false,
+          },
+        ],
+        total_estimated_cost: 350,
+        insurance_coverage_estimated: 245,
+        patient_responsibility: 105,
+        priority: 'necessary',
+        notes: 'Two posterior fillings required',
+      },
+      {
+        id: 'plan-002',
+        created_date: '2024-09-15',
+        status: 'proposed',
+        procedures: [
+          {
+            id: 'proc-002',
+            procedure_name: 'Crown Placement',
+            teeth_involved: [30],
+            estimated_cost: 1200,
+            estimated_duration_minutes: 90,
+            completed: false,
+          },
+        ],
+        total_estimated_cost: 1200,
+        insurance_coverage_estimated: 600,
+        patient_responsibility: 600,
+        priority: 'recommended',
+        notes: 'Tooth prepared, awaiting lab work',
+      },
+    ],
+    ai_suggestions: [
+      {
+        id: 'ai-001',
+        suggestion_type: 'prevention',
+        message: 'Early demineralization detected on tooth #19',
+        confidence_score: 78,
+        teeth_involved: [19],
+        recommended_action: 'Monitor for potential cavity development',
+        reasoning: 'AI analysis of radiographs shows early enamel changes',
+        created_date: '2024-10-15',
+      },
+    ],
+  };
+};
+
+// Mock Periodontal Records generator
+const getMockPeriodontalRecords = (patientId: string): PeriodontalRecords => {
+  const generateToothMeasurements = (): ToothMeasurement[] => {
+    return Array.from({ length: 32 }, (_, i) => {
+      const toothNumber = i + 1;
+      const healthScore = Math.random();
+      
+      // Generate 6 pocket depths (MB, B, DB, ML, L, DL)
+      const pocketDepths = Array.from({ length: 6 }, () => {
+        if (healthScore > 0.7) return Math.floor(Math.random() * 2) + 2; // 2-3mm healthy
+        if (healthScore > 0.4) return Math.floor(Math.random() * 2) + 4; // 4-5mm warning
+        return Math.floor(Math.random() * 2) + 6; // 6-7mm severe
+      });
+
+      // Generate bleeding indicators
+      const bleedingOnProbing = Array.from({ length: 6 }, () => Math.random() > 0.7);
+
+      // Generate recession measurements
+      const recessionMm = Array.from({ length: 6 }, () => 
+        Math.random() > 0.8 ? Math.floor(Math.random() * 2) + 1 : 0
+      );
+
+      // Mobility grade (0-3)
+      const mobilityGrade = healthScore < 0.3 ? Math.floor(Math.random() * 3) + 1 : 0;
+
+      // Furcation involvement (for molars)
+      const isMolar = [6, 7, 14, 15, 18, 19, 30, 31].includes(toothNumber);
+      const furcationInvolvement = isMolar && healthScore < 0.4 
+        ? (['class_i', 'class_ii', 'class_iii'] as const)[Math.floor(Math.random() * 3)]
+        : 'none';
+
+      return {
+        tooth_number: toothNumber,
+        pocket_depths: pocketDepths,
+        bleeding_on_probing: bleedingOnProbing,
+        recession_mm: recessionMm,
+        mobility_grade: mobilityGrade,
+        furcation_involvement: furcationInvolvement,
+      };
+    });
+  };
+
+  return {
+    patient_id: patientId,
+    exams: [
+      {
+        exam_id: 'perio-exam-003',
+        exam_date: '2024-10-01',
+        examiner_name: 'Dr. Sarah Miller',
+        tooth_measurements: generateToothMeasurements(),
+        overall_diagnosis: 'Mild gingivitis with localized moderate periodontitis',
+        treatment_recommendations: [
+          'Scaling and root planing in areas of deeper pockets',
+          'Improved home care with focus on flossing',
+          'Consider electric toothbrush',
+          '3-month recall for periodontal maintenance',
+        ],
+        notes: 'Patient shows improvement from last visit. Continue current treatment plan.',
+      },
+      {
+        exam_id: 'perio-exam-002',
+        exam_date: '2024-07-01',
+        examiner_name: 'Dr. Sarah Miller',
+        tooth_measurements: generateToothMeasurements(),
+        overall_diagnosis: 'Moderate periodontitis',
+        treatment_recommendations: [
+          'Deep cleaning recommended',
+          'Antibiotic therapy if needed',
+        ],
+      },
+      {
+        exam_id: 'perio-exam-001',
+        exam_date: '2024-04-01',
+        examiner_name: 'Dr. Sarah Miller',
+        tooth_measurements: generateToothMeasurements(),
+        overall_diagnosis: 'Generalized gingivitis',
+        treatment_recommendations: [
+          'Improve oral hygiene routine',
+          'Regular cleanings every 6 months',
+        ],
+      },
+    ],
+    summary: {
+      last_exam_date: '2024-10-01',
+      periodontal_status: 'mild_periodontitis',
+      average_pocket_depth: 3.2,
+      percentage_bleeding_sites: 28,
+      percentage_plaque_sites: 35,
+      teeth_at_risk: [14, 15, 19, 30],
+      recommended_treatment: 'Scaling and root planing with 3-month recall',
+      recall_interval_months: 3,
+    },
+    treatment_history: [
+      {
+        id: 'perio-treat-001',
+        treatment_date: '2024-07-15',
+        treatment_type: 'scaling_root_planing',
+        teeth_treated: [14, 15, 30, 31],
+        provider_name: 'Dr. Sarah Miller',
+        outcome_notes: 'Treatment well-tolerated. Patient advised on post-op care.',
+        follow_up_date: '2024-10-01',
+      },
+    ],
+  };
+};
+
+// Mock Administrative Documents generator
+const getMockAdminDocuments = (patientId: string): AdministrativeDocuments => {
+  return {
+    patient_id: patientId,
+    documents: [
+      {
+        id: 'doc-001',
+        document_type: 'consent_form',
+        title: 'Informed Consent for Dental Treatment',
+        status: 'signed',
+        date_issued: '2024-01-15',
+        date_signed: '2024-01-15',
+        file_url: '/documents/consent-001.pdf',
+        file_format: 'pdf',
+        signed_by: [
+          {
+            signer_name: 'John Smith',
+            signer_role: 'patient',
+            signature_date: '2024-01-15',
+          },
+        ],
+        tags: ['consent', 'required'],
+      },
+      {
+        id: 'doc-002',
+        document_type: 'treatment_plan',
+        title: 'Comprehensive Treatment Plan - Q4 2024',
+        status: 'approved',
+        date_issued: '2024-09-20',
+        date_signed: '2024-09-22',
+        file_url: '/documents/treatment-plan-002.pdf',
+        file_format: 'pdf',
+        linked_procedure: 'Multiple restorations and crown',
+        signed_by: [
+          {
+            signer_name: 'Dr. Emily Chen',
+            signer_role: 'dentist',
+            signature_date: '2024-09-20',
+          },
+          {
+            signer_name: 'John Smith',
+            signer_role: 'patient',
+            signature_date: '2024-09-22',
+          },
+        ],
+        notes: 'Estimated total cost: $2,450. Insurance coverage: 60%',
+        tags: ['treatment-plan', '2024'],
+      },
+      {
+        id: 'doc-003',
+        document_type: 'invoice',
+        title: 'Invoice #2024-0892 - Cleaning & Exam',
+        status: 'signed',
+        date_issued: '2024-08-15',
+        file_url: '/documents/invoice-003.pdf',
+        file_format: 'pdf',
+        linked_procedure: 'Routine cleaning and examination',
+        notes: 'Total: $180. Paid in full.',
+        tags: ['invoice', 'paid'],
+      },
+      {
+        id: 'doc-004',
+        document_type: 'insurance_claim',
+        title: 'Insurance Claim - Root Canal Therapy',
+        status: 'approved',
+        date_issued: '2023-12-18',
+        file_url: '/documents/claim-004.pdf',
+        file_format: 'pdf',
+        linked_procedure: 'Root canal therapy tooth #19',
+        notes: 'Claim approved. Reimbursement: $840',
+        tags: ['insurance', 'approved'],
+      },
+      {
+        id: 'doc-005',
+        document_type: 'prescription',
+        title: 'Prescription - Amoxicillin 500mg',
+        status: 'signed',
+        date_issued: '2023-12-15',
+        file_url: '/documents/rx-005.pdf',
+        file_format: 'pdf',
+        signed_by: [
+          {
+            signer_name: 'Dr. James Wilson',
+            signer_role: 'dentist',
+            signature_date: '2023-12-15',
+          },
+        ],
+        notes: 'Post-operative antibiotic coverage',
+        tags: ['prescription', 'antibiotic'],
+      },
+      {
+        id: 'doc-006',
+        document_type: 'hipaa_authorization',
+        title: 'HIPAA Privacy Authorization',
+        status: 'signed',
+        date_issued: '2024-01-15',
+        date_signed: '2024-01-15',
+        file_url: '/documents/hipaa-006.pdf',
+        file_format: 'pdf',
+        signed_by: [
+          {
+            signer_name: 'John Smith',
+            signer_role: 'patient',
+            signature_date: '2024-01-15',
+          },
+        ],
+        tags: ['hipaa', 'required'],
+      },
+      {
+        id: 'doc-007',
+        document_type: 'treatment_plan',
+        title: 'Periodontal Treatment Plan',
+        status: 'pending',
+        date_issued: '2024-10-01',
+        file_url: '/documents/perio-plan-007.pdf',
+        file_format: 'pdf',
+        linked_procedure: 'Scaling and root planing',
+        notes: 'Awaiting patient signature. Estimated cost: $800',
+        tags: ['treatment-plan', 'periodontal', 'pending'],
+      },
+    ],
+  };
+};
 
 type TabType = 'overview' | 'history' | 'charting' | 'radiographs' | 'periodontal' | 'documents';
 
@@ -236,17 +702,11 @@ function PatientRecordContent() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm"
             >
-              <div className="text-center py-16">
-                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Medical & Dental History
-                </h3>
-                <p className="text-gray-600">
-                  Coming soon: Allergies, medications, conditions, and treatment timeline
-                </p>
-              </div>
+              <MedicalHistorySection
+                patientId={patientRecord.patient_id}
+                medicalHistory={getMockMedicalHistory(patientRecord.patient_id)}
+              />
             </motion.div>
           )}
 
@@ -257,15 +717,11 @@ function PatientRecordContent() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm"
             >
-              <div className="text-center py-16">
-                <Activity className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Clinical Charting</h3>
-                <p className="text-gray-600">
-                  Coming soon: Interactive 32-tooth chart with color-coded conditions
-                </p>
-              </div>
+              <ClinicalChartingSection
+                patientId={patientRecord.patient_id}
+                clinicalChart={getMockClinicalChart(patientRecord.patient_id)}
+              />
             </motion.div>
           )}
 
@@ -276,17 +732,11 @@ function PatientRecordContent() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm"
             >
-              <div className="text-center py-16">
-                <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  X-Rays & Diagnostic Files
-                </h3>
-                <p className="text-gray-600">
-                  Coming soon: X-ray viewer with AI analysis and comparison mode
-                </p>
-              </div>
+              <RadiographicFilesSection
+                patientId={patientRecord.patient_id}
+                radiographicRecords={patientRecord.radiographic_records || []}
+              />
             </motion.div>
           )}
 
@@ -297,17 +747,11 @@ function PatientRecordContent() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm"
             >
-              <div className="text-center py-16">
-                <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Periodontal Records
-                </h3>
-                <p className="text-gray-600">
-                  Coming soon: Gum health metrics, pocket depths, and trend charts
-                </p>
-              </div>
+              <PeriodontalRecordsSection
+                patientId={patientRecord.patient_id}
+                periodontalRecords={getMockPeriodontalRecords(patientRecord.patient_id)}
+              />
             </motion.div>
           )}
 
@@ -318,17 +762,11 @@ function PatientRecordContent() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm"
             >
-              <div className="text-center py-16">
-                <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Administrative Documents
-                </h3>
-                <p className="text-gray-600">
-                  Coming soon: Consents, treatment plans, invoices, and insurance claims
-                </p>
-              </div>
+              <AdminDocumentsSection
+                patientId={patientRecord.patient_id}
+                adminDocuments={getMockAdminDocuments(patientRecord.patient_id)}
+              />
             </motion.div>
           )}
         </AnimatePresence>
