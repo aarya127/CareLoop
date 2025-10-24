@@ -102,7 +102,79 @@ npm run dev
 
 
 
-## 📖 Full Documentation### 📊 **15 Sample Patients**### Key Features
+## Vector search (local demo)
+-
+## Google Calendar integration (OAuth + two-way sync)
+
+This app includes starter endpoints and services to connect a user’s Google Calendar, list and manage events, start push notifications (watch), and handle webhooks.
+
+Environment variables (copy `.env.example` to `.env`):
+
+```
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/oauth/google/callback
+APP_BASE_URL=http://localhost:3000
+ENCRYPTION_KEY=use-a-long-random-string-here
+DATABASE_URL=postgresql://user:password@localhost:5432/careloop?schema=public
+DEMO_USER_ID=demo-user
+```
+
+Prisma setup:
+
+```bash
+npx prisma generate
+npx prisma migrate dev --name init
+```
+
+Connect Google (dev flow):
+
+```bash
+# Request an OAuth URL (returns { url })
+curl -X POST -H "x-user-id: demo-user" http://localhost:3000/api/oauth/google/start
+# Open the url in your browser, consent → it redirects back to /admin/calendar
+```
+
+Core endpoints:
+
+- GET `/api/calendar/list`
+- GET `/api/calendar/events?calendarId=primary&timeMin=...&timeMax=...`
+- POST `/api/calendar/events` (create)
+- PATCH `/api/calendar/events/:id` (update)
+- DELETE `/api/calendar/events/:id?calendarId=primary`
+- POST `/api/calendar/freebusy`
+- POST `/api/calendar/watch` and `/api/calendar/watch/stop`
+- POST `/api/calendar/webhook` (receiver for Google; configure in watch)
+
+Notes:
+- Tokens are encrypted at rest using AES-GCM with `ENCRYPTION_KEY`.
+- Default calendar is `primary`. UI can be extended to let users select which calendar to sync.
+- Store times in UTC; pass `timeZone` when creating/updating events.
+- Webhook handler acknowledges notifications; attach your sync worker to re-list with `syncToken`.
+
+
+This repo now includes a lightweight, dependency-free vector index for demo data (patients, dental records, and XRAY notes). It runs entirely locally and stores the index in `.next/cache/vector-index.json`.
+
+Build the index (once per data change):
+
+```bash
+npm run dev
+# in another tab
+curl -X POST http://localhost:3000/api/vector/build
+```
+
+Query it:
+
+```bash
+curl "http://localhost:3000/api/vector/search?q=Delta%20Dental%20crown&k=5"
+```
+
+Notes:
+- No external APIs, no keys. Embeddings are approximate (hash-based) and good for demo search only.
+- To rebuild after editing mock data, call the build endpoint again.
+- To include your external dental image dataset, add DENTAL_REC_DIR to your .env pointing at the folder (e.g., "/Users/you/Desktop/dental rec") and rebuild.
+
+## 📖 Full Documentation
 
 For a single, consolidated reference of all docs and features, see:
 

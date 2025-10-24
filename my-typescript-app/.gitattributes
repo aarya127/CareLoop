@@ -1,0 +1,31 @@
+text=*
+
+# Define text files to be treated as text
+*.txt text
+
+# Define markdown files to be treated as text
+*.md text
+
+# Define TypeScript files to be treated as text
+*.ts text
+
+# Define JSON files to be treated as text
+*.json text
+
+# Ensure that all files in the tests directory are treated as text
+tests/* text
+
+# Ensure that all files in the src directory are treated as text
+src/* text
+
+# Set end-of-line normalization for all text files
+* text=auto
+
+# Specify that certain files should have LF line endings
+*.sh eol=lf
+*.yml eol=lf
+*.yaml eol=lf
+
+# Specify that certain files should have CRLF line endings
+*.bat eol=crlf
+*.ps1 eol=crlf

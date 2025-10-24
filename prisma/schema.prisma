@@ -1,0 +1,53 @@
+// Prisma schema for CareLoop Google Calendar integration
+// Set DATABASE_URL in .env to your Postgres connection string
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String                     @id @default(cuid())
+  email     String                     @unique
+  calendars GoogleCalendarConnection[]
+}
+
+model GoogleCalendarConnection {
+  id             String   @id @default(cuid())
+  userId         String
+  provider       String   @default("google")
+  calendarId     String   // e.g., 'primary' or specific calendar id
+  accessToken    String
+  refreshToken   String
+  tokenExpiry    DateTime
+  syncToken      String?
+  resourceId     String?
+  channelId      String?
+  channelExpiry  DateTime?
+  timeZone       String
+  color          String?
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, provider, calendarId])
+}
+
+model Appointment {
+  id            String   @id @default(cuid())
+  userId        String
+  providerId    String
+  roomId        String?
+  title         String
+  notes         String?
+  start         DateTime
+  end           DateTime
+  patientId     String?
+  procedureCode String?
+  googleEventId String?
+  calendarId    String?
+  status        String   @default("confirmed")
+  extended      Json?
+}
