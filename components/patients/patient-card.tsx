@@ -61,11 +61,6 @@ export function PatientCard({
         entries.forEach((entry) => {
           if (entry.isIntersecting && !isPreloading) {
             setIsPreloading(true);
-            // Simulate preloading profile data
-            // In production, this would call API to fetch patient summary
-            setTimeout(() => {
-              console.log(`Preloaded data for patient ${patient.id}`);
-            }, 100);
           }
         });
       },

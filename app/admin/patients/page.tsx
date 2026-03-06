@@ -17,7 +17,7 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react';
-import { getAllDemoPatients, DemoPatient } from '@/lib/demo/sample-data';
+import { getAllDemoPatients } from '@/lib/demo/sample-data';
 
 type SortField = 'name' | 'age' | 'nextAppointment' | 'lastVisit';
 type SortDirection = 'asc' | 'desc';
@@ -41,8 +41,6 @@ export default function AdminPatientsPage() {
     doctors: [],
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<DemoPatient | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'dental' | 'gum'>('overview');
 
   const allPatients = getAllDemoPatients();
 
@@ -139,6 +137,10 @@ export default function AdminPatientsPage() {
     filters.requiresPreMed ||
     filters.hasBalance ||
     filters.doctors.length > 0;
+
+  const openPatientRecord = (patientId: string) => {
+    router.push(`/patient-record?id=${patientId}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -250,7 +252,11 @@ export default function AdminPatientsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredAndSortedPatients.map((patient) => (
-                  <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={patient.id}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => openPatientRecord(patient.id)}
+                  >
                     {/* Patient Info */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -333,25 +339,31 @@ export default function AdminPatientsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => router.push(`/patient-record?id=${patient.id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPatientRecord(patient.id);
+                          }}
                           className="p-2 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
                           title="View Full Dental Record"
                         >
                           <User className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={(e) => e.stopPropagation()}
                           className="p-2 text-gray-600 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors"
                           title="View Calendar"
                         >
                           <Calendar className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={(e) => e.stopPropagation()}
                           className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
                           title="Call Patient"
                         >
                           <Phone className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={(e) => e.stopPropagation()}
                           className="p-2 text-gray-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg transition-colors"
                           title="Send Message"
                         >
@@ -376,384 +388,6 @@ export default function AdminPatientsPage() {
             </div>
           )}
         </div>
-
-      {/* Patient Detail Modal */}
-      {selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-indigo-600 font-bold text-2xl">
-                  {selectedPatient.first_name.charAt(0)}
-                  {selectedPatient.last_name.charAt(0)}
-                </div>
-                <div className="text-white">
-                  <h2 className="text-2xl font-bold">
-                    {selectedPatient.first_name} {selectedPatient.last_name}
-                  </h2>
-                  <p className="text-indigo-100">
-                    {selectedPatient.age} years • DOB: {formatDate(selectedPatient.date_of_birth)}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedPatient(null)}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="px-6 border-b border-gray-200 bg-gray-50">
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => setActiveTab('overview')}
-                  className={`px-4 py-3 font-medium transition-colors ${
-                    activeTab === 'overview'
-                      ? 'text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Overview
-                </button>
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`px-4 py-3 font-medium transition-colors ${
-                    activeTab === 'history'
-                      ? 'text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Visit History
-                </button>
-                <button
-                  onClick={() => setActiveTab('dental')}
-                  className={`px-4 py-3 font-medium transition-colors ${
-                    activeTab === 'dental'
-                      ? 'text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Dental Records
-                </button>
-                <button
-                  onClick={() => setActiveTab('gum')}
-                  className={`px-4 py-3 font-medium transition-colors ${
-                    activeTab === 'gum'
-                      ? 'text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Gum Records
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {activeTab === 'overview' && (
-                <div className="space-y-6">
-                  {/* Contact Information */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Phone</p>
-                        <p className="text-gray-900 font-medium">{selectedPatient.phone}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="text-gray-900 font-medium">{selectedPatient.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Address</p>
-                        <p className="text-gray-900 font-medium">{selectedPatient.address}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Emergency Contact</p>
-                        <p className="text-gray-900 font-medium">Available on file</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Medical Information */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Medical Information</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm text-gray-500 mb-2">Primary Doctor</p>
-                        <p className="text-gray-900 font-medium">{selectedPatient.primary_doctor_name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500 mb-2">Insurance Provider</p>
-                        <p className="text-gray-900 font-medium">On file</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500 mb-2">Allergies</p>
-                        {selectedPatient.has_allergies ? (
-                          <div className="flex flex-wrap gap-2">
-                            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-                              See medical records
-                            </span>
-                          </div>
-                        ) : (
-                          <p className="text-gray-600">No known allergies</p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500 mb-2">Medical Conditions</p>
-                        <p className="text-gray-600">See medical records for details</p>
-                      </div>
-                      {selectedPatient.requires_pre_medication && (
-                        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                          <div className="flex items-start space-x-2">
-                            <Pill className="w-5 h-5 text-purple-600 mt-0.5" />
-                            <div>
-                              <p className="font-medium text-purple-900">Pre-medication Required</p>
-                              <p className="text-sm text-purple-700">Patient requires pre-medication before procedures</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Appointment Information */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Appointment Information</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Next Appointment</p>
-                        <p className="text-gray-900 font-medium">
-                          {formatDate(selectedPatient.next_appointment_date)}
-                        </p>
-                        <p className="text-sm text-gray-600">Checkup</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Last Visit</p>
-                        <p className="text-gray-900 font-medium">
-                          {formatDate(selectedPatient.last_visit_date)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Billing Information */}
-                  {selectedPatient.has_outstanding_balance && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                      <div className="flex items-start space-x-3">
-                        <DollarSign className="w-6 h-6 text-red-600 mt-0.5" />
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-red-900 mb-2">Outstanding Balance</h3>
-                          <p className="text-red-700">
-                            This patient has an outstanding balance that requires attention.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'history' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Visit History</h3>
-                  {/* Sample visit history */}
-                  {[
-                    {
-                      date: '2025-09-15',
-                      type: 'Regular Checkup',
-                      doctor: selectedPatient.primary_doctor_name,
-                      notes: 'Routine cleaning and examination. No issues found.',
-                    },
-                    {
-                      date: '2025-06-20',
-                      type: 'Cavity Filling',
-                      doctor: selectedPatient.primary_doctor_name,
-                      notes: 'Filled cavity in tooth #14. Patient tolerated procedure well.',
-                    },
-                    {
-                      date: '2025-03-10',
-                      type: 'Regular Checkup',
-                      doctor: selectedPatient.primary_doctor_name,
-                      notes: 'Routine cleaning. Recommended fluoride treatment.',
-                    },
-                  ].map((visit, idx) => (
-                    <div key={idx} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Calendar className="w-4 h-4 text-indigo-600" />
-                            <p className="font-semibold text-gray-900">{formatDate(visit.date)}</p>
-                            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
-                              {visit.type}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-1">Doctor: {visit.doctor}</p>
-                          <p className="text-sm text-gray-700">{visit.notes}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === 'dental' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Dental Records</h3>
-                  
-                  {/* Dental Chart */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">Tooth Chart</h4>
-                    <div className="grid grid-cols-8 gap-2">
-                      {Array.from({ length: 32 }, (_, i) => i + 1).map((tooth) => (
-                        <div
-                          key={tooth}
-                          className="aspect-square border-2 border-gray-300 rounded-lg flex items-center justify-center text-sm font-medium hover:border-indigo-500 cursor-pointer transition-colors"
-                        >
-                          {tooth}
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-4">
-                      Click on a tooth to view or add notes
-                    </p>
-                  </div>
-
-                  {/* Dental History */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">Treatment History</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                        <div>
-                          <p className="font-medium text-gray-900">Tooth #14 - Cavity Filling</p>
-                          <p className="text-sm text-gray-600">June 20, 2025</p>
-                        </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">Completed</span>
-                      </div>
-                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                        <div>
-                          <p className="font-medium text-gray-900">Tooth #3 - Crown Placement</p>
-                          <p className="text-sm text-gray-600">March 15, 2024</p>
-                        </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">Completed</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'gum' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Periodontal Records</h3>
-                  
-                  {/* Gum Health Status */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">Gum Health Status</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">Good</p>
-                        <p className="text-sm text-gray-600 mt-1">Overall Health</p>
-                      </div>
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <p className="text-2xl font-bold text-blue-600">2-3mm</p>
-                        <p className="text-sm text-gray-600 mt-1">Avg Pocket Depth</p>
-                      </div>
-                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                        <p className="text-2xl font-bold text-yellow-600">Mild</p>
-                        <p className="text-sm text-gray-600 mt-1">Bleeding Score</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pocket Depth Chart */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">Pocket Depth Measurements</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Upper Jaw</p>
-                        <div className="h-20 bg-gray-50 rounded flex items-end justify-around p-2">
-                          {[2, 3, 2, 3, 2, 2, 3, 2].map((depth, idx) => (
-                            <div key={idx} className="flex flex-col items-center">
-                              <div
-                                className={`w-6 rounded-t ${
-                                  depth <= 3 ? 'bg-green-400' : depth <= 5 ? 'bg-yellow-400' : 'bg-red-400'
-                                }`}
-                                style={{ height: `${depth * 8}px` }}
-                              />
-                              <span className="text-xs text-gray-600 mt-1">{depth}mm</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Lower Jaw</p>
-                        <div className="h-20 bg-gray-50 rounded flex items-end justify-around p-2">
-                          {[2, 2, 3, 2, 3, 2, 2, 3].map((depth, idx) => (
-                            <div key={idx} className="flex flex-col items-center">
-                              <div
-                                className={`w-6 rounded-t ${
-                                  depth <= 3 ? 'bg-green-400' : depth <= 5 ? 'bg-yellow-400' : 'bg-red-400'
-                                }`}
-                                style={{ height: `${depth * 8}px` }}
-                              />
-                              <span className="text-xs text-gray-600 mt-1">{depth}mm</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4 text-xs text-gray-600 mt-4">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-green-400 rounded" />
-                          <span>Healthy (1-3mm)</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-yellow-400 rounded" />
-                          <span>Mild (4-5mm)</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-red-400 rounded" />
-                          <span>Severe (6mm+)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Treatment Recommendations */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 mb-2">Recommendations</h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Continue regular brushing and flossing routine</li>
-                      <li>• Schedule cleaning every 6 months</li>
-                      <li>• Monitor areas with 3mm pockets</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                  Schedule Appointment
-                </button>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
-                  Send Message
-                </button>
-              </div>
-              <button
-                onClick={() => setSelectedPatient(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

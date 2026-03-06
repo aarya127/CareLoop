@@ -18,15 +18,16 @@ const patchSchema = z.object({
   extended: z.record(z.any()).optional(),
 });
 
-export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await ctx.params;
     const user = requireUser(req);
     const body = patchSchema.parse(await req.json());
-    const updated = await updateEvent(user.id, body.calendarId, ctx.params.id, body as any);
+    const updated = await updateEvent(user.id, body.calendarId, id, body as any);
     // Best-effort local update
     try {
       await prisma.appointment.updateMany({
-        where: { googleEventId: ctx.params.id },
+        where: { googleEventId: id },
         data: {
           title: body.title ?? undefined,
           notes: body.notes ?? undefined,
@@ -44,14 +45,15 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   }
 }
 
-export async function DELETE(req: NextRequest, ctx: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await ctx.params;
     const user = requireUser(req);
     const url = new URL(req.url);
     const calendarId = url.searchParams.get('calendarId') || 'primary';
-    await deleteEvent(user.id, calendarId, ctx.params.id);
+    await deleteEvent(user.id, calendarId, id);
     try {
-      await prisma.appointment.deleteMany({ where: { googleEventId: ctx.params.id } });
+      await prisma.appointment.deleteMany({ where: { googleEventId: id } });
     } catch {}
     return NextResponse.json({ ok: true });
   } catch (err: any) {

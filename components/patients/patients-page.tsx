@@ -1,23 +1,37 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Grid3x3, List, ChevronDown, User, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Search, Grid3x3, List, ChevronDown, X } from 'lucide-react';
 import { PatientCard, PatientCardSkeleton } from '@/components/patients/patient-card';
-import { PatientDetailsPanel } from '@/components/patients/patient-details-panel';
 import TopNavigation from '@/components/shared/top-navigation';
 import { mockPatients } from '@/lib/data/mock-patients';
 import { mockAppointments } from '@/lib/data/mock-appointments';
-import { Patient, ViewMode, SortOption } from '@/lib/types/patient';
+import { ViewMode, SortOption } from '@/lib/types/patient';
 import type { Appointment } from '@/lib/types/appointment';
 import { cn } from '@/lib/utils';
 
 export function PatientsPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortBy, setSortBy] = useState<SortOption>('last-visit');
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const toDentalRecordId = (patientId: string) => {
+    if (patientId.startsWith('demo-p-')) return patientId;
+
+    const numericId = Number.parseInt(patientId, 10);
+    if (Number.isNaN(numericId) || numericId < 1) return patientId;
+
+    return `demo-p-${String(numericId).padStart(3, '0')}`;
+  };
+
+  const openPatientRecord = (patientId: string) => {
+    const recordId = toDentalRecordId(patientId);
+    router.push(`/patient-record?id=${recordId}`);
+  };
 
   // Get patient's next appointment
   const getPatientNextAppointment = (patientId: string): Appointment | undefined => {
@@ -37,31 +51,33 @@ export function PatientsPage() {
   };
 
   // Filter and sort patients
-  const filteredPatients = mockPatients.filter((patient) => {
+  const sortedPatients = useMemo(() => {
     const query = searchQuery.toLowerCase();
-    return (
-      patient.firstName.toLowerCase().includes(query) ||
-      patient.lastName.toLowerCase().includes(query) ||
-      patient.phone.includes(query) ||
-      patient.insurance.provider.toLowerCase().includes(query)
-    );
-  });
+    const filteredPatients = mockPatients.filter((patient) => {
+      return (
+        patient.firstName.toLowerCase().includes(query) ||
+        patient.lastName.toLowerCase().includes(query) ||
+        patient.phone.includes(query) ||
+        patient.insurance.provider.toLowerCase().includes(query)
+      );
+    });
 
-  const sortedPatients = [...filteredPatients].sort((a, b) => {
-    switch (sortBy) {
-      case 'name-asc':
-        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-      case 'spend-desc':
-        return b.billing.lifetimeSpend - a.billing.lifetimeSpend;
-      case 'balance-desc':
-        return b.billing.outstandingBalance - a.billing.outstandingBalance;
-      case 'last-visit':
-      default:
-        const aDate = a.visits[0]?.date || '1900-01-01';
-        const bDate = b.visits[0]?.date || '1900-01-01';
-        return bDate.localeCompare(aDate);
-    }
-  });
+    return [...filteredPatients].sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        case 'spend-desc':
+          return b.billing.lifetimeSpend - a.billing.lifetimeSpend;
+        case 'balance-desc':
+          return b.billing.outstandingBalance - a.billing.outstandingBalance;
+        case 'last-visit':
+        default:
+          const aDate = a.visits[0]?.date || '1900-01-01';
+          const bDate = b.visits[0]?.date || '1900-01-01';
+          return bDate.localeCompare(aDate);
+      }
+    });
+  }, [searchQuery, sortBy]);
 
   const sortOptions = [
     { value: 'last-visit' as SortOption, label: 'Last Visit ↓' },
@@ -69,12 +85,6 @@ export function PatientsPage() {
     { value: 'spend-desc' as SortOption, label: 'Lifetime Spend ↓' },
     { value: 'balance-desc' as SortOption, label: 'Outstanding Balance ↓' },
   ];
-
-  const handleLogoClick = () => {
-    setSearchQuery('');
-    setSelectedPatient(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -229,8 +239,7 @@ export function PatientsPage() {
                 key={patient.id}
                 patient={patient}
                 viewMode={viewMode}
-                isSelected={selectedPatient?.id === patient.id}
-                onClick={() => setSelectedPatient(patient)}
+                onClick={() => openPatientRecord(patient.id)}
                 nextAppointment={getPatientNextAppointment(patient.id)}
                 upcomingAppointmentsCount={getUpcomingAppointmentsCount(patient.id)}
               />
@@ -238,16 +247,6 @@ export function PatientsPage() {
           </motion.div>
         )}
       </div>
-
-      {/* Details Panel */}
-      <AnimatePresence>
-        {selectedPatient && (
-          <PatientDetailsPanel
-            patient={selectedPatient}
-            onClose={() => setSelectedPatient(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -505,12 +505,9 @@ function PatientRecordContent() {
 
   useEffect(() => {
     if (patientId) {
-      // Simulate API call
-      setTimeout(() => {
-        const record = getDentalRecordById(patientId);
-        setPatientRecord(record || null);
-        setIsLoading(false);
-      }, 300);
+      const record = getDentalRecordById(patientId);
+      setPatientRecord(record || null);
+      setIsLoading(false);
     } else {
       setIsLoading(false);
     }
@@ -521,8 +518,6 @@ function PatientRecordContent() {
   };
 
   const handleUpdateProfile = async (updates: Partial<PatientProfile>) => {
-    // Simulate API update
-    console.log('Updating profile:', updates);
     if (patientRecord) {
       setPatientRecord({ ...patientRecord, ...updates });
     }
