@@ -14,6 +14,7 @@ model User {
   id        String                     @id @default(cuid())
   email     String                     @unique
   calendars GoogleCalendarConnection[]
+  appointments Appointment[]
 }
 
 model GoogleCalendarConnection {
@@ -49,5 +50,146 @@ model Appointment {
   googleEventId String?
   calendarId    String?
   status        String   @default("confirmed")
+  source        String   @default("manual")
+  createdBy     String   @default("system")
   extended      Json?
+
+  user User @relation(fields: [userId], references: [id])
+  callTranscripts CallTranscript[]
+
+  @@index([patientId, start])
+  @@index([userId, start])
+}
+
+model Patient {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime?
+  phoneE164   String?
+  patientType String   @default("existing")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  insuranceRecords PatientInsurance[]
+  transcripts      CallTranscript[]
+
+  @@index([lastName, firstName])
+}
+
+model PatientInsurance {
+  id              String   @id @default(cuid())
+  patientId       String
+  payerName       String
+  planName        String?
+  memberIdEnc     String
+  groupNumberEnc  String?
+  coverageSummary Json?
+  active          Boolean  @default(true)
+  verifiedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, active])
+}
+
+model CallTranscript {
+  id                  String   @id @default(cuid())
+  patientId           String?
+  appointmentId       String?
+  callSid             String   @unique
+  orchestrator        String
+  startedAt           DateTime
+  endedAt             DateTime?
+  fullTranscript      String?
+  transcriptEmbedding String?
+  sentimentScore      Float?
+  treatmentAcceptance Boolean?
+  handoffOccurred     Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  patient      Patient?                 @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  appointment  Appointment?             @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  segments     CallTranscriptSegment[]
+  analytics    AnalyticsResult?
+  kpiRows      PracticeKPI[]
+
+  @@index([patientId, createdAt])
+  @@index([appointmentId])
+}
+
+model CallTranscriptSegment {
+  id           Int      @id @default(autoincrement())
+  transcriptId String
+  speaker      String
+  text         String
+  startedAt    DateTime
+  endedAt      DateTime?
+  confidence   Float?
+  meta         Json?
+
+  transcript CallTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  @@index([transcriptId, startedAt])
+}
+
+model AnalyticsResult {
+  id                     String   @id @default(cuid())
+  transcriptId           String   @unique
+  sentimentScore         Int
+  satisfactionByProvider Json
+  treatmentAcceptance    Json
+  riskFlags              Json     @default("[]")
+  generatedAt            DateTime @default(now())
+
+  transcript CallTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+}
+
+model PracticeKPI {
+  id           Int      @id @default(autoincrement())
+  practiceId   String
+  kpiDate      DateTime
+  metricName   String
+  metricValue  Float
+  dimensions   Json?
+  transcriptId String?
+  createdAt    DateTime @default(now())
+
+  transcript CallTranscript? @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
+
+  @@index([practiceId, kpiDate])
+  @@index([metricName, kpiDate])
+}
+
+model AIPromptVersion {
+  id           String   @id @default(cuid())
+  practiceId   String
+  version      Int
+  systemPrompt String
+  isActive     Boolean  @default(false)
+  createdBy    String?
+  createdAt    DateTime @default(now())
+
+  @@unique([practiceId, version])
+  @@index([practiceId, isActive])
+}
+
+model AlertThreshold {
+  id                         String   @id @default(cuid())
+  practiceId                 String   @unique
+  sentimentMin               Int      @default(4)
+  escalateOnTreatmentDecline Boolean  @default(true)
+  notifyChannel              Json?
+  updatedAt                  DateTime @updatedAt
+}
+
+model RoutingPolicy {
+  id          String   @id @default(cuid())
+  practiceId  String
+  patientType String
+  mode        String
+  updatedAt   DateTime @updatedAt
+
+  @@unique([practiceId, patientType])
 }

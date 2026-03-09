@@ -145,6 +145,7 @@ const sampleActiveCalls: ActiveCall[] = [
 
 export default function AdminAIAssistantPage() {
   const [activeCalls, setActiveCalls] = useState<ActiveCall[]>(sampleActiveCalls);
+  const [manualOwners, setManualOwners] = useState<Record<string, boolean>>({});
   const [callHistory] = useState<CallRecord[]>(generateCallHistory());
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -152,6 +153,12 @@ export default function AdminAIAssistantPage() {
   const [filterAI, setFilterAI] = useState<string>('all');
   const [expandedTranscript, setExpandedTranscript] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [pipecatStatus, setPipecatStatus] = useState<{
+    reachable: boolean;
+    clientUrl: string;
+    healthUrl: string;
+  } | null>(null);
+  const [pipecatLoading, setPipecatLoading] = useState(false);
 
   const filteredCalls = callHistory.filter((call) => {
     const matchesSearch =
@@ -196,6 +203,62 @@ export default function AdminAIAssistantPage() {
     return 'bg-gray-100 text-gray-700';
   };
 
+  const overtakeCall = async (callId: string) => {
+    await fetch('/api/voice/overtake/control', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ callId, action: 'handoff.request' }),
+    });
+    await fetch('/api/voice/overtake/control', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ callId, action: 'handoff.accept' }),
+    });
+
+    setManualOwners((prev) => ({ ...prev, [callId]: true }));
+    setActiveCalls((prev) =>
+      prev.map((call) => (call.id === callId ? { ...call, isAIHandling: false } : call)),
+    );
+  };
+
+  const resumeAiControl = async (callId: string) => {
+    await fetch('/api/voice/overtake/control', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ callId, action: 'handoff.resume_ai' }),
+    });
+
+    setManualOwners((prev) => ({ ...prev, [callId]: false }));
+    setActiveCalls((prev) =>
+      prev.map((call) => (call.id === callId ? { ...call, isAIHandling: true } : call)),
+    );
+  };
+
+  const endActiveCall = async (callId: string) => {
+    await fetch('/api/voice/overtake/control', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ callId, action: 'call.end' }),
+    });
+
+    setActiveCalls((prev) => prev.filter((call) => call.id !== callId));
+  };
+
+  const checkPipecat = async () => {
+    setPipecatLoading(true);
+    try {
+      const response = await fetch('/api/voice/pipecat/status');
+      const data = await response.json();
+      setPipecatStatus({
+        reachable: Boolean(data?.reachable),
+        clientUrl: data?.clientUrl || 'http://localhost:7860/client',
+        healthUrl: data?.healthUrl || 'http://localhost:7860',
+      });
+    } finally {
+      setPipecatLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
         {/* Header */}
@@ -206,10 +269,44 @@ export default function AdminAIAssistantPage() {
               {activeCalls.length} active calls • {callHistory.length} total calls
             </p>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-            <Phone className="w-4 h-4" />
-            <span>Make Call</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={checkPipecat}
+              className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Bot className="w-4 h-4" />
+              <span>{pipecatLoading ? 'Checking...' : 'Check Pipecat'}</span>
+            </button>
+            <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+              <Phone className="w-4 h-4" />
+              <span>Make Call</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h2 className="text-lg font-semibold text-gray-900">Pipecat Local Test</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Start `pipecat-agent/bot.py`, then test voice via Pipecat WebRTC client.
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                pipecatStatus?.reachable ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+              }`}
+            >
+              {pipecatStatus?.reachable ? 'Pipecat reachable' : 'Status unknown'}
+            </span>
+            <a
+              href={pipecatStatus?.clientUrl || 'http://localhost:7860/client'}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-indigo-600 hover:text-indigo-700"
+            >
+              Open Pipecat Client
+            </a>
+            <span className="text-xs text-gray-500">Health URL: {pipecatStatus?.healthUrl || 'http://localhost:7860'}</span>
+          </div>
         </div>
 
         {/* Active Calls */}
@@ -256,10 +353,25 @@ export default function AdminAIAssistantPage() {
 
                   {/* Call Actions */}
                   <div className="flex items-center space-x-2">
-                    <button className="flex-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors">
-                      Join Call
-                    </button>
-                    <button className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition-colors">
+                    {manualOwners[call.id] ? (
+                      <button
+                        onClick={() => resumeAiControl(call.id)}
+                        className="flex-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Resume AI
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => overtakeCall(call.id)}
+                        className="flex-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Manual Overtake
+                      </button>
+                    )}
+                    <button
+                      onClick={() => endActiveCall(call.id)}
+                      className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition-colors"
+                    >
                       End Call
                     </button>
                   </div>
