@@ -9,8 +9,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:setup": "prisma migrate dev && tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
     "vector:build": "curl -X POST http://localhost:3000/api/vector/build",
     "vector:search": "curl \"http://localhost:3000/api/vector/search?q=Delta%20Dental%20crown&k=5\""
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -51,6 +60,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.14",
-    "prisma": "^5.20.0"
+    "prisma": "^5.20.0",
+    "tsx": "^4.21.0"
   }
 }
