@@ -117,8 +117,18 @@ export default function AdminCalendarPage() {
   }
 
   // Handler for Google Connect
-  function handleGoogleConnect() {
-    window.location.href = "/api/oauth/google/start";
+  async function handleGoogleConnect() {
+    const res = await fetch('/api/oauth/google/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      alert('Failed to start Google OAuth flow.');
+      return;
+    }
+    const { url } = await res.json();
+    window.location.href = url;
   }
 
   return (

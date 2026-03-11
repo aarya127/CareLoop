@@ -6,6 +6,6 @@ export async function POST(req: NextRequest) {
   const state = crypto.randomUUID();
   const url = createAuthUrl(state, !!readonly);
   const res = NextResponse.json({ url });
-  res.cookies.set('oauth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 600 });
+  res.cookies.set('oauth_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 600 });
   return res;
 }
