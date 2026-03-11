@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Phone,
   PhoneCall,
@@ -23,8 +23,15 @@ import {
   Search,
   Filter,
   X,
+  Send,
+  Mic,
+  Square,
+  Repeat,
 } from 'lucide-react';
 import { getAllDemoPatients } from '@/lib/demo/sample-data';
+import { AI_TEST_PATIENTS } from '@/ai_test/patient-random-data';
+
+const HOPE_VOICE_NAME = 'Hope';
 
 interface CallRecord {
   id: string;
@@ -144,6 +151,7 @@ const sampleActiveCalls: ActiveCall[] = [
 ];
 
 export default function AdminAIAssistantPage() {
+  const demoPatients = getAllDemoPatients();
   const [activeCalls, setActiveCalls] = useState<ActiveCall[]>(sampleActiveCalls);
   const [manualOwners, setManualOwners] = useState<Record<string, boolean>>({});
   const [callHistory] = useState<CallRecord[]>(generateCallHistory());
@@ -153,12 +161,30 @@ export default function AdminAIAssistantPage() {
   const [filterAI, setFilterAI] = useState<string>('all');
   const [expandedTranscript, setExpandedTranscript] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [qaPatientId, setQaPatientId] = useState<string>('demo-p-001');
+  const [qaQuestion, setQaQuestion] = useState<string>('When can I get my next check-up?');
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaError, setQaError] = useState<string | null>(null);
+  const [qaAnswer, setQaAnswer] = useState<string>('');
+  const [qaIntent, setQaIntent] = useState<string | null>(null);
+  const [qaAvailability, setQaAvailability] = useState<Array<{ start: string; end: string }>>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [continuousMode, setContinuousMode] = useState(true);
+  const [pipecatLoading, setPipecatLoading] = useState(false);
   const [pipecatStatus, setPipecatStatus] = useState<{
     reachable: boolean;
     clientUrl: string;
     healthUrl: string;
   } | null>(null);
-  const [pipecatLoading, setPipecatLoading] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const qaPatientIdRef = useRef<string>(qaPatientId);
+
+  useEffect(() => {
+    qaPatientIdRef.current = qaPatientId;
+  }, [qaPatientId]);
+  
 
   const filteredCalls = callHistory.filter((call) => {
     const matchesSearch =
@@ -259,6 +285,170 @@ export default function AdminAIAssistantPage() {
     }
   };
 
+  const playElevenlabsSample = async () => {
+    try {
+      const response = await fetch('/api/voice/elevenlabs/tts', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          text: "The first move is what sets everything in motion.",
+          voiceName: HOPE_VOICE_NAME,
+          modelId: 'eleven_multilingual_v2',
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        console.error('TTS error', err);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const playAudioBase64 = async (audioBase64: string, mimeType = 'audio/mpeg') => {
+    const binary = atob(audioBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    await audio.play();
+  };
+
+  const askVoiceAssistant = async (questionOverride?: string, opts?: { autoListenAfterResponse?: boolean }) => {
+    const questionText = (questionOverride ?? qaQuestion).trim();
+    const selectedPatientId = questionOverride ? qaPatientIdRef.current : qaPatientId;
+    if (!questionText) return;
+
+    setQaQuestion(questionText);
+
+    setQaLoading(true);
+    setQaError(null);
+    try {
+      const response = await fetch('/api/voice/elevenlabs/assistant', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          // Provide a demo user id so server routes that require user context can run in local demo mode.
+          'x-user-id': 'demo-user',
+        },
+        body: JSON.stringify({
+          question: questionText,
+          patientId: selectedPatientId || undefined,
+          includeVoice: true,
+          voiceName: HOPE_VOICE_NAME,
+          modelId: 'eleven_multilingual_v2',
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || 'Assistant request failed');
+      }
+
+      setQaAnswer(data.answer || 'No answer returned.');
+      setQaIntent(data.intent || null);
+      setQaAvailability(Array.isArray(data.availability) ? data.availability : []);
+
+      if (data.audioBase64) {
+        await playAudioBase64(data.audioBase64, data.audioMimeType || 'audio/mpeg');
+      }
+    } catch (error: any) {
+      setQaError(error?.message || 'Failed to ask assistant');
+    } finally {
+      setQaLoading(false);
+      if (opts?.autoListenAfterResponse && speechSupported) {
+        setTimeout(() => {
+          if (!qaLoading) {
+            startListening();
+          }
+        }, 300);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const BrowserSpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!BrowserSpeechRecognition) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    setSpeechSupported(true);
+    const recognition = new BrowserSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      let finalText = '';
+      let interimText = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const text = event.results[i][0]?.transcript || '';
+        if (event.results[i].isFinal) {
+          finalText += `${text} `;
+        } else {
+          interimText += `${text} `;
+        }
+      }
+
+      const mergedText = `${finalText}${interimText}`.trim();
+      if (mergedText) {
+        setLiveTranscript(mergedText);
+        setQaQuestion(mergedText);
+      }
+
+      if (finalText.trim()) {
+        setIsListening(false);
+        askVoiceAssistant(finalText.trim(), { autoListenAfterResponse: continuousMode });
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setQaError('Speech recognition failed. Please try again or type your question.');
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      try {
+        recognition.stop();
+      } catch {
+        // no-op
+      }
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  const startListening = () => {
+    if (!recognitionRef.current || qaLoading) return;
+    setQaError(null);
+    setLiveTranscript('');
+    setIsListening(true);
+    recognitionRef.current.start();
+  };
+
+  const stopListening = () => {
+    if (!recognitionRef.current) return;
+    recognitionRef.current.stop();
+    setIsListening(false);
+  };
+
   return (
     <div className="space-y-6">
         {/* Header */}
@@ -271,11 +461,11 @@ export default function AdminAIAssistantPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={checkPipecat}
+              onClick={playElevenlabsSample}
               className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <Bot className="w-4 h-4" />
-              <span>{pipecatLoading ? 'Checking...' : 'Check Pipecat'}</span>
+              <Play className="w-4 h-4" />
+              <span>Play ElevenLabs Sample</span>
             </button>
             <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
               <Phone className="w-4 h-4" />
@@ -284,30 +474,111 @@ export default function AdminAIAssistantPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h2 className="text-lg font-semibold text-gray-900">Pipecat Local Test</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Start `pipecat-agent/bot.py`, then test voice via Pipecat WebRTC client.
-          </p>
-          <div className="mt-3 flex items-center gap-3">
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                pipecatStatus?.reachable ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+        <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">ElevenLabs Dental Assistant</h2>
+              <p className="text-sm text-gray-600">Talk or type questions about check-ups, next availability, and available patient records. Voice replies use Hope.</p>
+            </div>
+            <button
+              onClick={checkPipecat}
+              disabled={pipecatLoading}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-60"
+            >
+              {pipecatLoading ? 'Checking Voice Bridge...' : 'Check Voice Bridge'}
+            </button>
+          </div>
+
+          {pipecatStatus && (
+            <p className="text-xs text-gray-500">
+              Voice bridge: {pipecatStatus.reachable ? 'reachable' : 'unreachable'} ({pipecatStatus.healthUrl})
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <select
+              value={qaPatientId}
+              onChange={(e) => setQaPatientId(e.target.value)}
+              className="md:col-span-1 px-3 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="">No patient selected (uses ai_test default)</option>
+              {demoPatients.map((patient) => (
+                <option key={patient.id} value={patient.id}>
+                  {patient.first_name} {patient.last_name} ({patient.id})
+                </option>
+              ))}
+              {AI_TEST_PATIENTS.map((patient) => (
+                <option key={patient.id} value={patient.id}>
+                  {patient.firstName} {patient.lastName} ({patient.id}) [ai_test]
+                </option>
+              ))}
+            </select>
+
+            <input
+              value={qaQuestion}
+              onChange={(e) => setQaQuestion(e.target.value)}
+              className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Ask: When is my next check-up?"
+            />
+
+            <button
+              onClick={askVoiceAssistant}
+              disabled={qaLoading}
+              className="md:col-span-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
+            >
+              <Send className="w-4 h-4" />
+              <span>{qaLoading ? 'Asking...' : 'Ask Assistant'}</span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={isListening ? stopListening : startListening}
+              disabled={!speechSupported || qaLoading}
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 ${
+                isListening ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'
               }`}
             >
-              {pipecatStatus?.reachable ? 'Pipecat reachable' : 'Status unknown'}
-            </span>
-            <a
-              href={pipecatStatus?.clientUrl || 'http://localhost:7860/client'}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-600 hover:text-indigo-700"
+              {isListening ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              <span>{isListening ? 'Stop Talking' : 'Talk To AI'}</span>
+            </button>
+            {!speechSupported && (
+              <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                Browser speech recognition is not supported here. You can still type questions.
+              </span>
+            )}
+            <span className="text-xs text-gray-500">Voice: {HOPE_VOICE_NAME}</span>
+            <button
+              onClick={() => setContinuousMode((prev) => !prev)}
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                continuousMode ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
-              Open Pipecat Client
-            </a>
-            <span className="text-xs text-gray-500">Health URL: {pipecatStatus?.healthUrl || 'http://localhost:7860'}</span>
+              <Repeat className="w-3 h-3" />
+              <span>{continuousMode ? 'Continuous Mode: ON' : 'Continuous Mode: OFF'}</span>
+            </button>
           </div>
+
+          {isListening && (
+            <p className="text-sm text-emerald-700">Listening... {liveTranscript ? `"${liveTranscript}"` : 'speak now'}</p>
+          )}
+
+          {qaError && <p className="text-sm text-red-600">{qaError}</p>}
+
+          {qaAnswer && (
+            <div className="rounded-lg border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">
+              <p className="text-xs uppercase tracking-wide text-indigo-700">Intent: {qaIntent || 'unknown'}</p>
+              <p className="text-sm text-gray-800">{qaAnswer}</p>
+              {qaAvailability.length > 0 && (
+                <p className="text-xs text-gray-600">
+                  Next open slots: {qaAvailability.map((slot) => new Date(slot.start).toLocaleString()).join(' | ')}
+                </p>
+              )}
+            </div>
+          )}
         </div>
+
+        
 
         {/* Active Calls */}
         {activeCalls.length > 0 && (
