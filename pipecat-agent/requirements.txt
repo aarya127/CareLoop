@@ -1,3 +1,0 @@
-pipecat-ai[webrtc,daily,silero,deepgram,openai,cartesia,runner]
-python-dotenv
-loguru

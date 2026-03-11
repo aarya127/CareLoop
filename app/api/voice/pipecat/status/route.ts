@@ -34,7 +34,6 @@ export async function GET() {
       reachable: false,
       clientUrl,
       healthUrl,
-      hint: "Start Pipecat locally from /pipecat-agent with python bot.py",
     });
   }
 }

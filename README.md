@@ -44,32 +44,7 @@ npm run dev
 
 Open: http://localhost:3000
 
-## Pipecat Voice AI (Local Test)
-
-CareLoop includes a local Pipecat test harness in `pipecat-agent/`.
-
-1. Configure and start the Pipecat bot:
-
-```bash
-cd pipecat-agent
-cp .env.example .env
-# Fill DEEPGRAM_API_KEY, OPENAI_API_KEY, CARTESIA_API_KEY
-python bot.py
-```
-
-2. (Optional) Add these values to CareLoop `.env`:
-
-```env
-PIPECAT_BASE_URL=http://localhost:7860
-PIPECAT_HEALTH_URL=http://localhost:7860
-PIPECAT_CLIENT_URL=http://localhost:7860/client
-```
-
-3. In CareLoop, open `Admin -> AI Assistant` and use the **Pipecat Local Test** panel:
-- `Check Pipecat` verifies local reachability
-- `Open Pipecat Client` launches the Pipecat WebRTC client
-
-Integration guide: `docs/pipecat-integration.md`
+<!-- Pipecat Local Test instructions removed -->
 
 ## Production
 ```bash
