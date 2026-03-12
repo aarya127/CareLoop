@@ -1,4 +1,5 @@
-// Prisma schema for CareLoop Google Calendar integration
+// Prisma schema for CareLoop
+// Multi-tenant dental practice management with availability computation
 // Set DATABASE_URL in .env to your Postgres connection string
 
 datasource db {
@@ -10,59 +11,61 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ============================================================================
+// MULTI-TENANCY: Practice (root entity for all data)
+// ============================================================================
+
+model Practice {
+  id                String                    @id @default(cuid())
+  name              String
+  address           String?
+  timeZone          String                    @default("America/New_York")
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  users             User[]
+  patients          Patient[]
+  appointments      Appointment[]
+  providers         Provider[]
+  rooms             Room[]
+  providerSchedules ProviderSchedule[]
+  availabilityBlocks AvailabilityBlock[]
+  appointmentHolds  AppointmentHold[]
+  googleConnections GoogleCalendarConnection[]
+  callTranscripts   CallTranscript[]
+  practiceKpis      PracticeKPI[]
+  conversations     Conversation[]
+  promptVersions    AIPromptVersion[]
+  alertThresholds   AlertThreshold[]
+  routingPolicies   RoutingPolicy[]
+
+  @@index([name])
+}
+
+// ============================================================================
+// USER & AUTH (scoped to Practice)
+// ============================================================================
+
 model User {
   id        String                     @id @default(cuid())
   email     String                     @unique
+  practiceId String
   calendars GoogleCalendarConnection[]
   appointments Appointment[]
+  participants Participant[]
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId])
 }
 
-model GoogleCalendarConnection {
-  id             String   @id @default(cuid())
-  userId         String
-  provider       String   @default("google")
-  calendarId     String   // e.g., 'primary' or specific calendar id
-  accessToken    String
-  refreshToken   String
-  tokenExpiry    DateTime
-  syncToken      String?
-  resourceId     String?
-  channelId      String?
-  channelExpiry  DateTime?
-  timeZone       String
-  color          String?
-  user           User     @relation(fields: [userId], references: [id])
-
-  @@unique([userId, provider, calendarId])
-}
-
-model Appointment {
-  id            String   @id @default(cuid())
-  userId        String
-  providerId    String
-  roomId        String?
-  title         String
-  notes         String?
-  start         DateTime
-  end           DateTime
-  patientId     String?
-  procedureCode String?
-  googleEventId String?
-  calendarId    String?
-  status        String   @default("confirmed")
-  source        String   @default("manual")
-  createdBy     String   @default("system")
-  extended      Json?
-
-  user User @relation(fields: [userId], references: [id])
-  callTranscripts CallTranscript[]
-
-  @@index([patientId, start])
-  @@index([userId, start])
-}
+// ============================================================================
+// PATIENTS & INSURANCE (scoped to Practice)
+// ============================================================================
 
 model Patient {
   id          String   @id @default(cuid())
+  practiceId  String
   firstName   String
   lastName    String
   dateOfBirth DateTime?
@@ -71,10 +74,13 @@ model Patient {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  practice         Practice           @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   insuranceRecords PatientInsurance[]
   transcripts      CallTranscript[]
+  participants     Participant[]
 
-  @@index([lastName, firstName])
+  @@index([practiceId, lastName, firstName])
+  @@unique([practiceId, phoneE164])
 }
 
 model PatientInsurance {
@@ -94,8 +100,188 @@ model PatientInsurance {
   @@index([patientId, active])
 }
 
+// ============================================================================
+// PROVIDERS & ROOMS (scoped to Practice)
+// ============================================================================
+
+model Provider {
+  id        String   @id @default(cuid())
+  practiceId String
+  name      String
+  license   String?
+  specialty String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  practice         Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  appointments     Appointment[]
+  schedules        ProviderSchedule[]
+  availabilityBlocks AvailabilityBlock[]
+  holds            AppointmentHold[]
+
+  @@unique([practiceId, name])
+  @@index([practiceId, isActive])
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  practiceId String
+  name      String
+  capacity  Int      @default(1)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  practice            Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  appointments        Appointment[]
+  availabilityBlocks  AvailabilityBlock[]
+  appointmentHolds    AppointmentHold[]
+
+  @@unique([practiceId, name])
+  @@index([practiceId, isActive])
+}
+
+// ============================================================================
+// APPOINTMENTS (scoped to Practice)
+// ============================================================================
+
+model Appointment {
+  id            String   @id @default(cuid())
+  practiceId    String
+  userId        String
+  providerId    String
+  roomId        String?
+  title         String
+  notes         String?
+  start         DateTime
+  end           DateTime
+  timeZone      String   @default("America/New_York")
+  patientId     String?
+  procedureCode String?
+  googleEventId String?
+  calendarId    String?
+  status        String   @default("confirmed")
+  source        String   @default("manual")
+  createdBy     String   @default("system")
+  extended      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  room            Room?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  callTranscripts CallTranscript[]
+
+  @@index([practiceId, patientId, start])
+  @@index([practiceId, userId, start])
+  @@index([practiceId, providerId, start])
+  @@unique([practiceId, calendarId, googleEventId])
+}
+
+// ============================================================================
+// GOOGLE CALENDAR INTEGRATION (scoped to Practice)
+// ============================================================================
+
+model GoogleCalendarConnection {
+  id             String   @id @default(cuid())
+  practiceId     String
+  userId         String
+  provider       String   @default("google")
+  calendarId     String
+  accessToken    String
+  refreshToken   String
+  tokenExpiry    DateTime
+  syncToken      String?
+  resourceId     String?
+  channelId      String?
+  channelExpiry  DateTime?
+  timeZone       String
+  color          String?
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, userId, provider, calendarId])
+  @@index([practiceId])
+}
+
+// ============================================================================
+// AVAILABILITY MODELS (scoped to Practice)
+// ============================================================================
+
+model ProviderSchedule {
+  id         String   @id @default(cuid())
+  practiceId String
+  providerId String
+  dayOfWeek  Int
+  startMin   Int
+  endMin     Int
+  effectiveFrom DateTime?
+  effectiveTo DateTime?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  provider  Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, dayOfWeek, startMin, endMin, effectiveFrom])
+  @@index([practiceId, providerId])
+  @@index([providerId, dayOfWeek])
+}
+
+model AvailabilityBlock {
+  id         String   @id @default(cuid())
+  practiceId String
+  providerId String?
+  roomId     String?
+  start      DateTime
+  end        DateTime
+  reason     String
+  source     String   @default("manual")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  practice  Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  provider  Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  room      Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, start, end])
+  @@index([providerId, start, end])
+  @@index([roomId, start, end])
+}
+
+model AppointmentHold {
+  id         String   @id @default(cuid())
+  practiceId String
+  providerId String?
+  roomId     String?
+  start      DateTime
+  end        DateTime
+  patientId  String?
+  expiresAt  DateTime
+  createdBy  String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  practice  Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  provider  Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  room      Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, start, end, expiresAt])
+  @@index([providerId, start, end])
+}
+
+// ============================================================================
+// CALLS & TRANSCRIPTS (scoped to Practice)
+// ============================================================================
+
 model CallTranscript {
   id                  String   @id @default(cuid())
+  practiceId          String
   patientId           String?
   appointmentId       String?
   callSid             String   @unique
@@ -109,14 +295,15 @@ model CallTranscript {
   handoffOccurred     Boolean  @default(false)
   createdAt           DateTime @default(now())
 
-  patient      Patient?                 @relation(fields: [patientId], references: [id], onDelete: SetNull)
-  appointment  Appointment?             @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  practice     Practice              @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient      Patient?              @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  appointment  Appointment?          @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   segments     CallTranscriptSegment[]
   analytics    AnalyticsResult?
   kpiRows      PracticeKPI[]
 
-  @@index([patientId, createdAt])
-  @@index([appointmentId])
+  @@index([practiceId, patientId, createdAt])
+  @@index([practiceId, appointmentId])
 }
 
 model CallTranscriptSegment {
@@ -133,6 +320,10 @@ model CallTranscriptSegment {
 
   @@index([transcriptId, startedAt])
 }
+
+// ============================================================================
+// ANALYTICS (scoped to Practice)
+// ============================================================================
 
 model AnalyticsResult {
   id                     String   @id @default(cuid())
@@ -156,11 +347,16 @@ model PracticeKPI {
   transcriptId String?
   createdAt    DateTime @default(now())
 
+  practice   Practice       @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   transcript CallTranscript? @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
 
   @@index([practiceId, kpiDate])
   @@index([metricName, kpiDate])
 }
+
+// ============================================================================
+// AI & ROUTING (scoped to Practice)
+// ============================================================================
 
 model AIPromptVersion {
   id           String   @id @default(cuid())
@@ -170,6 +366,8 @@ model AIPromptVersion {
   isActive     Boolean  @default(false)
   createdBy    String?
   createdAt    DateTime @default(now())
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   @@unique([practiceId, version])
   @@index([practiceId, isActive])
@@ -182,6 +380,8 @@ model AlertThreshold {
   escalateOnTreatmentDecline Boolean  @default(true)
   notifyChannel              Json?
   updatedAt                  DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 }
 
 model RoutingPolicy {
@@ -191,5 +391,50 @@ model RoutingPolicy {
   mode        String
   updatedAt   DateTime @updatedAt
 
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
   @@unique([practiceId, patientType])
+}
+
+// ============================================================================
+// MESSAGING (scoped to Practice) - FUTURE
+// ============================================================================
+
+model Conversation {
+  id         String   @id @default(cuid())
+  practiceId String
+  participants Participant[]
+  messages   Message[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, updatedAt])
+}
+
+model Participant {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String?
+  patientId      String?
+  joinedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  patient      Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  sentAt         DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sentAt])
 }

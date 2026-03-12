@@ -10,20 +10,120 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  // ── 1. Demo user ──────────────────────────────────────────────────────────
+  // ── 0. Practice (root tenancy) ────────────────────────────────────────────
+  const practice = await prisma.practice.upsert({
+    where: { id: 'demo-practice' },
+    update: {},
+    create: {
+      id: 'demo-practice',
+      name: 'Demo Dental Practice',
+      address: '123 Main St, Springfield',
+      timeZone: 'America/New_York',
+    },
+  });
+
+  // ── 1. Users ──────────────────────────────────────────────────────────────
   const user = await prisma.user.upsert({
     where: { email: 'demo@careloop.dev' },
     update: {},
     create: {
       id: 'demo-user',
       email: 'demo@careloop.dev',
+      practiceId: practice.id,
     },
   });
 
-  // ── 2. Patients ───────────────────────────────────────────────────────────
+  // ── 2. Providers ──────────────────────────────────────────────────────────
+  const providers = await Promise.all([
+    prisma.provider.upsert({
+      where: { practiceId_name: { practiceId: practice.id, name: 'Dr. Smith' } },
+      update: {},
+      create: {
+        practiceId: practice.id,
+        name: 'Dr. Smith',
+        specialty: 'General Dentistry',
+        isActive: true,
+      },
+    }),
+    prisma.provider.upsert({
+      where: { practiceId_name: { practiceId: practice.id, name: 'Dr. Jones' } },
+      update: {},
+      create: {
+        practiceId: practice.id,
+        name: 'Dr. Jones',
+        specialty: 'Orthodontics',
+        isActive: true,
+      },
+    }),
+  ]);
+
+  // ── 3. Rooms ──────────────────────────────────────────────────────────────
+  const rooms = await Promise.all([
+    prisma.room.upsert({
+      where: { practiceId_name: { practiceId: practice.id, name: 'Room A' } },
+      update: {},
+      create: {
+        practiceId: practice.id,
+        name: 'Room A',
+        capacity: 1,
+      },
+    }),
+    prisma.room.upsert({
+      where: { practiceId_name: { practiceId: practice.id, name: 'Room B' } },
+      update: {},
+      create: {
+        practiceId: practice.id,
+        name: 'Room B',
+        capacity: 1,
+      },
+    }),
+  ]);
+
+  // ── 4. Provider schedules (Mon-Fri 9 AM-5 PM) ────────────────────────────
+  const weekdays = [1, 2, 3, 4, 5]; // Mon-Fri
+  for (const provider of providers) {
+    for (const day of weekdays) {
+      await prisma.providerSchedule.upsert({
+        where: {
+          providerId_dayOfWeek_startMin_endMin_effectiveFrom: {
+            providerId: provider.id,
+            dayOfWeek: day,
+            startMin: 9 * 60,
+            endMin: 17 * 60,
+            effectiveFrom: null,
+          },
+        },
+        update: {},
+        create: {
+          practiceId: practice.id,
+          providerId: provider.id,
+          dayOfWeek: day,
+          startMin: 9 * 60,
+          endMin: 17 * 60,
+        },
+      });
+    }
+  }
+
+  // ── 5. Availability block (lunch) ────────────────────────────────────────
+  const now = new Date();
+  await prisma.availabilityBlock.create({
+    data: {
+      practiceId: practice.id,
+      providerId: null,
+      roomId: null,
+      start: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0),
+      end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 0, 0, 0),
+      reason: 'Lunch Block',
+      source: 'manual',
+    },
+  });
+
+  // ── 6. Patients ───────────────────────────────────────────────────────────
   const patientDefs = [
     {
       id: 'patient-1',
+      practiceId: practice.id,
       firstName: 'Alice',
       lastName: 'Johnson',
       dateOfBirth: new Date('1985-03-14'),
@@ -32,6 +132,7 @@ async function main() {
     },
     {
       id: 'patient-2',
+      practiceId: practice.id,
       firstName: 'Bob',
       lastName: 'Martinez',
       dateOfBirth: new Date('1972-07-22'),
@@ -40,6 +141,7 @@ async function main() {
     },
     {
       id: 'patient-3',
+      practiceId: practice.id,
       firstName: 'Carol',
       lastName: 'Smith',
       dateOfBirth: new Date('1993-11-05'),
@@ -54,7 +156,7 @@ async function main() {
     )
   );
 
-  // ── 3. Patient insurance ──────────────────────────────────────────────────
+  // ── 7. Patient insurance ──────────────────────────────────────────────────
   await prisma.patientInsurance.upsert({
     where: { id: 'ins-1' },
     update: {},
@@ -85,15 +187,16 @@ async function main() {
     },
   });
 
-  // ── 4. Appointments ───────────────────────────────────────────────────────
-  const now = new Date();
+  // ── 8. Appointments ───────────────────────────────────────────────────────
   const h = (n: number) => new Date(now.getTime() + n * 60 * 60 * 1000);
 
   const apptDefs = [
     {
       id: 'appt-1',
+      practiceId: practice.id,
       userId: user.id,
-      providerId: 'provider-1',
+      providerId: providers[0].id,
+      roomId: rooms[0].id,
       title: 'Routine Exam: Alice Johnson',
       start: h(1),
       end: h(1.5),
@@ -104,8 +207,10 @@ async function main() {
     },
     {
       id: 'appt-2',
+      practiceId: practice.id,
       userId: user.id,
-      providerId: 'provider-1',
+      providerId: providers[0].id,
+      roomId: rooms[1].id,
       title: 'Crown Prep: Bob Martinez',
       start: h(3),
       end: h(4.5),
@@ -116,8 +221,10 @@ async function main() {
     },
     {
       id: 'appt-3',
+      practiceId: practice.id,
       userId: user.id,
-      providerId: 'provider-2',
+      providerId: providers[1].id,
+      roomId: rooms[0].id,
       title: 'New Patient Exam: Carol Smith',
       start: h(6),
       end: h(7),
@@ -134,12 +241,12 @@ async function main() {
     )
   );
 
-  // ── 5. AI prompt version ──────────────────────────────────────────────────
+  // ── 9. AI prompt version ──────────────────────────────────────────────────
   await prisma.aIPromptVersion.upsert({
-    where: { practiceId_version: { practiceId: 'demo-practice', version: 1 } },
+    where: { practiceId_version: { practiceId: practice.id, version: 1 } },
     update: {},
     create: {
-      practiceId: 'demo-practice',
+      practiceId: practice.id,
       version: 1,
       systemPrompt:
         'You are a helpful dental office AI assistant. Be concise, professional, and HIPAA-aware. Never reveal protected health information to unauthorized callers.',
@@ -148,19 +255,19 @@ async function main() {
     },
   });
 
-  // ── 6. Alert threshold ────────────────────────────────────────────────────
+  // ── 10. Alert threshold ───────────────────────────────────────────────────
   await prisma.alertThreshold.upsert({
-    where: { practiceId: 'demo-practice' },
+    where: { practiceId: practice.id },
     update: {},
     create: {
-      practiceId: 'demo-practice',
+      practiceId: practice.id,
       sentimentMin: 4,
       escalateOnTreatmentDecline: true,
       notifyChannel: { type: 'slack', webhookEnvVar: 'SLACK_WEBHOOK_URL' },
     },
   });
 
-  // ── 7. Routing policies ───────────────────────────────────────────────────
+  // ── 11. Routing policies ──────────────────────────────────────────────────
   const policies = [
     { patientType: 'new', mode: 'ai_first' },
     { patientType: 'existing', mode: 'human_first' },
@@ -169,18 +276,16 @@ async function main() {
   await Promise.all(
     policies.map((p) =>
       prisma.routingPolicy.upsert({
-        where: { practiceId_patientType: { practiceId: 'demo-practice', patientType: p.patientType } },
+        where: { practiceId_patientType: { practiceId: practice.id, patientType: p.patientType } },
         update: {},
-        create: { practiceId: 'demo-practice', ...p },
+        create: { practiceId: practice.id, ...p },
       })
     )
   );
 
-  // ── 8. Practice KPIs (last 7 days, daily) ────────────────────────────────
-  // PracticeKPI uses an auto-increment Int PK, so we guard with a count check
-  // to keep the seed idempotent rather than using upsert.
+  // ── 12. Practice KPIs (last 7 days, daily) ────────────────────────────────
   const existingKpiCount = await prisma.practiceKPI.count({
-    where: { practiceId: 'demo-practice' },
+    where: { practiceId: practice.id },
   });
 
   let kpiRowCount = existingKpiCount;
@@ -197,10 +302,9 @@ async function main() {
       kpiDate.setHours(0, 0, 0, 0);
       for (const m of kpiMetrics) {
         kpiRows.push({
-          practiceId: 'demo-practice',
+          practiceId: practice.id,
           kpiDate,
           metricName: m.metricName,
-          // slight daily variation so charts look realistic
           metricValue: parseFloat((m.base * (0.9 + Math.random() * 0.2)).toFixed(4)),
           dimensions: { source: 'seed' },
         });
@@ -212,7 +316,10 @@ async function main() {
 
   // ── Summary ───────────────────────────────────────────────────────────────
   console.log('✅  Seed complete');
+  console.log(`    Practice:     ${practice.name}`);
   console.log(`    Users:        1  (${user.email})`);
+  console.log(`    Providers:    ${providers.length}`);
+  console.log(`    Rooms:        ${rooms.length}`);
   console.log(`    Patients:     ${patients.length}`);
   console.log(`    Appointments: ${appointments.length}`);
   console.log(`    KPI rows:     ${kpiRowCount}`);
