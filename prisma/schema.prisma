@@ -147,7 +147,7 @@ model Room {
 // ============================================================================
 
 model Appointment {
-  id            String   @id @default(cuid())
+  id            String            @id @default(cuid())
   practiceId    String
   userId        String
   providerId    String
@@ -156,17 +156,17 @@ model Appointment {
   notes         String?
   start         DateTime
   end           DateTime
-  timeZone      String   @default("America/New_York")
+  timeZone      String            @default("America/New_York")
   patientId     String?
   procedureCode String?
   googleEventId String?
   calendarId    String?
-  status        String   @default("confirmed")
-  source        String   @default("manual")
-  createdBy     String   @default("system")
+  status        String            @default("confirmed")
+  source        String            @default("manual")
+  createdBy     String            @default("system")
   extended      Json?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)

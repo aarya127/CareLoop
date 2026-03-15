@@ -83,25 +83,27 @@ async function main() {
   const weekdays = [1, 2, 3, 4, 5]; // Mon-Fri
   for (const provider of providers) {
     for (const day of weekdays) {
-      await prisma.providerSchedule.upsert({
+      // Use find/create to avoid composite unique with nullable `effectiveFrom`
+      const existing = await prisma.providerSchedule.findFirst({
         where: {
-          providerId_dayOfWeek_startMin_endMin_effectiveFrom: {
-            providerId: provider.id,
-            dayOfWeek: day,
-            startMin: 9 * 60,
-            endMin: 17 * 60,
-            effectiveFrom: null,
-          },
-        },
-        update: {},
-        create: {
-          practiceId: practice.id,
           providerId: provider.id,
           dayOfWeek: day,
           startMin: 9 * 60,
           endMin: 17 * 60,
+          effectiveFrom: null,
         },
       });
+      if (!existing) {
+        await prisma.providerSchedule.create({
+          data: {
+            practiceId: practice.id,
+            providerId: provider.id,
+            dayOfWeek: day,
+            startMin: 9 * 60,
+            endMin: 17 * 60,
+          },
+        });
+      }
     }
   }
 
@@ -230,14 +232,14 @@ async function main() {
       end: h(7),
       patientId: 'patient-3',
       procedureCode: 'D0150',
-      status: 'confirmed',
+      status: 'scheduled',
       source: 'ai_booked',
     },
   ];
 
   const appointments = await Promise.all(
     apptDefs.map((a) =>
-      prisma.appointment.upsert({ where: { id: a.id }, update: {}, create: a })
+      prisma.appointment.upsert({ where: { id: a.id }, update: {}, create: a as any })
     )
   );
 

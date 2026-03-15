@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/server';
 import { updateEvent, deleteEvent } from '@/lib/google/calendar';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
+import { AppointmentStatus } from '@prisma/client';
 
 const patchSchema = z.object({
   calendarId: z.string().default('primary'),
@@ -15,6 +16,7 @@ const patchSchema = z.object({
   procedureCode: z.string().optional(),
   providerId: z.string().optional(),
   roomId: z.string().optional(),
+  status: z.nativeEnum(AppointmentStatus).optional(),
   extended: z.record(z.any()).optional(),
 });
 
@@ -27,7 +29,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     // Best-effort local update
     try {
       await prisma.appointment.updateMany({
-        where: { googleEventId: id },
+        where: { googleEventId: id, practiceId: user.practiceId },
         data: {
           title: body.title ?? undefined,
           notes: body.notes ?? undefined,
@@ -35,6 +37,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
           end: body.end ? new Date(body.end) : undefined,
           procedureCode: body.procedureCode ?? undefined,
           roomId: body.roomId ?? undefined,
+          status: body.status ?? undefined,
           extended: body.extended as any,
         },
       });
@@ -53,7 +56,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     const calendarId = url.searchParams.get('calendarId') || 'primary';
     await deleteEvent(user.id, calendarId, id);
     try {
-      await prisma.appointment.deleteMany({ where: { googleEventId: id } });
+      await prisma.appointment.deleteMany({ where: { googleEventId: id, practiceId: user.practiceId } });
     } catch {}
     return NextResponse.json({ ok: true });
   } catch (err: any) {

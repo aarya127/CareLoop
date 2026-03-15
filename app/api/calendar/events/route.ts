@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/server';
 import { listEvents, insertEvent } from '@/lib/google/calendar';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
+import { AppointmentStatus } from '@prisma/client';
 
 const getSchema = z.object({
   calendarId: z.string().default('primary'),
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
     const appt = {
       id: crypto.randomUUID(),
       userId: user.id,
+      practiceId: user.practiceId,
       calendarId: body.calendarId,
       title: body.title,
       notes: body.notes,
@@ -65,6 +67,7 @@ export async function POST(req: NextRequest) {
       await prisma.appointment.create({
         data: {
           id: appt.id,
+          practiceId: user.practiceId,
           userId: user.id,
           providerId: body.providerId || 'unknown',
           roomId: body.roomId,
@@ -76,6 +79,7 @@ export async function POST(req: NextRequest) {
           procedureCode: body.procedureCode,
           googleEventId: event.id || undefined,
           calendarId: body.calendarId,
+          status: AppointmentStatus.confirmed,
           extended: body.extended as any,
         },
       });
