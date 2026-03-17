@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const arrayBuffer = await synthesizeWithElevenLabs({ text, voiceId, voiceName, modelId });
     return new Response(arrayBuffer, {
       status: 200,
-      headers: { "Content-Type": "audio/mpeg" },
+      headers: { "Content-Type": "audio/wav" },
     });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
