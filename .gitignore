@@ -75,6 +75,14 @@ celerybeat-schedule
 celerybeat.pid
 *.sage.py
 
+# Datasets (large image files)
+datasets/**/*.jpg
+datasets/**/*.JPG
+datasets/**/*.jpeg
+datasets/**/*.JPEG
+datasets/**/*.png
+datasets/**/*.PNG
+
 # Misc
 *.pem
 .cursorignore

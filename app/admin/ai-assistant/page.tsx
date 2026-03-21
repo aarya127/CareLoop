@@ -30,7 +30,7 @@ import {
   Repeat,
 } from 'lucide-react';
 import { getAllDemoPatients } from '@/lib/demo/sample-data';
-import { AI_TEST_PATIENTS } from '@/ai_test/patient-random-data';
+import { AI_TEST_PATIENTS } from '@/experiments/ai_test/patient-random-data';
 
 const HOPE_VOICE_NAME = 'Hope';
 

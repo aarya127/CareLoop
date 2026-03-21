@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getDemoPatient } from "@/lib/demo/sample-data";
 import { getDentalRecordById } from "@/lib/data/mock-dental-records";
 import { synthesizeWithElevenLabs } from "@/lib/services/elevenlabs";
-import { getAiTestPatientById, getDefaultAiTestPatient } from "@/ai_test/patient-random-data";
+import { getAiTestPatientById, getDefaultAiTestPatient } from "@/experiments/ai_test/patient-random-data";
 
 const schema = z.object({
   question: z.string().min(3),
