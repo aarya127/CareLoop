@@ -6,7 +6,8 @@ export async function POST(request: NextRequest) {
    * TODO: Implement actual audit log storage
    */
   try {
-    const body = await request.json();
+    const text = await request.text();
+    const body = text ? JSON.parse(text) : {};
     console.log("[Audit] Log received:", body);
 
     return NextResponse.json({ success: true, id: "audit-" + Date.now() });
