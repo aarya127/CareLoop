@@ -1,19 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Sparkles, Users, Calendar, Phone, MessageSquare, Shield, Zap, CheckCircle2 } from 'lucide-react';
 import { DEMO_USERS } from '@/lib/demo/sample-data';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export default function DemoLanding() {
-  const router = useRouter();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDemoLogin = async (email: string, password: string, roleName: string) => {
     setIsLoading(true);
-    
-    // Redirect to login page
-    router.push('/login');
+    try {
+      await login(email, password);
+      window.location.href = '/admin';
+    } catch {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -1,12 +1,24 @@
 
 "use client";
 import React, { useRef, useState } from "react";
-import FullCalendar from "@fullcalendar/react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+
+// Lazy-load the entire FullCalendar bundle (~300 KB) — only downloaded when the calendar route is visited
+const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-96 text-gray-400 animate-pulse">
+      Loading calendar…
+    </div>
+  ),
+});
+
+// Plugins are tiny re-exports — import them normally so FullCalendar can receive them as props
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
-import { useRouter } from "next/navigation";
 
 // Helper to fetch events from backend
 async function fetchEvents(info: any, successCallback: any, failureCallback: any) {
@@ -34,7 +46,7 @@ async function fetchEvents(info: any, successCallback: any, failureCallback: any
 }
 
 export default function AdminCalendarPage() {
-  const calendarRef = useRef<FullCalendar>(null);
+  const calendarRef = useRef<any>(null);
   const router = useRouter();
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isBooking, setIsBooking] = useState(false);
