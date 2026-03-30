@@ -103,6 +103,16 @@ type PhaseRoadmapPayload = {
   };
 };
 
+type DashboardPayload = {
+  ok: boolean;
+  summary: ApiPayload['summary'];
+  timeline: ApiPayload['timeline'];
+  recentCalls: ApiPayload['recentCalls'];
+  overview: AdminOverview | null;
+  phaseOverview: PhaseOverviewPayload | null;
+  phaseRoadmap: PhaseRoadmapPayload | null;
+};
+
 function toDateLabel(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -121,28 +131,20 @@ export function PracticeKpiDashboard() {
   const [seedFeedback, setSeedFeedback] = useState('');
 
   const loadAnalytics = async (activeRange: '7d' | '30d' | '90d') => {
-    const [analyticsJson, overviewJson, phaseOverviewJson, phaseRoadmapJson] = await Promise.all([
-      fetch(`/api/analytics/overview?range=${activeRange}`).then((res) => res.json() as Promise<ApiPayload>),
-      fetch(`/auth/admin-overview?practiceId=demo-practice`, { credentials: 'include' }).then((res) => {
-        if (!res.ok) return null;
-        return res.json() as Promise<AdminOverview>;
-      }),
-      fetch(`http://localhost:3001/analytics/overview?practiceId=demo-practice&rangeDays=${activeRange.replace('d', '')}`)
-        .then((res) => {
-          if (!res.ok) return null;
-          return res.json() as Promise<PhaseOverviewPayload>;
-        }),
-      fetch('http://localhost:3001/analytics/phases')
-        .then((res) => {
-          if (!res.ok) return null;
-          return res.json() as Promise<PhaseRoadmapPayload>;
-        }),
-    ]);
+    const res = await fetch(`/api/analytics/dashboard?range=${activeRange}&practiceId=demo-practice`, {
+      credentials: 'include',
+    });
+    const payload = (await res.json()) as DashboardPayload;
 
-    setData(analyticsJson);
-    setOverview(overviewJson);
-    setPhaseOverview(phaseOverviewJson);
-    setPhaseRoadmap(phaseRoadmapJson);
+    setData({
+      ok: payload.ok,
+      summary: payload.summary,
+      timeline: payload.timeline,
+      recentCalls: payload.recentCalls,
+    });
+    setOverview(payload.overview);
+    setPhaseOverview(payload.phaseOverview);
+    setPhaseRoadmap(payload.phaseRoadmap);
   };
 
   const triggerAutomation = async (actionKey: string) => {

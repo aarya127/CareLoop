@@ -1,7 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  reactStrictMode:
+    process.env.NODE_ENV === 'production' ? true : process.env.NEXT_PUBLIC_STRICT_MODE !== 'false',
   poweredByHeader: false,
   compress: true,
   compiler: {

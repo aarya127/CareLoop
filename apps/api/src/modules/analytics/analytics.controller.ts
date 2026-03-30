@@ -15,6 +15,11 @@ export class AnalyticsController {
     return this.analyticsService.getOverview(query);
   }
 
+  @Get('dashboard')
+  getDashboard(@Query() query: any) {
+    return this.analyticsService.getDashboard(query);
+  }
+
   @Get('kpis')
   getKpis(@Query() query: any) {
     return this.analyticsService.getKpis(query);

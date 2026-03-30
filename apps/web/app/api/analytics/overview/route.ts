@@ -27,9 +27,16 @@ export async function GET(req: NextRequest) {
 
     const transcripts = await prisma.callTranscript.findMany({
       where: {
+        practiceId,
         createdAt: { gte: from },
       },
-      include: { analytics: true },
+      select: {
+        id: true,
+        callSid: true,
+        sentimentScore: true,
+        treatmentAcceptance: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: "desc" },
       take: 25,
     });

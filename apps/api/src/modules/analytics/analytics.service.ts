@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { prisma } from '@careloop/db';
+import { getRedisClient } from '../../config/redis';
 
 type CoreMetrics = {
   noShowRatePct: number;
@@ -38,6 +39,9 @@ type ActionKey =
 
 @Injectable()
 export class AnalyticsService {
+  private readonly localMetricsCache = new Map<string, { expiresAt: number; value: CoreMetrics }>();
+  private readonly metricsCacheTtlSeconds = 30;
+
   private async safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
     try {
       return await fn();
@@ -46,9 +50,72 @@ export class AnalyticsService {
     }
   }
 
+  private metricsCacheKey(practiceId: string, rangeDays: number): string {
+    return `${practiceId}:${rangeDays}`;
+  }
+
+  private redisMetricsCacheKey(practiceId: string, rangeDays: number): string {
+    return `analytics:metrics:${this.metricsCacheKey(practiceId, rangeDays)}`;
+  }
+
+  private getLocalCachedMetrics(practiceId: string, rangeDays: number): CoreMetrics | null {
+    const cacheKey = this.metricsCacheKey(practiceId, rangeDays);
+    const cached = this.localMetricsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+    return null;
+  }
+
+  private setLocalCachedMetrics(practiceId: string, rangeDays: number, value: CoreMetrics): void {
+    const cacheKey = this.metricsCacheKey(practiceId, rangeDays);
+    this.localMetricsCache.set(cacheKey, {
+      expiresAt: Date.now() + this.metricsCacheTtlSeconds * 1000,
+      value,
+    });
+  }
+
+  private async getCachedMetrics(practiceId: string, rangeDays: number): Promise<CoreMetrics | null> {
+    const local = this.getLocalCachedMetrics(practiceId, rangeDays);
+    if (local) return local;
+
+    try {
+      const redis = getRedisClient();
+      const serialized = await redis.get(this.redisMetricsCacheKey(practiceId, rangeDays));
+      if (!serialized) return null;
+      const parsed = JSON.parse(serialized) as CoreMetrics;
+      this.setLocalCachedMetrics(practiceId, rangeDays, parsed);
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  private async setCachedMetrics(practiceId: string, rangeDays: number, value: CoreMetrics): Promise<void> {
+    this.setLocalCachedMetrics(practiceId, rangeDays, value);
+
+    try {
+      const redis = getRedisClient();
+      await redis.set(
+        this.redisMetricsCacheKey(practiceId, rangeDays),
+        JSON.stringify(value),
+        'EX',
+        this.metricsCacheTtlSeconds
+      );
+    } catch {
+      // Keep local cache as resilience fallback when Redis is unavailable.
+    }
+  }
+
   private async computeCoreMetrics(practiceId: string, rangeDays: number): Promise<CoreMetrics> {
+    const cached = await this.getCachedMetrics(practiceId, rangeDays);
+    if (cached) {
+      return cached;
+    }
+
     const synthetic = syntheticPhase1Metrics.get(practiceId);
     if (synthetic) {
+      await this.setCachedMetrics(practiceId, rangeDays, synthetic);
       return synthetic;
     }
 
@@ -113,7 +180,7 @@ export class AnalyticsService {
 
     const treatmentAccepted = treatmentSignals.filter((s) => s.treatmentAcceptance === true).length;
 
-    return {
+    const computed: CoreMetrics = {
       noShowRatePct: pct(noShows, appointments.length),
       sameDayVacancyRatePct: pct(todayVacancies, todayAppointments.length),
       communicationConversionPct: pct(aiBooked, conversationsCount),
@@ -122,6 +189,87 @@ export class AnalyticsService {
       appointmentsInRange: appointments.length,
       conversationsInRange: conversationsCount,
       patientsTotal,
+    };
+
+    await this.setCachedMetrics(practiceId, rangeDays, computed);
+
+    return computed;
+  }
+
+  async getDashboard(query: any): Promise<any> {
+    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const rangeDays = asInt(query?.rangeDays, 30);
+    const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
+
+    const [metrics, rows, transcripts] = await Promise.all([
+      this.computeCoreMetrics(practiceId, rangeDays),
+      this.safe(
+        () =>
+          prisma.practiceKPI.findMany({
+            where: {
+              practiceId,
+              kpiDate: { gte: since },
+            },
+            select: {
+              id: true,
+              kpiDate: true,
+              metricName: true,
+              metricValue: true,
+            },
+            orderBy: { kpiDate: 'asc' },
+          }),
+        [] as Array<{ id: number; kpiDate: Date; metricName: string; metricValue: number }>
+      ),
+      this.safe(
+        () =>
+          prisma.callTranscript.findMany({
+            where: {
+              practiceId,
+              createdAt: { gte: since },
+            },
+            select: {
+              id: true,
+              callSid: true,
+              sentimentScore: true,
+              treatmentAcceptance: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 25,
+          }),
+        [] as Array<{
+          id: string;
+          callSid: string;
+          sentimentScore: number | null;
+          treatmentAcceptance: boolean | null;
+          createdAt: Date;
+        }>
+      ),
+    ]);
+
+    const avgSentiment = rows
+      .filter((r) => r.metricName === 'avg_sentiment')
+      .reduce((acc, r, _, arr) => acc + r.metricValue / Math.max(arr.length, 1), 0);
+
+    const acceptanceRate = rows
+      .filter((r) => r.metricName === 'treatment_acceptance_rate')
+      .reduce((acc, r, _, arr) => acc + r.metricValue / Math.max(arr.length, 1), 0);
+
+    return {
+      ok: true,
+      phase: 'MVP',
+      rangeDays,
+      summary: {
+        avgSentiment: Number(avgSentiment.toFixed(2)),
+        acceptanceRate: Number((acceptanceRate * 100).toFixed(2)),
+        totalCalls: transcripts.length,
+      },
+      timeline: rows,
+      recentCalls: transcripts,
+      metrics,
+      decisions: this.buildActions(metrics),
+      roadmap: this.getPhases(),
+      generatedAt: new Date().toISOString(),
     };
   }
 
@@ -318,6 +466,7 @@ export class AnalyticsService {
     const metrics = await this.computeCoreMetrics(practiceId, rangeDays);
 
     return {
+      ok: true,
       generatedAt: new Date().toISOString(),
       actions: this.buildActions(metrics),
     };
