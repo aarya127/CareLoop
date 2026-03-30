@@ -1,0 +1,70 @@
+
+> @careloop/web@1.0.0 typecheck
+> tsc --noEmit
+
+app/admin/calendar/page.tsx(168,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: CalendarOptions, context?: any): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<...> | Promise<...> | Component<...>', gave the following error.
+    Type '{ ref: RefObject<any>; plugins: PluginDef[]; initialView: string; headerToolbar: { left: string; center: string; right: string; }; selectable: true; editable: true; eventResizableFromStart: true; ... 6 more ...; height: string; }' is not assignable to type 'IntrinsicAttributes & RawOptionsFromRefiners<Required<BaseOptionRefiners>> & RefinedOptionsFromRefiners<Required<CalendarListenerRefiners>> & RawOptionsFromRefiners<...>'.
+      Property 'ref' does not exist on type 'IntrinsicAttributes & RawOptionsFromRefiners<Required<BaseOptionRefiners>> & RefinedOptionsFromRefiners<Required<CalendarListenerRefiners>> & RawOptionsFromRefiners<...>'.
+  Overload 2 of 2, '(props: CalendarOptions): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<...> | Promise<...> | Component<...>', gave the following error.
+    Type '{ ref: RefObject<any>; plugins: PluginDef[]; initialView: string; headerToolbar: { left: string; center: string; right: string; }; selectable: true; editable: true; eventResizableFromStart: true; ... 6 more ...; height: string; }' is not assignable to type 'IntrinsicAttributes & RawOptionsFromRefiners<Required<BaseOptionRefiners>> & RefinedOptionsFromRefiners<Required<CalendarListenerRefiners>> & RawOptionsFromRefiners<...>'.
+      Property 'ref' does not exist on type 'IntrinsicAttributes & RawOptionsFromRefiners<Required<BaseOptionRefiners>> & RefinedOptionsFromRefiners<Required<CalendarListenerRefiners>> & RawOptionsFromRefiners<...>'.
+app/api/calendar/events/[id]/route.ts(6,10): error TS2305: Module '"@prisma/client"' has no exported member 'AppointmentStatus'.
+app/api/calendar/events/[id]/route.ts(28,48): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+app/api/calendar/events/[id]/route.ts(32,54): error TS2339: Property 'practiceId' does not exist on type '{ id: string; email?: string; }'.
+app/api/calendar/events/[id]/route.ts(36,40): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+app/api/calendar/events/[id]/route.ts(37,36): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+app/api/calendar/events/[id]/route.ts(59,90): error TS2339: Property 'practiceId' does not exist on type '{ id: string; email?: string; }'.
+app/api/calendar/events/route.ts(6,10): error TS2305: Module '"@prisma/client"' has no exported member 'AppointmentStatus'.
+app/api/calendar/events/route.ts(51,24): error TS2339: Property 'practiceId' does not exist on type '{ id: string; email?: string; }'.
+app/api/calendar/events/route.ts(70,28): error TS2339: Property 'practiceId' does not exist on type '{ id: string; email?: string; }'.
+app/api/calendar/freebusy/route.ts(17,70): error TS2345: Argument of type '{ id?: string; }[]' is not assignable to parameter of type '{ id: string; }[]'.
+  Type '{ id?: string; }' is not assignable to type '{ id: string; }'.
+    Property 'id' is optional in type '{ id?: string; }' but required in type '{ id: string; }'.
+app/api/health/route.ts(2,35): error TS2307: Cannot find module '@careloop/types' or its corresponding type declarations.
+app/api/voice/calls/start/route.ts(4,32): error TS2307: Cannot find module '@/lib/services/voice-orchestrator' or its corresponding type declarations.
+app/api/voice/elevenlabs/assistant/route.ts(7,42): error TS2307: Cannot find module '@/lib/services/elevenlabs' or its corresponding type declarations.
+app/api/voice/elevenlabs/assistant/route.ts(8,63): error TS2307: Cannot find module '@/experiments/ai_test/patient-random-data' or its corresponding type declarations.
+app/api/voice/elevenlabs/tts/route.ts(2,42): error TS2307: Cannot find module '@/lib/services/elevenlabs' or its corresponding type declarations.
+app/api/voice/overtake/control/route.ts(4,66): error TS2307: Cannot find module '@/lib/services/manual-overtake' or its corresponding type declarations.
+app/api/voice/overtake/state/[callId]/route.ts(2,43): error TS2307: Cannot find module '@/lib/services/manual-overtake' or its corresponding type declarations.
+app/api/voice/telephony/audio/[id]/route.ts(9,32): error TS2307: Cannot find module '@/lib/voice/audio-store' or its corresponding type declarations.
+app/api/voice/telephony/audio/[id]/route.ts(10,29): error TS2307: Cannot find module '@/lib/utils/logger' or its corresponding type declarations.
+app/api/voice/telephony/gather/route.ts(17,29): error TS2307: Cannot find module '@/lib/utils/logger' or its corresponding type declarations.
+app/api/voice/telephony/gather/route.ts(18,36): error TS2307: Cannot find module '@/lib/voice/assistant' or its corresponding type declarations.
+app/api/voice/telephony/gather/route.ts(19,42): error TS2307: Cannot find module '@/lib/services/elevenlabs' or its corresponding type declarations.
+app/api/voice/telephony/gather/route.ts(24,8): error TS2307: Cannot find module '@/lib/services/twilio' or its corresponding type declarations.
+app/api/voice/telephony/gather/route.ts(25,47): error TS2307: Cannot find module '@/lib/voice/audio-store' or its corresponding type declarations.
+app/api/voice/telephony/webhook/route.ts(16,29): error TS2307: Cannot find module '@/lib/utils/logger' or its corresponding type declarations.
+app/api/voice/telephony/webhook/route.ts(17,42): error TS2307: Cannot find module '@/lib/services/elevenlabs' or its corresponding type declarations.
+app/api/voice/telephony/webhook/route.ts(21,8): error TS2307: Cannot find module '@/lib/services/twilio' or its corresponding type declarations.
+app/api/voice/telephony/webhook/route.ts(22,47): error TS2307: Cannot find module '@/lib/voice/audio-store' or its corresponding type declarations.
+app/api/voice/tools/create-appointment/route.ts(5,10): error TS2305: Module '"@prisma/client"' has no exported member 'AppointmentStatus'.
+app/api/voice/tools/create-appointment/route.ts(27,26): error TS2339: Property 'practiceId' does not exist on type '{ id: string; email?: string; }'.
+app/api/voice/tools/transcripts/segment/route.ts(27,7): error TS2322: Type '{ callSid: string; orchestrator: "vapi" | "retell"; startedAt: Date; patientId: string; }' is not assignable to type '(Without<CallTranscriptCreateInput, CallTranscriptUncheckedCreateInput> & CallTranscriptUncheckedCreateInput) | (Without<...> & CallTranscriptCreateInput)'.
+  Type '{ callSid: string; orchestrator: "vapi" | "retell"; startedAt: Date; patientId: string; }' is not assignable to type 'Without<CallTranscriptUncheckedCreateInput, CallTranscriptCreateInput> & CallTranscriptCreateInput'.
+    Type '{ callSid: string; orchestrator: "vapi" | "retell"; startedAt: Date; patientId: string; }' is not assignable to type 'Without<CallTranscriptUncheckedCreateInput, CallTranscriptCreateInput>'.
+      Types of property 'patientId' are incompatible.
+        Type 'string' is not assignable to type 'never'.
+app/api/voice/webhook/route.ts(4,43): error TS2307: Cannot find module '@/lib/services/analytics-engine' or its corresponding type declarations.
+lib/google/auth.ts(59,14): error TS2353: Object literal may only specify known properties, and 'userId_provider_calendarId' does not exist in type 'GoogleCalendarConnectionWhereUniqueInput'.
+lib/google/auth.ts(61,5): error TS2322: Type '{ userId: string; provider: string; calendarId: string; accessToken: string; refreshToken: string; tokenExpiry: Date; timeZone: string; }' is not assignable to type '(Without<GoogleCalendarConnectionCreateInput, GoogleCalendarConnectionUncheckedCreateInput> & GoogleCalendarConnectionUncheckedCreateInput) | (Without<...> & GoogleCalendarConnectionCreateInput)'.
+  Type '{ userId: string; provider: string; calendarId: string; accessToken: string; refreshToken: string; tokenExpiry: Date; timeZone: string; }' is not assignable to type 'Without<GoogleCalendarConnectionUncheckedCreateInput, GoogleCalendarConnectionCreateInput> & GoogleCalendarConnectionCreateInput'.
+    Type '{ userId: string; provider: string; calendarId: string; accessToken: string; refreshToken: string; tokenExpiry: Date; timeZone: string; }' is not assignable to type 'Without<GoogleCalendarConnectionUncheckedCreateInput, GoogleCalendarConnectionCreateInput>'.
+      Types of property 'userId' are incompatible.
+        Type 'string' is not assignable to type 'never'.
+npm error Lifecycle script `typecheck` failed with error:
+npm error code 2
+npm error path /Users/aaryas127/Documents/GitHub/CareLoop/apps/web
+npm error workspace @careloop/web@1.0.0
+npm error location /Users/aaryas127/Documents/GitHub/CareLoop/apps/web
+npm error command failed
+npm error command sh -c tsc --noEmit
