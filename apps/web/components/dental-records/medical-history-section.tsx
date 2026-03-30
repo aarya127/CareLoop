@@ -6,7 +6,7 @@
  * systemic conditions, surgeries, lifestyle factors, and dental history
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -16,7 +16,6 @@ import {
   Activity,
   Users,
   Calendar,
-  FileText,
   Edit2,
   Plus,
   X,
@@ -34,12 +33,26 @@ interface MedicalHistorySectionProps {
   onUpdate?: (updates: Partial<MedicalHistory>) => void;
 }
 
+type EditorType =
+  | 'allergy'
+  | 'medication'
+  | 'condition'
+  | 'surgery'
+  | 'lifestyle'
+  | 'family'
+  | 'dental'
+  | null;
+
 export default function MedicalHistorySection({
   patientId,
-  medicalHistory,
+  medicalHistory: initialMedicalHistory,
   onUpdate,
 }: MedicalHistorySectionProps) {
-  const [editMode, setEditMode] = useState<string | null>(null);
+  const [medicalHistory, setMedicalHistory] = useState<MedicalHistory>(initialMedicalHistory);
+
+  useEffect(() => {
+    setMedicalHistory(initialMedicalHistory);
+  }, [initialMedicalHistory]);
 
   // Severity colors
   const severityColors = {
@@ -54,6 +67,282 @@ export default function MedicalHistorySection({
     active: 'bg-red-100 text-red-800',
     controlled: 'bg-blue-100 text-blue-800',
     resolved: 'bg-green-100 text-green-800',
+  };
+
+  const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}`;
+  const [editorType, setEditorType] = useState<EditorType>(null);
+  const [editorMode, setEditorMode] = useState<'add' | 'edit'>('add');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<Record<string, string>>({});
+
+  const commitMedicalHistory = (next: MedicalHistory) => {
+    setMedicalHistory(next);
+    onUpdate?.(next);
+  };
+
+  const closeEditor = () => {
+    setEditorType(null);
+    setEditingId(null);
+    setForm({});
+    setEditorMode('add');
+  };
+
+  const openEditor = (
+    type: Exclude<EditorType, null>,
+    mode: 'add' | 'edit',
+    item?: Record<string, unknown>
+  ) => {
+    setEditorType(type);
+    setEditorMode(mode);
+    setEditingId(typeof item?.id === 'string' ? item.id : null);
+
+    if (type === 'allergy') {
+      setForm({
+        allergen: String(item?.allergen ?? ''),
+        reaction: String(item?.reaction ?? ''),
+        severity: String(item?.severity ?? 'moderate'),
+        date_identified: String(item?.date_identified ?? new Date().toISOString().slice(0, 10)),
+        notes: String(item?.notes ?? ''),
+      });
+      return;
+    }
+
+    if (type === 'medication') {
+      setForm({
+        name: String(item?.name ?? ''),
+        dosage: String(item?.dosage ?? ''),
+        frequency: String(item?.frequency ?? ''),
+        purpose: String(item?.purpose ?? ''),
+        start_date: String(item?.start_date ?? new Date().toISOString().slice(0, 10)),
+        prescribing_doctor: String(item?.prescribing_doctor ?? ''),
+      });
+      return;
+    }
+
+    if (type === 'condition') {
+      setForm({
+        condition: String(item?.condition ?? ''),
+        diagnosed_date: String(item?.diagnosed_date ?? new Date().toISOString().slice(0, 10)),
+        status: String(item?.status ?? 'active'),
+        severity: String(item?.severity ?? 'mild'),
+        treatment: String(item?.treatment ?? ''),
+        notes: String(item?.notes ?? ''),
+      });
+      return;
+    }
+
+    if (type === 'surgery') {
+      setForm({
+        procedure: String(item?.procedure ?? ''),
+        date: String(item?.date ?? new Date().toISOString().slice(0, 10)),
+        hospital: String(item?.hospital ?? ''),
+        surgeon: String(item?.surgeon ?? ''),
+      });
+      return;
+    }
+
+    if (type === 'family') {
+      const conditions = Array.isArray(item?.conditions)
+        ? (item.conditions as string[]).join(', ')
+        : '';
+      setForm({
+        relation: String(item?.relation ?? ''),
+        conditions,
+      });
+      return;
+    }
+
+    if (type === 'lifestyle') {
+      setForm({
+        smoking_status: medicalHistory.lifestyle_factors.smoking?.status ?? 'never',
+        packs_per_day: String(medicalHistory.lifestyle_factors.smoking?.packs_per_day ?? ''),
+        years: String(medicalHistory.lifestyle_factors.smoking?.years ?? ''),
+        quit_date: medicalHistory.lifestyle_factors.smoking?.quit_date ?? '',
+        alcohol_frequency: medicalHistory.lifestyle_factors.alcohol?.frequency ?? 'none',
+        drinks_per_week: String(medicalHistory.lifestyle_factors.alcohol?.drinks_per_week ?? ''),
+        diet_notes: medicalHistory.lifestyle_factors.diet_notes ?? '',
+        exercise_frequency: medicalHistory.lifestyle_factors.exercise_frequency ?? '',
+      });
+      return;
+    }
+
+    if (type === 'dental') {
+      setForm({
+        last_cleaning_date: medicalHistory.dental_history.last_cleaning_date ?? '',
+        last_exam_date: medicalHistory.dental_history.last_exam_date ?? '',
+        dental_anxiety_level: medicalHistory.dental_history.dental_anxiety_level ?? 'none',
+        previous_orthodontics: medicalHistory.dental_history.previous_orthodontics ? 'yes' : 'no',
+        orthodontics_details: medicalHistory.dental_history.orthodontics_details ?? '',
+        previous_implants: medicalHistory.dental_history.previous_implants ? 'yes' : 'no',
+      });
+    }
+  };
+
+  const updateField = (key: string, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const saveEditor = () => {
+    if (!editorType) return;
+
+    if (editorType === 'allergy') {
+      if (!form.allergen?.trim() || !form.reaction?.trim()) return;
+      const nextItem = {
+        id: editingId ?? newId('allergy'),
+        allergen: form.allergen.trim(),
+        reaction: form.reaction.trim(),
+        severity: (form.severity || 'moderate') as 'mild' | 'moderate' | 'severe' | 'life_threatening',
+        date_identified: form.date_identified || new Date().toISOString().slice(0, 10),
+        notes: form.notes?.trim() || undefined,
+      };
+
+      commitMedicalHistory({
+        ...medicalHistory,
+        allergies:
+          editorMode === 'add'
+            ? [...medicalHistory.allergies, nextItem]
+            : medicalHistory.allergies.map(item => (item.id === editingId ? nextItem : item)),
+      });
+      closeEditor();
+      return;
+    }
+
+    if (editorType === 'medication') {
+      if (!form.name?.trim()) return;
+      const nextItem = {
+        id: editingId ?? newId('med'),
+        name: form.name.trim(),
+        dosage: form.dosage || 'Not specified',
+        frequency: form.frequency || 'Not specified',
+        purpose: form.purpose || 'Not specified',
+        start_date: form.start_date || new Date().toISOString().slice(0, 10),
+        prescribing_doctor: form.prescribing_doctor?.trim() || undefined,
+      };
+
+      commitMedicalHistory({
+        ...medicalHistory,
+        current_medications:
+          editorMode === 'add'
+            ? [...medicalHistory.current_medications, nextItem]
+            : medicalHistory.current_medications.map(item =>
+                item.id === editingId ? nextItem : item
+              ),
+      });
+      closeEditor();
+      return;
+    }
+
+    if (editorType === 'condition') {
+      if (!form.condition?.trim()) return;
+      const nextItem = {
+        id: editingId ?? newId('condition'),
+        condition: form.condition.trim(),
+        diagnosed_date: form.diagnosed_date || new Date().toISOString().slice(0, 10),
+        status: (form.status || 'active') as 'active' | 'controlled' | 'resolved',
+        severity: (form.severity || 'mild') as 'mild' | 'moderate' | 'severe',
+        treatment: form.treatment?.trim() || undefined,
+        notes: form.notes?.trim() || undefined,
+      };
+
+      commitMedicalHistory({
+        ...medicalHistory,
+        systemic_conditions:
+          editorMode === 'add'
+            ? [...medicalHistory.systemic_conditions, nextItem]
+            : medicalHistory.systemic_conditions.map(item =>
+                item.id === editingId ? nextItem : item
+              ),
+      });
+      closeEditor();
+      return;
+    }
+
+    if (editorType === 'surgery') {
+      if (!form.procedure?.trim()) return;
+      const nextItem = {
+        id: editingId ?? newId('surgery'),
+        procedure: form.procedure.trim(),
+        date: form.date || new Date().toISOString().slice(0, 10),
+        hospital: form.hospital?.trim() || undefined,
+        surgeon: form.surgeon?.trim() || undefined,
+      };
+
+      commitMedicalHistory({
+        ...medicalHistory,
+        past_surgeries:
+          editorMode === 'add'
+            ? [...medicalHistory.past_surgeries, nextItem]
+            : medicalHistory.past_surgeries.map(item => (item.id === editingId ? nextItem : item)),
+      });
+      closeEditor();
+      return;
+    }
+
+    if (editorType === 'family') {
+      if (!form.relation?.trim()) return;
+      const nextItem = {
+        id: editingId ?? newId('family'),
+        relation: form.relation.trim(),
+        conditions: (form.conditions || '')
+          .split(',')
+          .map(item => item.trim())
+          .filter(Boolean),
+      };
+
+      commitMedicalHistory({
+        ...medicalHistory,
+        family_health_history:
+          editorMode === 'add'
+            ? [...medicalHistory.family_health_history, nextItem]
+            : medicalHistory.family_health_history.map(item =>
+                item.id === editingId ? nextItem : item
+              ),
+      });
+      closeEditor();
+      return;
+    }
+
+    if (editorType === 'lifestyle') {
+      commitMedicalHistory({
+        ...medicalHistory,
+        lifestyle_factors: {
+          smoking: {
+            status: (form.smoking_status || 'never') as 'never' | 'former' | 'current',
+            packs_per_day: form.packs_per_day ? Number(form.packs_per_day) : undefined,
+            years: form.years ? Number(form.years) : undefined,
+            quit_date: form.quit_date || undefined,
+          },
+          alcohol: {
+            frequency: form.alcohol_frequency || 'none',
+            drinks_per_week: form.drinks_per_week ? Number(form.drinks_per_week) : undefined,
+          },
+          diet_notes: form.diet_notes?.trim() || undefined,
+          exercise_frequency: form.exercise_frequency?.trim() || undefined,
+        },
+      });
+      closeEditor();
+      return;
+    }
+
+    if (editorType === 'dental') {
+      commitMedicalHistory({
+        ...medicalHistory,
+        dental_history: {
+          ...medicalHistory.dental_history,
+          last_cleaning_date: form.last_cleaning_date || undefined,
+          last_exam_date: form.last_exam_date || undefined,
+          dental_anxiety_level: (form.dental_anxiety_level || 'none') as
+            | 'none'
+            | 'mild'
+            | 'moderate'
+            | 'severe',
+          previous_orthodontics: form.previous_orthodontics === 'yes',
+          orthodontics_details: form.orthodontics_details?.trim() || undefined,
+          previous_implants: form.previous_implants === 'yes',
+        },
+      });
+      closeEditor();
+    }
   };
 
   return (
@@ -107,7 +396,10 @@ export default function MedicalHistorySection({
               </p>
             </div>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+          <button
+            onClick={() => openEditor('allergy', 'add')}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             <span>Add</span>
           </button>
@@ -142,7 +434,10 @@ export default function MedicalHistorySection({
                       Identified: {new Date(allergy.date_identified).toLocaleDateString()}
                     </p>
                   </div>
-                  <button className="p-2 hover:bg-white/30 rounded-lg transition-colors">
+                  <button
+                    onClick={() => openEditor('allergy', 'edit', allergy as unknown as Record<string, unknown>)}
+                    className="p-2 hover:bg-white/30 rounded-lg transition-colors"
+                  >
                     <Edit2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -171,7 +466,10 @@ export default function MedicalHistorySection({
               </p>
             </div>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+          <button
+            onClick={() => openEditor('medication', 'add')}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             <span>Add</span>
           </button>
@@ -191,7 +489,10 @@ export default function MedicalHistorySection({
                     <h4 className="font-bold text-gray-900">{medication.name}</h4>
                     <p className="text-sm text-gray-600">{medication.dosage}</p>
                   </div>
-                  <button className="p-1.5 hover:bg-blue-100 rounded transition-colors">
+                  <button
+                    onClick={() => openEditor('medication', 'edit', medication as unknown as Record<string, unknown>)}
+                    className="p-1.5 hover:bg-blue-100 rounded transition-colors"
+                  >
                     <Edit2 className="w-4 h-4 text-gray-600" />
                   </button>
                 </div>
@@ -237,7 +538,10 @@ export default function MedicalHistorySection({
               </p>
             </div>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+          <button
+            onClick={() => openEditor('condition', 'add')}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             <span>Add</span>
           </button>
@@ -282,7 +586,10 @@ export default function MedicalHistorySection({
                       Diagnosed: {new Date(condition.diagnosed_date).toLocaleDateString()}
                     </p>
                   </div>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <button
+                    onClick={() => openEditor('condition', 'edit', condition as unknown as Record<string, unknown>)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
                     <Edit2 className="w-4 h-4 text-gray-600" />
                   </button>
                 </div>
@@ -311,7 +618,10 @@ export default function MedicalHistorySection({
               </p>
             </div>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+          <button
+            onClick={() => openEditor('surgery', 'add')}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             <span>Add</span>
           </button>
@@ -359,7 +669,10 @@ export default function MedicalHistorySection({
                       <p className="text-sm text-gray-600 mt-2">{surgery.notes}</p>
                     )}
                   </div>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <button
+                    onClick={() => openEditor('surgery', 'edit', surgery as unknown as Record<string, unknown>)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
                     <Edit2 className="w-4 h-4 text-gray-600" />
                   </button>
                 </div>
@@ -386,7 +699,10 @@ export default function MedicalHistorySection({
               <p className="text-sm text-gray-500">Habits & wellness</p>
             </div>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            onClick={() => openEditor('lifestyle', 'edit')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <Edit2 className="w-4 h-4 text-gray-600" />
           </button>
         </div>
@@ -482,8 +798,7 @@ export default function MedicalHistorySection({
       </div>
 
       {/* Family Health History */}
-      {medicalHistory.family_health_history.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
@@ -494,12 +809,16 @@ export default function MedicalHistorySection({
                 <p className="text-sm text-gray-500">Hereditary conditions</p>
               </div>
             </div>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+            <button
+              onClick={() => openEditor('family', 'add')}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
               <Plus className="w-4 h-4" />
               <span>Add</span>
             </button>
           </div>
 
+          {medicalHistory.family_health_history.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {medicalHistory.family_health_history.map(family => (
               <motion.div
@@ -508,9 +827,17 @@ export default function MedicalHistorySection({
                 animate={{ opacity: 1, scale: 1 }}
                 className="p-4 rounded-lg border border-gray-200 bg-gradient-to-br from-teal-50 to-white"
               >
-                <h4 className="font-semibold text-gray-900 capitalize mb-2">
-                  {family.relation}
-                </h4>
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="font-semibold text-gray-900 capitalize">
+                    {family.relation}
+                  </h4>
+                  <button
+                    onClick={() => openEditor('family', 'edit', family as unknown as Record<string, unknown>)}
+                    className="p-1 hover:bg-white/70 rounded transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-gray-600" />
+                  </button>
+                </div>
                 <ul className="space-y-1 text-sm text-gray-700">
                   {family.conditions.map((condition, idx) => (
                     <li key={idx} className="flex items-start">
@@ -522,8 +849,13 @@ export default function MedicalHistorySection({
               </motion.div>
             ))}
           </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p>No family health history recorded</p>
+            </div>
+          )}
         </div>
-      )}
 
       {/* Dental History */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
@@ -537,7 +869,10 @@ export default function MedicalHistorySection({
               <p className="text-sm text-gray-500">Past dental care & treatments</p>
             </div>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            onClick={() => openEditor('dental', 'edit')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <Edit2 className="w-4 h-4 text-gray-600" />
           </button>
         </div>
@@ -644,6 +979,152 @@ export default function MedicalHistorySection({
           </div>
         )}
       </div>
+
+      {editorType && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h4 className="text-lg font-bold text-gray-900 capitalize">
+                {editorMode === 'add' ? 'Add' : 'Edit'} {editorType}
+              </h4>
+              <button
+                onClick={closeEditor}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {(editorType === 'allergy' || editorType === 'medication' || editorType === 'condition' || editorType === 'surgery' || editorType === 'family') && (
+                <p className="text-sm text-gray-500">Use this editor to update details without leaving the patient chart.</p>
+              )}
+
+              {editorType === 'allergy' && (
+                <>
+                  <input value={form.allergen || ''} onChange={e => updateField('allergen', e.target.value)} placeholder="Allergen" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input value={form.reaction || ''} onChange={e => updateField('reaction', e.target.value)} placeholder="Reaction" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <select value={form.severity || 'moderate'} onChange={e => updateField('severity', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="mild">Mild</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="severe">Severe</option>
+                    <option value="life_threatening">Life Threatening</option>
+                  </select>
+                  <input type="date" value={form.date_identified || ''} onChange={e => updateField('date_identified', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <textarea value={form.notes || ''} onChange={e => updateField('notes', e.target.value)} placeholder="Notes" className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]" />
+                </>
+              )}
+
+              {editorType === 'medication' && (
+                <>
+                  <input value={form.name || ''} onChange={e => updateField('name', e.target.value)} placeholder="Medication" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input value={form.dosage || ''} onChange={e => updateField('dosage', e.target.value)} placeholder="Dosage" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input value={form.frequency || ''} onChange={e => updateField('frequency', e.target.value)} placeholder="Frequency" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input value={form.purpose || ''} onChange={e => updateField('purpose', e.target.value)} placeholder="Purpose" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input type="date" value={form.start_date || ''} onChange={e => updateField('start_date', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input value={form.prescribing_doctor || ''} onChange={e => updateField('prescribing_doctor', e.target.value)} placeholder="Prescribing Doctor" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                </>
+              )}
+
+              {editorType === 'condition' && (
+                <>
+                  <input value={form.condition || ''} onChange={e => updateField('condition', e.target.value)} placeholder="Condition" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input type="date" value={form.diagnosed_date || ''} onChange={e => updateField('diagnosed_date', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <select value={form.status || 'active'} onChange={e => updateField('status', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="active">Active</option>
+                    <option value="controlled">Controlled</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                  <select value={form.severity || 'mild'} onChange={e => updateField('severity', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="mild">Mild</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="severe">Severe</option>
+                  </select>
+                  <input value={form.treatment || ''} onChange={e => updateField('treatment', e.target.value)} placeholder="Treatment" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <textarea value={form.notes || ''} onChange={e => updateField('notes', e.target.value)} placeholder="Notes" className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]" />
+                </>
+              )}
+
+              {editorType === 'surgery' && (
+                <>
+                  <input value={form.procedure || ''} onChange={e => updateField('procedure', e.target.value)} placeholder="Procedure" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input type="date" value={form.date || ''} onChange={e => updateField('date', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input value={form.hospital || ''} onChange={e => updateField('hospital', e.target.value)} placeholder="Hospital" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input value={form.surgeon || ''} onChange={e => updateField('surgeon', e.target.value)} placeholder="Surgeon" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                </>
+              )}
+
+              {editorType === 'family' && (
+                <>
+                  <input value={form.relation || ''} onChange={e => updateField('relation', e.target.value)} placeholder="Relation" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <textarea value={form.conditions || ''} onChange={e => updateField('conditions', e.target.value)} placeholder="Conditions (comma separated)" className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]" />
+                </>
+              )}
+
+              {editorType === 'lifestyle' && (
+                <>
+                  <select value={form.smoking_status || 'never'} onChange={e => updateField('smoking_status', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="never">Never Smoked</option>
+                    <option value="former">Former Smoker</option>
+                    <option value="current">Current Smoker</option>
+                  </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input value={form.packs_per_day || ''} onChange={e => updateField('packs_per_day', e.target.value)} placeholder="Packs/day" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                    <input value={form.years || ''} onChange={e => updateField('years', e.target.value)} placeholder="Years" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  </div>
+                  <input type="date" value={form.quit_date || ''} onChange={e => updateField('quit_date', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <select value={form.alcohol_frequency || 'none'} onChange={e => updateField('alcohol_frequency', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="none">No Alcohol</option>
+                    <option value="occasional">Occasional</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="heavy">Heavy</option>
+                  </select>
+                  <input value={form.drinks_per_week || ''} onChange={e => updateField('drinks_per_week', e.target.value)} placeholder="Drinks per week" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <textarea value={form.diet_notes || ''} onChange={e => updateField('diet_notes', e.target.value)} placeholder="Diet notes" className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[80px]" />
+                  <input value={form.exercise_frequency || ''} onChange={e => updateField('exercise_frequency', e.target.value)} placeholder="Exercise frequency" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                </>
+              )}
+
+              {editorType === 'dental' && (
+                <>
+                  <input type="date" value={form.last_cleaning_date || ''} onChange={e => updateField('last_cleaning_date', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input type="date" value={form.last_exam_date || ''} onChange={e => updateField('last_exam_date', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <select value={form.dental_anxiety_level || 'none'} onChange={e => updateField('dental_anxiety_level', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="none">No Anxiety</option>
+                    <option value="mild">Mild Anxiety</option>
+                    <option value="moderate">Moderate Anxiety</option>
+                    <option value="severe">Severe Anxiety</option>
+                  </select>
+                  <select value={form.previous_orthodontics || 'no'} onChange={e => updateField('previous_orthodontics', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="no">No Previous Orthodontics</option>
+                    <option value="yes">Previous Orthodontics</option>
+                  </select>
+                  <input value={form.orthodontics_details || ''} onChange={e => updateField('orthodontics_details', e.target.value)} placeholder="Orthodontics details" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <select value={form.previous_implants || 'no'} onChange={e => updateField('previous_implants', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="no">No Previous Implants</option>
+                    <option value="yes">Previous Implants</option>
+                  </select>
+                </>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end space-x-3 bg-gray-50">
+              <button
+                onClick={closeEditor}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEditor}
+                className="px-4 py-2 text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

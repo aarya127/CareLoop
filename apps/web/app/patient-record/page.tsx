@@ -494,24 +494,140 @@ const getMockAdminDocuments = (patientId: string): AdministrativeDocuments => {
 
 type TabType = 'overview' | 'history' | 'charting' | 'radiographs' | 'periodontal' | 'documents';
 
+type ApiPatient = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string | null;
+  phoneE164?: string | null;
+  insuranceRecords?: Array<{
+    payerName: string;
+    planName?: string | null;
+    memberIdEnc?: string | null;
+  }>;
+};
+
+function resolveApiBase(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  if (!configured) return 'http://localhost:3001';
+
+  const normalized = configured.replace(/\/$/, '');
+  if (
+    normalized.includes('localhost:3000') ||
+    normalized.includes('127.0.0.1:3000') ||
+    normalized === '/'
+  ) {
+    return 'http://localhost:3001';
+  }
+
+  return normalized;
+}
+
+function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
+  const dob = patient.dateOfBirth ? new Date(patient.dateOfBirth) : null;
+  const birthDate = dob && !Number.isNaN(dob.getTime()) ? dob : null;
+
+  const emailAlias = `${patient.firstName}.${patient.lastName}`
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, '');
+
+  const insurance = patient.insuranceRecords?.[0]
+    ? {
+        provider_name: patient.insuranceRecords[0].payerName,
+        plan_id: patient.insuranceRecords[0].planName ?? 'Unknown Plan',
+        policy_number: patient.insuranceRecords[0].memberIdEnc ?? 'N/A',
+      }
+    : undefined;
+
+  return {
+    patient_id: patient.id,
+    first_name: patient.firstName,
+    last_name: patient.lastName,
+    date_of_birth: birthDate ? birthDate.toISOString().slice(0, 10) : '1990-01-01',
+    contact: {
+      email: `${emailAlias || 'patient'}@careloop.local`,
+      phone: patient.phoneE164 ?? 'N/A',
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        postal_code: '',
+      },
+    },
+    insurance,
+    financial: {
+      outstanding_balance: 0,
+      total_lifetime_spent: 0,
+      average_visit_cost: 0,
+    },
+  };
+}
+
 function PatientRecordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const patientId = searchParams.get('id');
+  const apiBaseUrl = resolveApiBase();
   
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [patientRecord, setPatientRecord] = useState<PatientProfile | null>(null);
+  const [medicalHistory, setMedicalHistory] = useState<MedicalHistory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (patientId) {
+    let mounted = true;
+
+    const loadPatientRecord = async () => {
+      if (!patientId) {
+        if (mounted) setIsLoading(false);
+        return;
+      }
+
+      const loadMedicalHistory = async (resolvedPatientId: string): Promise<MedicalHistory> => {
+        try {
+          const historyRes = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/medical-history`);
+          if (historyRes.ok) {
+            const history = (await historyRes.json()) as MedicalHistory | null;
+            if (history && typeof history === 'object') {
+              return history;
+            }
+          }
+        } catch {
+          // Fall back to mock medical history if API is unavailable.
+        }
+
+        return getMockMedicalHistory(resolvedPatientId);
+      };
+
+      try {
+        const res = await fetch(`${apiBaseUrl}/patients/${patientId}`);
+        if (res.ok) {
+          const apiPatient = (await res.json()) as ApiPatient | null;
+          if (mounted && apiPatient?.id) {
+            setPatientRecord(toPatientProfileFromApi(apiPatient));
+            setMedicalHistory(await loadMedicalHistory(apiPatient.id));
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Fall back to mock records below for local demo continuity.
+      }
+
       const record = getDentalRecordById(patientId);
-      setPatientRecord(record || null);
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
-    }
-  }, [patientId]);
+      if (mounted) {
+        setPatientRecord(record || null);
+        setMedicalHistory(await loadMedicalHistory(patientId));
+        setIsLoading(false);
+      }
+    };
+
+    loadPatientRecord();
+
+    return () => {
+      mounted = false;
+    };
+  }, [patientId, apiBaseUrl]);
 
   const handleClose = () => {
     router.back();
@@ -520,6 +636,27 @@ function PatientRecordContent() {
   const handleUpdateProfile = async (updates: Partial<PatientProfile>) => {
     if (patientRecord) {
       setPatientRecord({ ...patientRecord, ...updates });
+    }
+  };
+
+  const handleUpdateMedicalHistory = async (updates: Partial<MedicalHistory>) => {
+    if (!patientRecord) return;
+
+    const nextMedicalHistory = {
+      ...(medicalHistory ?? getMockMedicalHistory(patientRecord.patient_id)),
+      ...updates,
+    };
+
+    setMedicalHistory(nextMedicalHistory);
+
+    try {
+      await fetch(`${apiBaseUrl}/patients/${patientRecord.patient_id}/medical-history`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextMedicalHistory),
+      });
+    } catch {
+      // Keep optimistic UI update even if persistence temporarily fails.
     }
   };
 
@@ -700,7 +837,8 @@ function PatientRecordContent() {
             >
               <MedicalHistorySection
                 patientId={patientRecord.patient_id}
-                medicalHistory={getMockMedicalHistory(patientRecord.patient_id)}
+                medicalHistory={medicalHistory ?? getMockMedicalHistory(patientRecord.patient_id)}
+                onUpdate={handleUpdateMedicalHistory}
               />
             </motion.div>
           )}

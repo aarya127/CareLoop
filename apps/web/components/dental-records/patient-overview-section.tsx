@@ -343,14 +343,14 @@ export default function PatientOverview({
             <div>
               <p className="text-sm text-gray-500">Preferred Dentist</p>
               <p className="text-gray-900 font-medium mt-1">
-                {profile.preferences.preferred_dentist_name || 'Not specified'}
+                {profile.preferences?.preferred_dentist_name || 'Not specified'}
               </p>
             </div>
 
             <div>
               <p className="text-sm text-gray-500">Preferred Hygienist</p>
               <p className="text-gray-900 font-medium mt-1">
-                {profile.preferences.preferred_hygienist_name || 'Not specified'}
+                {profile.preferences?.preferred_hygienist_name || 'Not specified'}
               </p>
             </div>
 
@@ -358,7 +358,7 @@ export default function PatientOverview({
               <p className="text-sm text-gray-500">Appointment Reminders</p>
               <div className="flex items-center space-x-2 mt-1">
                 <span className="px-3 py-1 bg-[#87CEEB]/10 text-[#87CEEB] rounded-full text-sm font-medium capitalize">
-                  {profile.preferences.appointment_reminder_method}
+                  {profile.preferences?.appointment_reminder_method || 'Not specified'}
                 </span>
               </div>
             </div>
@@ -366,7 +366,7 @@ export default function PatientOverview({
             <div>
               <p className="text-sm text-gray-500">Communication Language</p>
               <p className="text-gray-900 font-medium mt-1">
-                {profile.preferences.communication_language}
+                {profile.preferences?.communication_language || 'Not specified'}
               </p>
             </div>
           </div>

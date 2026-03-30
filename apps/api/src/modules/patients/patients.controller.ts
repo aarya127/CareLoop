@@ -20,6 +20,24 @@ export class PatientsController {
     return this.patientsService.findById(id);
   }
 
+  @Get(':id/medical-history')
+  async getMedicalHistory(@Param('id') id: string) {
+    const history = await this.patientsService.findMedicalHistory(id);
+    if (!history) {
+      return null;
+    }
+    return history;
+  }
+
+  @Put(':id/medical-history')
+  async updateMedicalHistory(@Param('id') id: string, @Body() dto: any) {
+    const updated = await this.patientsService.upsertMedicalHistory(id, dto);
+    if (!updated) {
+      throw new BadRequestException('Unable to update patient medical history');
+    }
+    return updated;
+  }
+
   @Post()
   async create(@Body() dto: any) {
     const created = await this.patientsService.create(dto);

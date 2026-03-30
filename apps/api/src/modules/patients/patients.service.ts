@@ -3,7 +3,29 @@ import { PatientsRepository } from './patients.repository';
 
 @Injectable()
 export class PatientsService {
+  private medicalHistoryTableReady = false;
+
   constructor(private readonly patientsRepository: PatientsRepository) {}
+
+  private async ensureMedicalHistoryTable(): Promise<void> {
+    if (this.medicalHistoryTableReady) {
+      return;
+    }
+
+    await this.patientsRepository.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PatientMedicalHistory" (
+        "patientId" TEXT PRIMARY KEY,
+        "history" JSONB NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "PatientMedicalHistory_patientId_fkey"
+          FOREIGN KEY ("patientId") REFERENCES "Patient"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+
+    this.medicalHistoryTableReady = true;
+  }
 
   private normalizeDateInput(value: unknown): Date | null | undefined {
     if (value === undefined) return undefined;
@@ -219,6 +241,66 @@ export class PatientsService {
       await this.patientsRepository.prisma.patient.delete({ where: { id } });
     } catch {
       return;
+    }
+  }
+
+  async findMedicalHistory(patientId: string): Promise<any> {
+    try {
+      await this.ensureMedicalHistoryTable();
+
+      const patient = await this.patientsRepository.prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { id: true },
+      });
+
+      if (!patient) {
+        return null;
+      }
+
+      const rows = await this.patientsRepository.prisma.$queryRawUnsafe<Array<{ history: unknown }>>(
+        `SELECT "history" FROM "PatientMedicalHistory" WHERE "patientId" = $1 LIMIT 1`,
+        patientId
+      );
+
+      return rows[0]?.history ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async upsertMedicalHistory(patientId: string, history: unknown): Promise<any> {
+    try {
+      if (!history || typeof history !== 'object') {
+        return null;
+      }
+
+      await this.ensureMedicalHistoryTable();
+
+      const patient = await this.patientsRepository.prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { id: true },
+      });
+
+      if (!patient) {
+        return null;
+      }
+
+      await this.patientsRepository.prisma.$executeRawUnsafe(
+        `
+          INSERT INTO "PatientMedicalHistory" ("patientId", "history", "createdAt", "updatedAt")
+          VALUES ($1, $2::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT ("patientId")
+          DO UPDATE SET
+            "history" = EXCLUDED."history",
+            "updatedAt" = CURRENT_TIMESTAMP
+        `,
+        patientId,
+        JSON.stringify(history)
+      );
+
+      return this.findMedicalHistory(patientId);
+    } catch {
+      return null;
     }
   }
 }
