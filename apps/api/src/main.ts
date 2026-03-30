@@ -6,6 +6,10 @@ import {
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 
+// fastify cookie parsing for http-only cookies
+// register dynamically to avoid build-time issues if plugin missing
+// (fastify-cookie is expected to be installed in dev environment)
+
 const PORT = Number(process.env.API_PORT ?? 3001);
 const HOST = process.env.API_HOST ?? '0.0.0.0';
 
@@ -20,6 +24,16 @@ async function bootstrap() {
     origin: process.env.WEB_URL ?? 'http://localhost:3000',
     credentials: true,
   });
+
+  // register fastify-cookie so we can read/set httpOnly cookies
+  try {
+    const fastifyInstance = app.getHttpAdapter().getInstance();
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    await fastifyInstance.register(require('fastify-cookie'));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('fastify-cookie not registered:', message);
+  }
 
   await app.listen(PORT, HOST);
   console.info(`[API] listening on http://${HOST}:${PORT}`);
