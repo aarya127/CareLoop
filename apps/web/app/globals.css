@@ -45,7 +45,7 @@
   --color-ring: hsl(221.2 83.2% 53.3%);
   --radius: 0.75rem;
 
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-manrope), "Avenir Next", "SF Pro Text", sans-serif;
 }
 
 @layer base {

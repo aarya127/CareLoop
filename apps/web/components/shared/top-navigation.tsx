@@ -5,10 +5,22 @@ import { usePathname } from 'next/navigation';
 import { Calendar, Users, MessageSquare, Sparkles, Settings, User, Search, Bell } from 'lucide-react';
 import { useState } from 'react';
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  impact: string;
+};
+
 export default function TopNavigation() {
   const pathname = usePathname();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationError, setNotificationError] = useState('');
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
 
   const navItems = [
     { href: '/patients', label: 'Patients', icon: Users },
@@ -18,6 +30,48 @@ export default function TopNavigation() {
 
   const isActive = (href: string) => {
     return pathname.startsWith(href);
+  };
+
+  const loadNotifications = async () => {
+    setNotificationsLoading(true);
+    setNotificationError('');
+    try {
+      const res = await fetch('http://localhost:3001/analytics/decision-actions?practiceId=demo-practice&rangeDays=30');
+      const json = (await res.json()) as {
+        ok?: boolean;
+        actions?: Array<{ actionKey: string; title: string; why: string; expectedImpact: string }>;
+      };
+
+      if (!json?.ok || !Array.isArray(json.actions)) {
+        setNotificationError('Unable to load notifications right now.');
+        return;
+      }
+
+      const mapped = json.actions.slice(0, 5).map((item) => ({
+        id: item.actionKey,
+        title: item.title,
+        subtitle: item.why,
+        impact: item.expectedImpact,
+      }));
+
+      setNotifications(mapped);
+      setHasUnreadNotifications(mapped.length > 0);
+    } catch {
+      setNotificationError('Unable to load notifications right now.');
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const handleNotificationsClick = async () => {
+    const nextOpen = !showNotifications;
+    setShowNotifications(nextOpen);
+    if (nextOpen && notifications.length === 0 && !notificationsLoading) {
+      await loadNotifications();
+    }
+    if (nextOpen) {
+      setHasUnreadNotifications(false);
+    }
   };
 
   return (
@@ -87,13 +141,72 @@ export default function TopNavigation() {
             </button>
 
             {/* Notifications */}
-            <button
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative group"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5 text-gray-600 group-hover:text-sky-400 transition-colors" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={handleNotificationsClick}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative group"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5 text-gray-600 group-hover:text-sky-400 transition-colors" />
+                {hasUnreadNotifications && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowNotifications(false)} />
+                  <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-20 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">Notifications</div>
+                        <div className="text-xs text-gray-500">Latest AI action suggestions</div>
+                      </div>
+                      <button
+                        onClick={() => setHasUnreadNotifications(false)}
+                        className="text-xs text-sky-600 hover:text-sky-700"
+                      >
+                        Mark all read
+                      </button>
+                    </div>
+
+                    <div className="max-h-96 overflow-y-auto">
+                      {notificationsLoading && (
+                        <div className="px-4 py-4 text-sm text-gray-500">Loading notifications...</div>
+                      )}
+
+                      {!notificationsLoading && notificationError && (
+                        <div className="px-4 py-4 text-sm text-red-600">{notificationError}</div>
+                      )}
+
+                      {!notificationsLoading && !notificationError && notifications.length === 0 && (
+                        <div className="px-4 py-4 text-sm text-gray-500">No notifications yet.</div>
+                      )}
+
+                      {!notificationsLoading &&
+                        !notificationError &&
+                        notifications.map((item) => (
+                          <div key={item.id} className="px-4 py-3 border-b border-gray-100 last:border-b-0">
+                            <p className="text-sm font-medium text-gray-900">{item.title}</p>
+                            <p className="text-xs text-gray-600 mt-1">{item.subtitle}</p>
+                            <p className="text-xs text-sky-700 mt-1">{item.impact}</p>
+                          </div>
+                        ))}
+                    </div>
+
+                    <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                      <Link
+                        href="/admin/analytics"
+                        onClick={() => setShowNotifications(false)}
+                        className="text-xs font-medium text-sky-700 hover:text-sky-800"
+                      >
+                        Open Analytics
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Profile Dropdown */}
             <div className="relative">

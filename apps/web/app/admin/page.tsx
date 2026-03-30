@@ -1,366 +1,262 @@
 'use client';
 
-import React from 'react';
-import {
-  Users,
-  Calendar,
-  Phone,
-  MessageSquare,
-  TrendingUp,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
+import {
+  Activity,
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar,
+  MessageSquare,
+  Phone,
+  TrendingUp,
+  UserMinus,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 
-interface StatCard {
+type AdminOverview = {
+  users: {
+    total: number;
+    active: number;
+    newThisMonth: number;
+    leftThisMonth: number;
+    monthlyGrowthPct: number;
+  };
+  patients: {
+    total: number;
+    newThisMonth: number;
+  };
+  appointments: {
+    thisMonth: number;
+    completedThisMonth: number;
+    completionRatePct: number;
+  };
+  activity: {
+    transcriptsThisMonth: number;
+    conversationsThisMonth: number;
+  };
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
+function StatTile({
+  title,
+  value,
+  subtitle,
+  trend,
+  icon: Icon,
+}: {
   title: string;
   value: string | number;
-  change: number;
-  changeLabel: string;
+  subtitle: string;
+  trend?: number;
   icon: React.ComponentType<{ className?: string }>;
-  href: string;
-}
+}) {
+  const positive = (trend ?? 0) >= 0;
 
-const stats: StatCard[] = [
-  {
-    title: 'Total Patients',
-    value: '1,247',
-    change: 12,
-    changeLabel: 'vs last month',
-    icon: Users,
-    href: '/admin/patients',
-  },
-  {
-    title: "Today's Appointments",
-    value: '28',
-    change: 5,
-    changeLabel: 'vs yesterday',
-    icon: Calendar,
-    href: '/admin/calendar',
-  },
-  {
-    title: 'Active Calls',
-    value: '3',
-    change: -2,
-    changeLabel: 'vs 1 hour ago',
-    icon: Phone,
-    href: '/admin/ai-assistant',
-  },
-  {
-    title: 'Unread Messages',
-    value: '12',
-    change: -8,
-    changeLabel: 'vs 1 hour ago',
-    icon: MessageSquare,
-    href: '/admin/messaging',
-  },
-];
-
-interface Activity {
-  id: string;
-  type: 'call' | 'message' | 'appointment' | 'alert';
-  title: string;
-  description: string;
-  time: string;
-  status?: 'success' | 'pending' | 'warning';
-}
-
-const recentActivity: Activity[] = [
-  {
-    id: '1',
-    type: 'call',
-    title: 'AI Call Completed',
-    description: 'Sarah Johnson - Appointment confirmation',
-    time: '2 minutes ago',
-    status: 'success',
-  },
-  {
-    id: '2',
-    type: 'appointment',
-    title: 'New Appointment Booked',
-    description: 'Michael Chen - Cleaning - Nov 15, 2:00 PM',
-    time: '15 minutes ago',
-    status: 'success',
-  },
-  {
-    id: '3',
-    type: 'message',
-    title: 'Unread Message',
-    description: 'Lisa White - Question about billing',
-    time: '32 minutes ago',
-    status: 'pending',
-  },
-  {
-    id: '4',
-    type: 'alert',
-    title: 'Pre-Medication Required',
-    description: 'David Thompson - Appointment tomorrow',
-    time: '1 hour ago',
-    status: 'warning',
-  },
-  {
-    id: '5',
-    type: 'call',
-    title: 'AI Call Completed',
-    description: 'Emily Rodriguez - Insurance verification',
-    time: '2 hours ago',
-    status: 'success',
-  },
-];
-
-interface UpcomingAppointment {
-  id: string;
-  patientName: string;
-  time: string;
-  procedure: string;
-  doctor: string;
-  status: 'confirmed' | 'pending' | 'arrived';
-}
-
-const upcomingAppointments: UpcomingAppointment[] = [
-  {
-    id: '1',
-    patientName: 'Sarah Johnson',
-    time: '9:00 AM',
-    procedure: 'Cleaning',
-    doctor: 'Dr. Chen',
-    status: 'confirmed',
-  },
-  {
-    id: '2',
-    patientName: 'Michael Rodriguez',
-    time: '10:30 AM',
-    procedure: 'Root Canal',
-    doctor: 'Dr. Wilson',
-    status: 'confirmed',
-  },
-  {
-    id: '3',
-    patientName: 'Lisa White',
-    time: '11:00 AM',
-    procedure: 'Checkup',
-    doctor: 'Dr. Chen',
-    status: 'pending',
-  },
-  {
-    id: '4',
-    patientName: 'David Thompson',
-    time: '2:00 PM',
-    procedure: 'Crown Prep',
-    doctor: 'Dr. Martinez',
-    status: 'confirmed',
-  },
-  {
-    id: '5',
-    patientName: 'Emily Chen',
-    time: '3:30 PM',
-    procedure: 'Filling',
-    doctor: 'Dr. Wilson',
-    status: 'arrived',
-  },
-];
-
-export default function AdminDashboard() {
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome back! Here's what's happening today.</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <Link
-              key={stat.title}
-              href={stat.href}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-2 bg-indigo-50 rounded-lg">
-                  <stat.icon className="w-6 h-6 text-indigo-600" />
-                </div>
-                {stat.change > 0 ? (
-                  <ArrowUpRight className="w-5 h-5 text-green-500" />
-                ) : (
-                  <ArrowDownRight className="w-5 h-5 text-red-500" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-sm mt-2">
-                  <span className={stat.change > 0 ? 'text-green-600' : 'text-red-600'}>
-                    {stat.change > 0 ? '+' : ''}
-                    {stat.change}%
-                  </span>
-                  <span className="text-gray-500 ml-1">{stat.changeLabel}</span>
-                </p>
-              </div>
-            </Link>
-          ))}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Activity */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start space-x-4">
-                      <div
-                        className={`
-                        p-2 rounded-lg
-                        ${activity.type === 'call' ? 'bg-blue-50' : ''}
-                        ${activity.type === 'message' ? 'bg-purple-50' : ''}
-                        ${activity.type === 'appointment' ? 'bg-green-50' : ''}
-                        ${activity.type === 'alert' ? 'bg-yellow-50' : ''}
-                      `}
-                      >
-                        {activity.type === 'call' && <Phone className="w-5 h-5 text-blue-600" />}
-                        {activity.type === 'message' && (
-                          <MessageSquare className="w-5 h-5 text-purple-600" />
-                        )}
-                        {activity.type === 'appointment' && (
-                          <Calendar className="w-5 h-5 text-green-600" />
-                        )}
-                        {activity.type === 'alert' && (
-                          <AlertCircle className="w-5 h-5 text-yellow-600" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                          <span className="text-xs text-gray-500">{activity.time}</span>
-                        </div>
-                        <p className="text-sm text-gray-600">{activity.description}</p>
-                        {activity.status && (
-                          <div className="mt-2">
-                            <span
-                              className={`
-                              inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                              ${activity.status === 'success' ? 'bg-green-50 text-green-700' : ''}
-                              ${activity.status === 'pending' ? 'bg-yellow-50 text-yellow-700' : ''}
-                              ${activity.status === 'warning' ? 'bg-red-50 text-red-700' : ''}
-                            `}
-                            >
-                              {activity.status === 'success' && (
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                              )}
-                              {activity.status === 'warning' && (
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                              )}
-                              {activity.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-                              {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 border-t border-gray-200">
-                <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                  View all activity →
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Today's Appointments */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900">Today's Schedule</h2>
-                  <Link
-                    href="/admin/calendar"
-                    className="text-sm text-indigo-600 hover:text-indigo-700"
-                  >
-                    View All
-                  </Link>
-                </div>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {upcomingAppointments.map((appointment) => (
-                  <div key={appointment.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {appointment.patientName}
-                        </p>
-                        <p className="text-xs text-gray-500">{appointment.doctor}</p>
-                      </div>
-                      <span
-                        className={`
-                        px-2 py-1 rounded-full text-xs font-medium
-                        ${appointment.status === 'confirmed' ? 'bg-green-50 text-green-700' : ''}
-                        ${appointment.status === 'pending' ? 'bg-yellow-50 text-yellow-700' : ''}
-                        ${appointment.status === 'arrived' ? 'bg-blue-50 text-blue-700' : ''}
-                      `}
-                      >
-                        {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-4 text-xs text-gray-600">
-                      <span className="flex items-center">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {appointment.time}
-                      </span>
-                      <span>{appointment.procedure}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+    <motion.div
+      whileHover={{ y: -3 }}
+      className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)] backdrop-blur"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="rounded-xl bg-slate-100 p-2.5">
+          <Icon className="h-5 w-5 text-slate-700" />
         </div>
-
-      {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-6 text-white">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              href="/admin/patients"
-              className="bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg p-4 transition-colors"
-            >
-              <Users className="w-6 h-6 mb-2" />
-              <p className="text-sm font-medium">Add Patient</p>
-            </Link>
-            <Link
-              href="/admin/calendar"
-              className="bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg p-4 transition-colors"
-            >
-              <Calendar className="w-6 h-6 mb-2" />
-              <p className="text-sm font-medium">Book Appointment</p>
-            </Link>
-            <Link
-              href="/admin/ai-assistant"
-              className="bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg p-4 transition-colors"
-            >
-              <Phone className="w-6 h-6 mb-2" />
-              <p className="text-sm font-medium">Make Call</p>
-            </Link>
-            <Link
-              href="/admin/messaging"
-              className="bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg p-4 transition-colors"
-            >
-              <MessageSquare className="w-6 h-6 mb-2" />
-              <p className="text-sm font-medium">Send Message</p>
-            </Link>
+        {typeof trend === 'number' && (
+          <div
+            className={`flex items-center gap-1 text-xs font-medium ${
+              positive ? 'text-emerald-600' : 'text-rose-600'
+            }`}
+          >
+            {positive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+            {Math.abs(trend).toFixed(1)}%
           </div>
-        </div>
-    </div>
+        )}
+      </div>
+      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{title}</p>
+      <p className="mt-2 text-3xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
+    </motion.div>
   );
 }
 
+export default function AdminDashboard() {
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/admin-overview?practiceId=demo-practice`, {
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as AdminOverview;
+        if (mounted) setOverview(data);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const cards = useMemo(() => {
+    if (!overview) return [];
+
+    return [
+      {
+        title: 'New Users This Month',
+        value: overview.users.newThisMonth,
+        subtitle: `${overview.users.leftThisMonth} users left this month`,
+        icon: UserPlus,
+        trend: overview.users.monthlyGrowthPct,
+      },
+      {
+        title: 'Total Active Team Members',
+        value: overview.users.active,
+        subtitle: `${overview.users.total} total users in auth DB`,
+        icon: Users,
+      },
+      {
+        title: 'New Patients This Month',
+        value: overview.patients.newThisMonth,
+        subtitle: `${overview.patients.total} total patients`,
+        icon: Activity,
+      },
+      {
+        title: 'Appointments Completed',
+        value: `${overview.appointments.completionRatePct}%`,
+        subtitle: `${overview.appointments.completedThisMonth} of ${overview.appointments.thisMonth} this month`,
+        icon: Calendar,
+      },
+    ];
+  }, [overview]);
+
+  return (
+    <div className="relative space-y-6 overflow-hidden rounded-3xl bg-[#f3f6fb] p-4 md:p-6">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 right-0 h-72 w-72 rounded-full bg-[#97c5ff]/30 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-[#9ee8c7]/30 blur-3xl" />
+      </div>
+
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-3xl border border-white/70 bg-white/75 p-6 shadow-[0_16px_40px_rgba(15,23,42,0.07)] backdrop-blur-xl md:p-8"
+      >
+        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Admin Overview</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+              Practice pulse at a glance
+            </h1>
+            <p className="mt-3 max-w-2xl text-slate-600">
+              Monthly user growth, churn, and operational indicators are sourced from backend database records only.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:text-right">
+            <Link
+              href="/admin/patients"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-slate-300"
+            >
+              Manage Patients
+            </Link>
+            <Link
+              href="/admin/analytics"
+              className="rounded-xl bg-slate-900 px-3 py-2 text-sm text-white transition hover:bg-slate-800"
+            >
+              Detailed Analytics
+            </Link>
+          </div>
+        </div>
+      </motion.section>
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="h-40 animate-pulse rounded-2xl border border-white/70 bg-white/75" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {cards.map((card, idx) => (
+            <motion.div
+              key={card.title}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.06 }}
+            >
+              <StatTile {...card} />
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {overview && (
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="relative rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+        >
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Application Health Overview</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Core operational indicators for staffing, patient flow, and AI-assisted communication.
+              </p>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <TrendingUp className="h-4 w-4" />
+                    Team Growth Momentum
+                  </div>
+                  <p className="text-3xl font-semibold text-slate-900">{overview.users.monthlyGrowthPct}%</p>
+                  <p className="mt-1 text-sm text-slate-600">compared with previous month</p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <UserMinus className="h-4 w-4" />
+                    User Churn Signal
+                  </div>
+                  <p className="text-3xl font-semibold text-slate-900">{overview.users.leftThisMonth}</p>
+                  <p className="mt-1 text-sm text-slate-600">users left during current month</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <Phone className="h-4 w-4" />
+                  AI Voice Activity
+                </div>
+                <p className="text-3xl font-semibold text-slate-900">{overview.activity.transcriptsThisMonth}</p>
+                <p className="mt-1 text-sm text-slate-600">call transcripts this month</p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <MessageSquare className="h-4 w-4" />
+                  Messaging Throughput
+                </div>
+                <p className="text-3xl font-semibold text-slate-900">{overview.activity.conversationsThisMonth}</p>
+                <p className="mt-1 text-sm text-slate-600">new conversations this month</p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      )}
+    </div>
+  );
+}

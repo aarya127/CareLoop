@@ -1,9 +1,14 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query } from '@nestjs/common';
 import { PatientsService } from './patients.service';
+import { PatientsRepository } from './patients.repository';
 
 @Controller('patients')
 export class PatientsController {
-  constructor(private readonly patientsService: PatientsService) {}
+  private readonly patientsService: PatientsService;
+
+  constructor(patientsService?: PatientsService) {
+    this.patientsService = patientsService ?? new PatientsService(new PatientsRepository());
+  }
 
   @Get()
   findAll(@Query() query: any) {

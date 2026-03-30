@@ -83,6 +83,7 @@ const navigation: NavItem[] = [
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [topUserMenuOpen, setTopUserMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, logout, isLoading } = useAuth();
 
@@ -271,18 +272,47 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </button>
 
             {/* User Info */}
-            <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-              </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-medium text-sm">
-                  {user?.firstName?.charAt(0).toUpperCase()}
-                </span>
-              </div>
+            <div className="relative pl-4 border-l border-gray-200">
+              <button
+                onClick={() => setTopUserMenuOpen(!topUserMenuOpen)}
+                className="flex items-center space-x-3 rounded-lg px-2 py-1.5 hover:bg-gray-100 transition-colors"
+              >
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                </div>
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white font-medium text-sm">
+                    {user?.firstName?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+
+              {topUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
+                  <Link
+                    href="/admin/settings"
+                    onClick={() => setTopUserMenuOpen(false)}
+                    className="flex items-center space-x-2 px-4 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-700">Settings</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setTopUserMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center space-x-2 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+                  >
+                    <LogOut className="w-4 h-4 text-red-500" />
+                    <span className="text-sm text-red-600">Logout</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

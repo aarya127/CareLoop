@@ -3,7 +3,6 @@ import { requireUser } from '@/lib/auth/server';
 import { updateEvent, deleteEvent } from '@/lib/google/calendar';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
-import { AppointmentStatus } from '@prisma/client';
 
 const patchSchema = z.object({
   calendarId: z.string().default('primary'),
@@ -16,7 +15,7 @@ const patchSchema = z.object({
   procedureCode: z.string().optional(),
   providerId: z.string().optional(),
   roomId: z.string().optional(),
-  status: z.nativeEnum(AppointmentStatus).optional(),
+  status: z.string().optional(),
   extended: z.record(z.any()).optional(),
 });
 

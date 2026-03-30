@@ -3,7 +3,6 @@ import { requireUser } from '@/lib/auth/server';
 import { listEvents, insertEvent } from '@/lib/google/calendar';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
-import { AppointmentStatus } from '@prisma/client';
 
 const getSchema = z.object({
   calendarId: z.string().default('primary'),
@@ -79,7 +78,7 @@ export async function POST(req: NextRequest) {
           procedureCode: body.procedureCode,
           googleEventId: event.id || undefined,
           calendarId: body.calendarId,
-          status: AppointmentStatus.confirmed,
+          status: 'confirmed',
           extended: body.extended as any,
         },
       });

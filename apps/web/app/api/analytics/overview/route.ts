@@ -53,7 +53,21 @@ export async function GET(req: NextRequest) {
       recentCalls: transcripts,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'failed';
+
+    // Fall back to an empty payload so analytics UI still loads in local/dev setups
+    // where DATABASE_URL is not configured.
+    return NextResponse.json({
+      ok: true,
+      fallback: true,
+      warning: message,
+      summary: {
+        avgSentiment: 0,
+        acceptanceRate: 0,
+        totalCalls: 0,
+      },
+      timeline: [],
+      recentCalls: [],
+    });
   }
 }

@@ -40,6 +40,69 @@ type ApiPayload = {
   recentCalls: RecentCall[];
 };
 
+type AdminOverview = {
+  users: {
+    total: number;
+    active: number;
+    newThisMonth: number;
+    leftThisMonth: number;
+    monthlyGrowthPct: number;
+  };
+  patients: {
+    total: number;
+    newThisMonth: number;
+  };
+  appointments: {
+    thisMonth: number;
+    completedThisMonth: number;
+    completionRatePct: number;
+  };
+  activity: {
+    transcriptsThisMonth: number;
+    conversationsThisMonth: number;
+  };
+};
+
+type DecisionAction = {
+  actionKey: string;
+  trigger: string;
+  decision: string;
+  automation: string;
+  priority: 'high' | 'medium' | 'low';
+};
+
+type PhaseOverviewPayload = {
+  phase: string;
+  rangeDays: number;
+  metrics: {
+    noShowRatePct: number;
+    sameDayVacancyRatePct: number;
+    communicationConversionPct: number;
+    recallCompliancePct: number;
+    treatmentAcceptancePct: number;
+    appointmentsInRange: number;
+    conversationsInRange: number;
+    patientsTotal: number;
+  };
+  decisions: DecisionAction[];
+};
+
+type PhaseRoadmapPayload = {
+  mvp: {
+    status: string;
+    top5Metrics: string[];
+    automations: string[];
+  };
+  phase2: {
+    status: string;
+    deliverables: string[];
+  };
+  phase3: {
+    status: string;
+    deliverables: string[];
+  };
+};
+
 function toDateLabel(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -49,14 +112,97 @@ export function PracticeKpiDashboard() {
   const [range, setRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [phaseOverview, setPhaseOverview] = useState<PhaseOverviewPayload | null>(null);
+  const [phaseRoadmap, setPhaseRoadmap] = useState<PhaseRoadmapPayload | null>(null);
+  const [runningActionKey, setRunningActionKey] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({});
+  const [seedLoading, setSeedLoading] = useState(false);
+  const [seedFeedback, setSeedFeedback] = useState('');
+
+  const loadAnalytics = async (activeRange: '7d' | '30d' | '90d') => {
+    const [analyticsJson, overviewJson, phaseOverviewJson, phaseRoadmapJson] = await Promise.all([
+      fetch(`/api/analytics/overview?range=${activeRange}`).then((res) => res.json() as Promise<ApiPayload>),
+      fetch(`/auth/admin-overview?practiceId=demo-practice`, { credentials: 'include' }).then((res) => {
+        if (!res.ok) return null;
+        return res.json() as Promise<AdminOverview>;
+      }),
+      fetch(`http://localhost:3001/analytics/overview?practiceId=demo-practice&rangeDays=${activeRange.replace('d', '')}`)
+        .then((res) => {
+          if (!res.ok) return null;
+          return res.json() as Promise<PhaseOverviewPayload>;
+        }),
+      fetch('http://localhost:3001/analytics/phases')
+        .then((res) => {
+          if (!res.ok) return null;
+          return res.json() as Promise<PhaseRoadmapPayload>;
+        }),
+    ]);
+
+    setData(analyticsJson);
+    setOverview(overviewJson);
+    setPhaseOverview(phaseOverviewJson);
+    setPhaseRoadmap(phaseRoadmapJson);
+  };
+
+  const triggerAutomation = async (actionKey: string) => {
+    setRunningActionKey(actionKey);
+    setActionFeedback((prev) => ({ ...prev, [actionKey]: '' }));
+    try {
+      const res = await fetch('http://localhost:3001/analytics/automation/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionKey, practiceId: 'demo-practice' }),
+      });
+      const json = (await res.json()) as { ok?: boolean; message?: string };
+      setActionFeedback((prev) => ({
+        ...prev,
+        [actionKey]: json?.message ?? (json?.ok ? 'Automation triggered.' : 'Automation failed.'),
+      }));
+    } catch {
+      setActionFeedback((prev) => ({
+        ...prev,
+        [actionKey]: 'Unable to trigger automation right now.',
+      }));
+    } finally {
+      setRunningActionKey(null);
+    }
+  };
+
+  const seedPhase1Data = async () => {
+    setSeedLoading(true);
+    setSeedFeedback('');
+    try {
+      const res = await fetch('http://localhost:3001/analytics/seed-phase1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ practiceId: 'demo-practice' }),
+      });
+      const json = (await res.json()) as { ok?: boolean; fallback?: string; message?: string };
+
+      if (json?.ok) {
+        await loadAnalytics(range);
+        setSeedFeedback(
+          json.fallback === 'synthetic'
+            ? 'Seeded synthetic Phase 1 data (DB unavailable).'
+            : 'Seeded Phase 1 data successfully.'
+        );
+      } else {
+        setSeedFeedback(json?.message ?? 'Unable to seed Phase 1 data.');
+      }
+    } catch {
+      setSeedFeedback('Unable to seed Phase 1 data right now.');
+    } finally {
+      setSeedLoading(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    fetch(`/api/analytics/overview?range=${range}`)
-      .then((res) => res.json())
-      .then((json: ApiPayload) => {
-        if (mounted) setData(json);
+    loadAnalytics(range)
+      .then(() => {
+        if (!mounted) return;
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -112,8 +258,16 @@ export function PracticeKpiDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
           <p className="text-sm text-gray-600 mt-1">Voice call outcomes, sentiment, and treatment acceptance</p>
+          {seedFeedback && <p className="text-xs text-indigo-700 mt-1">{seedFeedback}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={seedPhase1Data}
+            disabled={seedLoading}
+            className="px-3 py-1.5 rounded-md text-sm border border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {seedLoading ? 'Seeding...' : 'Seed Phase 1 Test Data'}
+          </button>
           {(['7d', '30d', '90d'] as const).map((value) => (
             <button
               key={value}
@@ -142,6 +296,162 @@ export function PracticeKpiDashboard() {
           <p className="text-3xl font-bold text-gray-900">{data.summary.totalCalls}</p>
         </div>
       </div>
+
+      {overview && (
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <h2 className="text-sm font-medium text-gray-700">Operational Overview (This Month)</h2>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">New Users</p>
+              <p className="text-2xl font-bold text-gray-900">{overview.users.newThisMonth}</p>
+              <p className="text-xs text-gray-500">{overview.users.leftThisMonth} left</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Active Users</p>
+              <p className="text-2xl font-bold text-gray-900">{overview.users.active}</p>
+              <p className="text-xs text-gray-500">{overview.users.total} total</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Patients</p>
+              <p className="text-2xl font-bold text-gray-900">{overview.patients.total}</p>
+              <p className="text-xs text-gray-500">+{overview.patients.newThisMonth} this month</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Appointments Completion</p>
+              <p className="text-2xl font-bold text-gray-900">{overview.appointments.completionRatePct}%</p>
+              <p className="text-xs text-gray-500">
+                {overview.appointments.completedThisMonth}/{overview.appointments.thisMonth} completed
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">User Growth Trend</p>
+              <p className="text-xl font-semibold text-gray-900">{overview.users.monthlyGrowthPct}%</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Voice Transcripts</p>
+              <p className="text-xl font-semibold text-gray-900">{overview.activity.transcriptsThisMonth}</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">New Conversations</p>
+              <p className="text-xl font-semibold text-gray-900">{overview.activity.conversationsThisMonth}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {phaseOverview && (
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-gray-700">Phase 1 (MVP) Live Decision Actions</h2>
+            <span className="text-xs uppercase tracking-wide rounded-full px-2 py-1 bg-indigo-100 text-indigo-700">
+              {phaseOverview.phase}
+            </span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">No-show Rate</p>
+              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.noShowRatePct}%</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Same-day Vacancy</p>
+              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.sameDayVacancyRatePct}%</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Comms Conversion</p>
+              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.communicationConversionPct}%</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Recall Compliance</p>
+              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.recallCompliancePct}%</p>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500">Treatment Acceptance</p>
+              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.treatmentAcceptancePct}%</p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {phaseOverview.decisions.length === 0 && (
+              <p className="text-sm text-gray-500">No immediate automations triggered. Metrics are within threshold.</p>
+            )}
+            {phaseOverview.decisions.map((item, idx) => (
+              <div key={`${item.trigger}-${idx}`} className="rounded-md border border-gray-200 p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-900">{item.trigger}</p>
+                  <span
+                    className={`text-xs rounded-full px-2 py-1 ${
+                      item.priority === 'high'
+                        ? 'bg-red-100 text-red-700'
+                        : item.priority === 'medium'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}
+                  >
+                    {item.priority}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 mt-1">
+                  <span className="font-medium">Decision:</span> {item.decision}
+                </p>
+                <p className="text-sm text-indigo-700 mt-0.5">
+                  <span className="font-medium">Automation:</span> {item.automation}
+                </p>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <button
+                    onClick={() => triggerAutomation(item.actionKey)}
+                    disabled={runningActionKey === item.actionKey}
+                    className="text-xs rounded-md px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {runningActionKey === item.actionKey ? 'Running...' : 'Run Automation'}
+                  </button>
+                  {actionFeedback[item.actionKey] && (
+                    <p className="text-xs text-gray-600 text-right">{actionFeedback[item.actionKey]}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {phaseRoadmap && (
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <h2 className="text-sm font-medium text-gray-700">Phase 2/3 Rollout Panel</h2>
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Phase 1</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{phaseRoadmap.mvp.status}</p>
+              <ul className="mt-2 text-sm text-gray-700 list-disc pl-4 space-y-1">
+                {phaseRoadmap.mvp.top5Metrics.map((m) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Phase 2</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{phaseRoadmap.phase2.status}</p>
+              <ul className="mt-2 text-sm text-gray-700 list-disc pl-4 space-y-1">
+                {phaseRoadmap.phase2.deliverables.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-md border border-gray-200 p-3">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Phase 3</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{phaseRoadmap.phase3.status}</p>
+              <ul className="mt-2 text-sm text-gray-700 list-disc pl-4 space-y-1">
+                {phaseRoadmap.phase3.deliverables.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-medium text-gray-700">Sentiment Trend</h2>

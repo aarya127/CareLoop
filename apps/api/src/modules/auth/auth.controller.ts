@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Res } from '@nestjs/common';
+import { Controller, Post, Body, Req, Res, Get, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -68,5 +68,10 @@ export class AuthController {
       }
     }
     return { accessToken: data.accessToken, user: data.user };
+  }
+
+  @Get('admin-overview')
+  async adminOverview(@Query('practiceId') practiceId?: string) {
+    return this.authService.getAdminOverview(practiceId ?? 'demo-practice');
   }
 }

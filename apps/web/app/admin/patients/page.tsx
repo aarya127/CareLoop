@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Search,
@@ -17,7 +17,6 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react';
-import { getAllDemoPatients } from '@/lib/demo/sample-data';
 
 type SortField = 'name' | 'age' | 'nextAppointment' | 'lastVisit';
 type SortDirection = 'asc' | 'desc';
@@ -29,11 +28,31 @@ interface FilterState {
   doctors: string[];
 }
 
+interface AdminPatientCard {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  age: number;
+  date_of_birth?: string;
+  primary_doctor_name: string;
+  next_appointment_date?: string | null;
+  last_visit_date?: string | null;
+  has_allergies?: boolean;
+  requires_pre_medication?: boolean;
+  has_outstanding_balance?: number | null;
+}
+
 export default function AdminPatientsPage() {
   const router = useRouter();
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001';
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [allPatients, setAllPatients] = useState<AdminPatientCard[]>([]);
+  const [isPatientsLoading, setIsPatientsLoading] = useState(true);
+  const [patientsError, setPatientsError] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     hasAllergies: false,
     requiresPreMed: false,
@@ -42,7 +61,41 @@ export default function AdminPatientsPage() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const allPatients = getAllDemoPatients();
+  useEffect(() => {
+    let mounted = true;
+
+    const loadPatients = async () => {
+      setIsPatientsLoading(true);
+      setPatientsError('');
+      try {
+        const res = await fetch(`${apiBaseUrl}/patients?practiceId=demo-practice`);
+        const json = (await res.json()) as AdminPatientCard[];
+
+        if (!res.ok) {
+          throw new Error('Failed to load patients');
+        }
+
+        if (mounted) {
+          setAllPatients(Array.isArray(json) ? json : []);
+        }
+      } catch {
+        if (mounted) {
+          setPatientsError('Unable to load patients from database.');
+          setAllPatients([]);
+        }
+      } finally {
+        if (mounted) {
+          setIsPatientsLoading(false);
+        }
+      }
+    };
+
+    loadPatients();
+
+    return () => {
+      mounted = false;
+    };
+  }, [apiBaseUrl]);
 
   // Get unique doctors for filter
   const uniqueDoctors = Array.from(new Set(allPatients.map((p) => p.primary_doctor_name)));
@@ -149,8 +202,11 @@ export default function AdminPatientsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Patient List</h1>
             <p className="text-gray-600 mt-2">
-              Showing {filteredAndSortedPatients.length} of {allPatients.length} patients
+              {isPatientsLoading
+                ? 'Loading patients from database...'
+                : `Showing ${filteredAndSortedPatients.length} of ${allPatients.length} patients`}
             </p>
+            {patientsError && <p className="text-red-600 text-sm mt-2">{patientsError}</p>}
           </div>
           <div className="flex items-center space-x-3">
             <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">

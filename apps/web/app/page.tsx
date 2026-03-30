@@ -1,236 +1,91 @@
 'use client';
 
-import { useState } from 'react';
-import { Sparkles, Users, Calendar, Phone, MessageSquare, Shield, Zap, CheckCircle2 } from 'lucide-react';
-import { DEMO_USERS } from '@/lib/demo/sample-data';
-import { useAuth } from '@/lib/auth/auth-context';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { ArrowRight, Calendar, MessageSquare, Phone, ShieldCheck, Users } from 'lucide-react';
 
-export default function DemoLanding() {
-  const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+const features = [
+  {
+    icon: Users,
+    title: 'Patient Intelligence',
+    description: 'Unified records, insurance details, and treatment context in one timeline.',
+  },
+  {
+    icon: Calendar,
+    title: 'Schedule Operations',
+    description: 'Smarter appointment management with real-time team visibility.',
+  },
+  {
+    icon: Phone,
+    title: 'AI Voice Workflows',
+    description: 'Automated call handling with transcripts and actionable summaries.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Messaging Hub',
+    description: 'SMS and internal follow-ups orchestrated from one command center.',
+  },
+];
 
-  const handleDemoLogin = async (email: string, password: string, roleName: string) => {
-    setIsLoading(true);
-    try {
-      await login(email, password);
-      window.location.href = '/admin';
-    } catch {
-      setIsLoading(false);
-    }
-  };
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4" />
-              Interactive Demo
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              Care<span className="text-blue-600">Loop</span>
-            </h1>
-            <p className="text-2xl md:text-3xl text-gray-600 mb-4">
-              AI-Powered Dental Practice Management
-            </p>
-            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-              Experience the future of patient care with intelligent automation, real-time communication, and enterprise-grade security.
-            </p>
-          </div>
-
-          {/* Feature Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            <FeatureCard
-              icon={<Users className="w-6 h-6" />}
-              title="Patient Management"
-              description="Comprehensive profiles with insurance, dental records, and visit history"
-              color="blue"
-            />
-            <FeatureCard
-              icon={<Calendar className="w-6 h-6" />}
-              title="Smart Scheduling"
-              description="AI-powered appointment booking with coverage estimates"
-              color="purple"
-            />
-            <FeatureCard
-              icon={<Phone className="w-6 h-6" />}
-              title="VoIP Integration"
-              description="Click-to-call with AI assistants, transcripts, and recordings"
-              color="green"
-            />
-            <FeatureCard
-              icon={<MessageSquare className="w-6 h-6" />}
-              title="Omni-Channel Messaging"
-              description="SMS, web chat, and email in one unified inbox"
-              color="orange"
-            />
-          </div>
-
-          {/* Demo Accounts */}
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-center mb-8 text-gray-900">
-              Try CareLoop Now - Choose Your Role
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {DEMO_USERS.map((user) => (
-                <DemoAccountCard
-                  key={user.email}
-                  {...user}
-                  onLogin={handleDemoLogin}
-                  isLoading={isLoading}
-                />
-              ))}
-            </div>
-            <p className="text-center text-sm text-gray-500 mt-6">
-              All demo accounts use password: <code className="bg-gray-100 px-2 py-1 rounded font-mono">demo123</code>
-            </p>
-          </div>
-
-          {/* What's Included */}
-          <div className="mt-20 max-w-4xl mx-auto">
-            <h3 className="text-xl font-bold text-center mb-8 text-gray-900">
-              What's Included in This Demo
-            </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <IncludedFeature text="15 sample patients with realistic data" />
-              <IncludedFeature text="Role-based access control (RBAC)" />
-              <IncludedFeature text="Interactive patient profiles with 5 tabs" />
-              <IncludedFeature text="Appointment calendar with AI badges" />
-              <IncludedFeature text="VoIP call panel with transcripts" />
-              <IncludedFeature text="Messaging with conversation threads" />
-              <IncludedFeature text="Periodontal charting visualization" />
-              <IncludedFeature text="Insurance coverage estimates" />
-              <IncludedFeature text="HIPAA-compliant audit logging" />
-              <IncludedFeature text="Production-ready TypeScript codebase" />
-            </div>
-          </div>
-
-          {/* Technical Stack */}
-          <div className="mt-16 text-center">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Built With</h3>
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <TechBadge text="Next.js 15" />
-              <TechBadge text="React 18" />
-              <TechBadge text="TypeScript" />
-              <TechBadge text="Tailwind CSS" />
-              <TechBadge text="Shadcn UI" />
-              <TechBadge text="Lucide Icons" />
-            </div>
-          </div>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-[#f2f5fb] text-slate-900">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-36 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#8dbfff]/40 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[#9ce6c3]/35 blur-3xl" />
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-sm text-gray-600">
-          <p>
-            © 2025 CareLoop Demo. Built with{' '}
-            <span className="text-red-500">♥</span> for dental practices.
+      <main className="relative mx-auto max-w-6xl px-4 pb-16 pt-20 md:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="rounded-3xl border border-white/70 bg-white/75 p-8 shadow-[0_20px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-12"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-500">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Secure Admin Platform
+          </div>
+
+          <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">
+            CareLoop
+            <span className="ml-2 bg-gradient-to-r from-[#2f4f89] to-[#3e8ba8] bg-clip-text text-transparent">
+              Operations Cloud
+            </span>
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-base text-slate-600 md:text-lg">
+            A modern, interactive workspace for dental practices to run front-desk operations, patient coordination, and AI-assisted workflows with confidence.
           </p>
-          <p className="mt-2 text-xs text-gray-500">
-            This is a demonstration environment with sample data. Not for production use.
-          </p>
-        </div>
-      </footer>
-    </div>
-  );
-}
 
-interface FeatureCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: 'blue' | 'purple' | 'green' | 'orange';
-}
-
-function FeatureCard({ icon, title, description, color }: FeatureCardProps) {
-  const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    purple: 'bg-purple-100 text-purple-600',
-    green: 'bg-green-100 text-green-600',
-    orange: 'bg-orange-100 text-orange-600',
-  };
-
-  return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-      <div className={`w-12 h-12 rounded-lg ${colorClasses[color]} flex items-center justify-center mb-4`}>
-        {icon}
-      </div>
-      <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-sm text-gray-600">{description}</p>
-    </div>
-  );
-}
-
-interface DemoAccountCardProps {
-  email: string;
-  password: string;
-  role: string;
-  name: string;
-  onLogin: (email: string, password: string, role: string) => void;
-  isLoading: boolean;
-}
-
-function DemoAccountCard({ email, password, role, name, onLogin, isLoading }: DemoAccountCardProps) {
-  const roleColors = {
-    admin: 'bg-red-50 border-red-200 hover:border-red-300',
-    doctor: 'bg-blue-50 border-blue-200 hover:border-blue-300',
-    nurse: 'bg-green-50 border-green-200 hover:border-green-300',
-    receptionist: 'bg-purple-50 border-purple-200 hover:border-purple-300',
-  };
-
-  const roleIcons = {
-    admin: <Shield className="w-5 h-5" />,
-    doctor: <Users className="w-5 h-5" />,
-    nurse: <Zap className="w-5 h-5" />,
-    receptionist: <Calendar className="w-5 h-5" />,
-  };
-
-  return (
-    <button
-      onClick={() => onLogin(email, password, role)}
-      disabled={isLoading}
-      className={`${roleColors[role as keyof typeof roleColors]} border-2 rounded-lg p-4 text-left transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
-    >
-      <div className="flex items-start gap-3">
-        <div className="mt-1">
-          {roleIcons[role as keyof typeof roleIcons]}
-        </div>
-        <div className="flex-1">
-          <div className="font-semibold text-gray-900 capitalize mb-1">
-            {role}
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              href="/login"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-slate-900 px-5 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              Sign in to Admin
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <span className="text-sm text-slate-500">Authentication is validated only by backend database credentials.</span>
           </div>
-          <div className="text-xs text-gray-600 mb-2">{name}</div>
-          <div className="text-xs text-gray-500 font-mono bg-white/50 px-2 py-1 rounded">
-            {email.split('@')[0]}
-          </div>
-        </div>
-      </div>
-      <div className="mt-3 text-xs font-medium text-gray-700 text-center bg-white/70 py-1.5 rounded">
-        {isLoading ? 'Loading...' : 'Try This Role →'}
-      </div>
-    </button>
-  );
-}
+        </motion.div>
 
-function IncludedFeature({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-      <span className="text-gray-700">{text}</span>
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature, idx) => (
+            <motion.article
+              key={feature.title}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 + idx * 0.06 }}
+              className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_8px_25px_rgba(15,23,42,0.05)] backdrop-blur"
+            >
+              <feature.icon className="h-5 w-5 text-[#355f9a]" />
+              <h2 className="mt-3 text-sm font-semibold text-slate-900">{feature.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{feature.description}</p>
+            </motion.article>
+          ))}
+        </section>
+      </main>
     </div>
   );
 }
-
-function TechBadge({ text }: { text: string }) {
-  return (
-    <span className="px-3 py-1 bg-gray-100 rounded-full font-medium">
-      {text}
-    </span>
-  );
-}
-

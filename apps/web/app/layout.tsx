@@ -1,11 +1,11 @@
-import { Inter } from 'next/font/google';
+import { Manrope } from 'next/font/google';
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers/providers';
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-manrope',
   display: 'swap',
 });
 
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={manrope.variable} suppressHydrationWarning>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
