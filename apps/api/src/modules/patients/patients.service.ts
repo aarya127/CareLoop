@@ -5,6 +5,23 @@ import { PatientsRepository } from './patients.repository';
 export class PatientsService {
   constructor(private readonly patientsRepository: PatientsRepository) {}
 
+  private normalizeDateInput(value: unknown): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return null;
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const asIso = raw.length === 10 ? `${raw}T00:00:00.000Z` : raw;
+    const parsed = new Date(asIso);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
   private toAge(dateOfBirth: Date | null): number {
     if (!dateOfBirth) return 0;
     const now = new Date();
@@ -137,7 +154,7 @@ export class PatientsService {
 
   async findById(id: string): Promise<any> {
     try {
-      return this.patientsRepository.prisma.patient.findUnique({
+      return await this.patientsRepository.prisma.patient.findUnique({
         where: { id },
         include: {
           insuranceRecords: {
@@ -154,12 +171,23 @@ export class PatientsService {
   async create(dto: any): Promise<any> {
     try {
       const practiceId = String(dto?.practiceId ?? 'demo-practice');
-      return this.patientsRepository.prisma.patient.create({
+
+      await this.patientsRepository.prisma.practice.upsert({
+        where: { id: practiceId },
+        update: {},
+        create: {
+          id: practiceId,
+          name: 'Demo Practice',
+          timeZone: 'America/New_York',
+        },
+      });
+
+      return await this.patientsRepository.prisma.patient.create({
         data: {
           practiceId,
           firstName: String(dto?.firstName ?? dto?.first_name ?? ''),
           lastName: String(dto?.lastName ?? dto?.last_name ?? ''),
-          dateOfBirth: dto?.dateOfBirth ?? dto?.date_of_birth ?? null,
+          dateOfBirth: this.normalizeDateInput(dto?.dateOfBirth ?? dto?.date_of_birth) ?? null,
           phoneE164: dto?.phoneE164 ?? dto?.phone ?? null,
           patientType: String(dto?.patientType ?? dto?.patient_type ?? 'existing'),
         },
@@ -171,12 +199,12 @@ export class PatientsService {
 
   async update(id: string, dto: any): Promise<any> {
     try {
-      return this.patientsRepository.prisma.patient.update({
+      return await this.patientsRepository.prisma.patient.update({
         where: { id },
         data: {
           firstName: dto?.firstName ?? dto?.first_name,
           lastName: dto?.lastName ?? dto?.last_name,
-          dateOfBirth: dto?.dateOfBirth ?? dto?.date_of_birth,
+          dateOfBirth: this.normalizeDateInput(dto?.dateOfBirth ?? dto?.date_of_birth),
           phoneE164: dto?.phoneE164 ?? dto?.phone,
           patientType: dto?.patientType ?? dto?.patient_type,
         },

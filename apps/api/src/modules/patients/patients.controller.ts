@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, BadRequestException } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { PatientsRepository } from './patients.repository';
 
@@ -21,13 +21,21 @@ export class PatientsController {
   }
 
   @Post()
-  create(@Body() dto: any) {
-    return this.patientsService.create(dto);
+  async create(@Body() dto: any) {
+    const created = await this.patientsService.create(dto);
+    if (!created) {
+      throw new BadRequestException('Unable to create patient');
+    }
+    return created;
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: any) {
-    return this.patientsService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: any) {
+    const updated = await this.patientsService.update(id, dto);
+    if (!updated) {
+      throw new BadRequestException('Unable to update patient');
+    }
+    return updated;
   }
 
   @Delete(':id')

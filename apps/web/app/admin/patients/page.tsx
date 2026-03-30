@@ -60,42 +60,46 @@ export default function AdminPatientsPage() {
     doctors: [],
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [isCreatingPatient, setIsCreatingPatient] = useState(false);
+  const [createPatientError, setCreatePatientError] = useState('');
+  const [newPatientForm, setNewPatientForm] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    dateOfBirth: '',
+    patientType: 'existing',
+  });
+
+  const loadPatients = React.useCallback(async () => {
+    setIsPatientsLoading(true);
+    setPatientsError('');
+    try {
+      const res = await fetch(`${apiBaseUrl}/patients?practiceId=demo-practice`);
+      const json = (await res.json()) as AdminPatientCard[];
+
+      if (!res.ok) {
+        throw new Error('Failed to load patients');
+      }
+
+      setAllPatients(Array.isArray(json) ? json : []);
+    } catch {
+      setPatientsError('Unable to load patients from database.');
+      setAllPatients([]);
+    } finally {
+      setIsPatientsLoading(false);
+    }
+  }, [apiBaseUrl]);
 
   useEffect(() => {
     let mounted = true;
-
-    const loadPatients = async () => {
-      setIsPatientsLoading(true);
-      setPatientsError('');
-      try {
-        const res = await fetch(`${apiBaseUrl}/patients?practiceId=demo-practice`);
-        const json = (await res.json()) as AdminPatientCard[];
-
-        if (!res.ok) {
-          throw new Error('Failed to load patients');
-        }
-
-        if (mounted) {
-          setAllPatients(Array.isArray(json) ? json : []);
-        }
-      } catch {
-        if (mounted) {
-          setPatientsError('Unable to load patients from database.');
-          setAllPatients([]);
-        }
-      } finally {
-        if (mounted) {
-          setIsPatientsLoading(false);
-        }
-      }
-    };
 
     loadPatients();
 
     return () => {
       mounted = false;
     };
-  }, [apiBaseUrl]);
+  }, [loadPatients]);
 
   // Get unique doctors for filter
   const uniqueDoctors = Array.from(new Set(allPatients.map((p) => p.primary_doctor_name)));
@@ -195,6 +199,58 @@ export default function AdminPatientsPage() {
     router.push(`/patient-record?id=${patientId}`);
   };
 
+  const closeAddPatientModal = () => {
+    if (isCreatingPatient) return;
+    setShowAddPatientModal(false);
+    setCreatePatientError('');
+  };
+
+  const createPatient = async () => {
+    setCreatePatientError('');
+
+    if (!newPatientForm.firstName.trim() || !newPatientForm.lastName.trim()) {
+      setCreatePatientError('First name and last name are required.');
+      return;
+    }
+
+    setIsCreatingPatient(true);
+    try {
+      const payload = {
+        practiceId: 'demo-practice',
+        firstName: newPatientForm.firstName.trim(),
+        lastName: newPatientForm.lastName.trim(),
+        phone: newPatientForm.phone.trim() || null,
+        date_of_birth: newPatientForm.dateOfBirth || null,
+        patient_type: newPatientForm.patientType,
+      };
+
+      const res = await fetch(`${apiBaseUrl}/patients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json?.id) {
+        throw new Error('Failed to create patient');
+      }
+
+      setShowAddPatientModal(false);
+      setNewPatientForm({
+        firstName: '',
+        lastName: '',
+        phone: '',
+        dateOfBirth: '',
+        patientType: 'existing',
+      });
+      await loadPatients();
+    } catch {
+      setCreatePatientError('Unable to create patient. Check required fields and try again.');
+    } finally {
+      setIsCreatingPatient(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
         {/* Header */}
@@ -213,7 +269,10 @@ export default function AdminPatientsPage() {
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <button
+              onClick={() => setShowAddPatientModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
               <Plus className="w-4 h-4" />
               <span>Add Patient</span>
             </button>
@@ -444,6 +503,107 @@ export default function AdminPatientsPage() {
             </div>
           )}
         </div>
+
+        {showAddPatientModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                <h2 className="text-xl font-semibold text-gray-900">Add Patient</h2>
+                <button
+                  onClick={closeAddPatientModal}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">First Name</label>
+                  <input
+                    value={newPatientForm.firstName}
+                    onChange={(e) =>
+                      setNewPatientForm((prev) => ({ ...prev, firstName: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="John"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Last Name</label>
+                  <input
+                    value={newPatientForm.lastName}
+                    onChange={(e) =>
+                      setNewPatientForm((prev) => ({ ...prev, lastName: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Phone</label>
+                  <input
+                    value={newPatientForm.phone}
+                    onChange={(e) => setNewPatientForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="+14165551234"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={newPatientForm.dateOfBirth}
+                    onChange={(e) =>
+                      setNewPatientForm((prev) => ({ ...prev, dateOfBirth: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Patient Type</label>
+                  <select
+                    value={newPatientForm.patientType}
+                    onChange={(e) =>
+                      setNewPatientForm((prev) => ({ ...prev, patientType: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="existing">Existing</option>
+                    <option value="new">New</option>
+                    <option value="phase1_seed">Phase1 Seed</option>
+                  </select>
+                </div>
+
+                {createPatientError && (
+                  <p className="md:col-span-2 text-sm text-red-600">{createPatientError}</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4">
+                <button
+                  onClick={closeAddPatientModal}
+                  disabled={isCreatingPatient}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createPatient}
+                  disabled={isCreatingPatient}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isCreatingPatient ? 'Saving...' : 'Save Patient'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

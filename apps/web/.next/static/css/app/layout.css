@@ -3563,6 +3563,11 @@
       border-color: #3e8ba8;
     }
   }
+  .focus\:border-indigo-500 {
+    &:focus {
+      border-color: var(--color-indigo-500);
+    }
+  }
   .focus\:border-sky-400 {
     &:focus {
       border-color: var(--color-sky-400);

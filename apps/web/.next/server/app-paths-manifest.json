@@ -1,10 +1,7 @@
 {
-  "/api/calendar/events/route": "app/api/calendar/events/route.js",
   "/admin/patients/page": "app/admin/patients/page.js",
   "/admin/calendar/page": "app/admin/calendar/page.js",
-  "/admin/analytics/page": "app/admin/analytics/page.js",
-  "/admin/messaging/page": "app/admin/messaging/page.js",
-  "/admin/ai-assistant/page": "app/admin/ai-assistant/page.js",
   "/admin/settings/page": "app/admin/settings/page.js",
-  "/admin/page": "app/admin/page.js"
+  "/admin/messaging/page": "app/admin/messaging/page.js",
+  "/admin/analytics/page": "app/admin/analytics/page.js"
 }

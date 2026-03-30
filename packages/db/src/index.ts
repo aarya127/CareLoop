@@ -1,5 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 
+// Keep local development usable even when DATABASE_URL is not exported in shell.
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://user@localhost:5432/careloop?schema=public';
+}
+
 // Prevent multiple instances in dev (hot-reload safe)
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
