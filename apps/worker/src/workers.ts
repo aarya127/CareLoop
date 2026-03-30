@@ -31,23 +31,23 @@ export function createWorkers(connection: Redis): Worker[] {
       concurrency: 1,
     }),
     // New spec-aligned workers
-    new Worker(QUEUE_NAMES.APPOINTMENT_REMINDERS, remindersProcessor, {
+    new Worker(QUEUE_NAMES.REMINDERS, remindersProcessor, {
       connection,
       concurrency: 10,
     }),
-    new Worker(QUEUE_NAMES.ANALYTICS_REFRESH, analyticsRefreshProcessor, {
+    new Worker(QUEUE_NAMES.ANALYTICS, analyticsRefreshProcessor, {
       connection,
       concurrency: 1,
     }),
-    new Worker(QUEUE_NAMES.DOCUMENT_CLEANUP, documentCleanupProcessor, {
+    new Worker(QUEUE_NAMES.DOCUMENTS, documentCleanupProcessor, {
       connection,
       concurrency: 2,
     }),
-    new Worker(QUEUE_NAMES.DATA_EXPORTS, exportsProcessor, {
+    new Worker(QUEUE_NAMES.EXPORTS, exportsProcessor, {
       connection,
       concurrency: 2,
     }),
-    new Worker(QUEUE_NAMES.PROCESS_WEBHOOKS, webhooksProcessor, {
+    new Worker(QUEUE_NAMES.WEBHOOKS, webhooksProcessor, {
       connection,
       concurrency: 5,
     }),
