@@ -1,0 +1,117 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.careloop.example.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all apps
+        run: pnpm turbo run build
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push API image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f infrastructure/docker/api.Dockerfile \
+            -t $ECR_REGISTRY/careloop-api:$IMAGE_TAG \
+            -t $ECR_REGISTRY/careloop-api:staging \
+            .
+          docker push $ECR_REGISTRY/careloop-api:$IMAGE_TAG
+          docker push $ECR_REGISTRY/careloop-api:staging
+
+      - name: Build and push web image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f infrastructure/docker/web.Dockerfile \
+            -t $ECR_REGISTRY/careloop-web:$IMAGE_TAG \
+            -t $ECR_REGISTRY/careloop-web:staging \
+            .
+          docker push $ECR_REGISTRY/careloop-web:$IMAGE_TAG
+          docker push $ECR_REGISTRY/careloop-web:staging
+
+      - name: Build and push worker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f infrastructure/docker/worker.Dockerfile \
+            -t $ECR_REGISTRY/careloop-worker:$IMAGE_TAG \
+            -t $ECR_REGISTRY/careloop-worker:staging \
+            .
+          docker push $ECR_REGISTRY/careloop-worker:$IMAGE_TAG
+          docker push $ECR_REGISTRY/careloop-worker:staging
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubectl for staging
+        run: echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 --decode > ~/.kube/config
+
+      - name: Run DB migrations
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: pnpm --filter @careloop/db exec prisma migrate deploy
+
+      - name: Deploy to Kubernetes (staging)
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          kubectl set image deployment/careloop-api api=$ECR_REGISTRY/careloop-api:$IMAGE_TAG -n staging
+          kubectl set image deployment/careloop-web web=$ECR_REGISTRY/careloop-web:$IMAGE_TAG -n staging
+          kubectl set image deployment/careloop-worker worker=$ECR_REGISTRY/careloop-worker:$IMAGE_TAG -n staging
+          kubectl rollout status deployment/careloop-api -n staging --timeout=120s
+          kubectl rollout status deployment/careloop-web -n staging --timeout=120s
+          kubectl rollout status deployment/careloop-worker -n staging --timeout=120s
+
+      - name: Smoke test
+        run: |
+          sleep 10
+          curl -f https://staging.careloop.example.com/api/health || exit 1

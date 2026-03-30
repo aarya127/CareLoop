@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { JobName } from '@careloop/types';
+import { JobNames } from '@careloop/types';
 import { createWorkers } from './workers';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -14,12 +14,12 @@ connection.on('error', (err) => console.error('[Redis] error:', err));
 const workers = createWorkers(connection);
 
 console.info(
-  `[Worker] processing queues: ${Object.values(JobName).join(', ')}`
+  `[Worker] processing queues: ${Object.values(JobNames).join(', ')}`
 );
 
 async function shutdown() {
   console.info('[Worker] shutting down...');
-  await Promise.all(workers.map((w) => w.close()));
+  await Promise.all(workers.map((w: { close: () => Promise<void> }) => w.close()));
   await connection.quit();
   process.exit(0);
 }

@@ -1,28 +1,55 @@
 import { Worker } from 'bullmq';
 import type Redis from 'ioredis';
-import { JobName } from '@careloop/types';
+import { JobNames, QUEUE_NAMES } from '@careloop/shared';
 import { finalizeTranscriptProcessor } from './processors/finalize-transcript';
 import { syncGoogleCalendarProcessor } from './processors/sync-google-calendar';
 import { appointmentReminderProcessor } from './processors/appointment-reminder';
 import { computeKpisProcessor } from './processors/compute-kpis';
+import { remindersProcessor } from './processors/reminders.processor';
+import { analyticsRefreshProcessor } from './processors/analytics-refresh.processor';
+import { documentCleanupProcessor } from './processors/document-cleanup.processor';
+import { exportsProcessor } from './processors/exports.processor';
+import { webhooksProcessor } from './processors/webhooks.processor';
 
 export function createWorkers(connection: Redis): Worker[] {
   return [
-    new Worker(JobName.FINALIZE_TRANSCRIPT, finalizeTranscriptProcessor, {
+    // Legacy workers (kept for backward compatibility)
+    new Worker(JobNames.FINALIZE_TRANSCRIPT, finalizeTranscriptProcessor, {
       connection,
       concurrency: 5,
     }),
-    new Worker(JobName.SYNC_GOOGLE_CALENDAR, syncGoogleCalendarProcessor, {
+    new Worker(JobNames.SYNC_GOOGLE_CALENDAR, syncGoogleCalendarProcessor, {
       connection,
       concurrency: 3,
     }),
-    new Worker(JobName.APPOINTMENT_REMINDER, appointmentReminderProcessor, {
+    new Worker(JobNames.APPOINTMENT_REMINDER, appointmentReminderProcessor, {
       connection,
       concurrency: 10,
     }),
-    new Worker(JobName.COMPUTE_KPIS, computeKpisProcessor, {
+    new Worker(JobNames.COMPUTE_KPIS, computeKpisProcessor, {
       connection,
       concurrency: 1,
+    }),
+    // New spec-aligned workers
+    new Worker(QUEUE_NAMES.APPOINTMENT_REMINDERS, remindersProcessor, {
+      connection,
+      concurrency: 10,
+    }),
+    new Worker(QUEUE_NAMES.ANALYTICS_REFRESH, analyticsRefreshProcessor, {
+      connection,
+      concurrency: 1,
+    }),
+    new Worker(QUEUE_NAMES.DOCUMENT_CLEANUP, documentCleanupProcessor, {
+      connection,
+      concurrency: 2,
+    }),
+    new Worker(QUEUE_NAMES.DATA_EXPORTS, exportsProcessor, {
+      connection,
+      concurrency: 2,
+    }),
+    new Worker(QUEUE_NAMES.PROCESS_WEBHOOKS, webhooksProcessor, {
+      connection,
+      concurrency: 5,
     }),
   ];
 }

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: careloop-api
+  labels:
+    app: careloop-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: careloop-api
+  template:
+    metadata:
+      labels:
+        app: careloop-api
+    spec:
+      containers:
+        - name: api
+          image: careloop/api:latest
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - secretRef:
+                name: careloop-secrets
+            - configMapRef:
+                name: careloop-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5

@@ -61,12 +61,15 @@ export interface KpiDataPoint {
 }
 
 // Jobs (BullMQ queues)
-export type JobName =
-  | 'finalize-transcript'
-  | 'sync-google-calendar'
-  | 'send-appointment-reminder'
-  | 'compute-kpis'
-  | 'send-notification';
+export const JobNames = {
+  FINALIZE_TRANSCRIPT: 'finalize-transcript',
+  SYNC_GOOGLE_CALENDAR: 'sync-google-calendar',
+  APPOINTMENT_REMINDER: 'send-appointment-reminder',
+  COMPUTE_KPIS: 'compute-kpis',
+  SEND_NOTIFICATION: 'send-notification',
+} as const;
+
+export type JobName = (typeof JobNames)[keyof typeof JobNames];
 
 export interface FinalizeTranscriptJobData {
   transcriptId: string;

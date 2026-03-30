@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: careloop-worker
+  labels:
+    app: careloop-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: careloop-worker
+  template:
+    metadata:
+      labels:
+        app: careloop-worker
+    spec:
+      containers:
+        - name: worker
+          image: careloop/worker:latest
+          envFrom:
+            - secretRef:
+                name: careloop-secrets
+            - configMapRef:
+                name: careloop-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

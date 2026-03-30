@@ -4,11 +4,11 @@ import type { SyncGoogleCalendarJobData } from '@careloop/types';
 export async function syncGoogleCalendarProcessor(
   job: Job<SyncGoogleCalendarJobData>
 ): Promise<void> {
-  const { practiceId, accessToken } = job.data;
-  job.log(`Syncing Google Calendar for practice ${practiceId}`);
+  const { practiceId, userId, calendarId } = job.data;
+  job.log(`Syncing Google Calendar ${calendarId} for user ${userId} (practice ${practiceId})`);
 
   // TODO: implement OAuth token refresh + calendar event upsert via Google API
-  void accessToken;
+  void calendarId;
 
-  job.log(`Google Calendar sync complete for practice ${practiceId}`);
+  job.log(`Google Calendar sync complete for user ${userId}`);
 }

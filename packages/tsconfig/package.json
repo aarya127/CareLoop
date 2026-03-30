@@ -1,0 +1,10 @@
+{
+  "name": "@careloop/tsconfig",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    "./base": "./base.json",
+    "./nextjs": "./nextjs.json",
+    "./nestjs": "./nestjs.json"
+  }
+}

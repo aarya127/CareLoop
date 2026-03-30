@@ -5,17 +5,15 @@ import type { FinalizeTranscriptJobData } from '@careloop/types';
 export async function finalizeTranscriptProcessor(
   job: Job<FinalizeTranscriptJobData>
 ): Promise<void> {
-  const { callSid, transcriptText } = job.data;
-  job.log(`Finalizing transcript for call ${callSid}`);
+  const { transcriptId, practiceId } = job.data;
+  job.log(`Finalizing transcript ${transcriptId} for practice ${practiceId}`);
 
-  await prisma.callTranscript.updateMany({
-    where: { callSid },
+  await prisma.callTranscript.update({
+    where: { id: transcriptId },
     data: {
-      transcript: transcriptText,
-      status: 'completed',
-      processedAt: new Date(),
+      endedAt: new Date(),
     },
   });
 
-  job.log(`Transcript finalized for call ${callSid}`);
+  job.log(`Transcript ${transcriptId} finalized`);
 }
