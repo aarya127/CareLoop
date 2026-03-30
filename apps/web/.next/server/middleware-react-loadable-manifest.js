@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"app/admin/analytics/page.tsx -> @/components/analytics/practice-kpi-dashboard\":{\"id\":\"app/admin/analytics/page.tsx -> @/components/analytics/practice-kpi-dashboard\",\"files\":[\"static/chunks/_app-pages-browser_components_analytics_practice-kpi-dashboard_tsx.js\"]},\"app/admin/calendar/page.tsx -> @fullcalendar/react\":{\"id\":\"app/admin/calendar/page.tsx -> @fullcalendar/react\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_fullcalendar_react_dist_index_js.js\"]}}"

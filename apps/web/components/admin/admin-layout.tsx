@@ -72,12 +72,6 @@ const navigation: NavItem[] = [
     icon: BarChart3,
     roles: ['admin', 'doctor'],
   },
-  {
-    name: 'Settings',
-    href: '/admin/settings',
-    icon: Settings,
-    roles: ['admin'],
-  },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -214,13 +208,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   >
                     <UserCircle className="w-4 h-4 text-gray-500" />
                     <span className="text-sm text-gray-700">Profile</span>
-                  </Link>
-                  <Link
-                    href="/admin/settings"
-                    className="flex items-center space-x-2 px-4 py-3 hover:bg-gray-50 transition-colors"
-                  >
-                    <Settings className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-700">Settings</span>
                   </Link>
                   <button
                     onClick={handleLogout}
