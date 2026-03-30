@@ -1,5 +1,5 @@
 import type { Job } from 'bullmq';
-import type { AppointmentReminderJobData } from '@careloop/types';
+import type { AppointmentReminderJobData } from '@careloop/shared';
 
 export async function appointmentReminderProcessor(
   job: Job<AppointmentReminderJobData>

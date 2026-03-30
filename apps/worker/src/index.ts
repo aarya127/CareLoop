@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { JobNames } from '@careloop/types';
+import { JobNames } from '@careloop/shared';
 import { createWorkers } from './workers';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';

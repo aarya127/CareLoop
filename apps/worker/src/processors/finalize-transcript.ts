@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq';
 import { prisma } from '@careloop/db';
-import type { FinalizeTranscriptJobData } from '@careloop/types';
+import type { FinalizeTranscriptJobData } from '@careloop/shared';
 
 export async function finalizeTranscriptProcessor(
   job: Job<FinalizeTranscriptJobData>

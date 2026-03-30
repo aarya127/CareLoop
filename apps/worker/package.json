@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "@careloop/db": "*",
-    "@careloop/types": "*",
+    "@careloop/shared": "*",
     "bullmq": "^5.28.0",
     "ioredis": "^5.4.1"
   },
   "devDependencies": {
-    "@careloop/config": "*",
+    "@careloop/shared": "*",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2"

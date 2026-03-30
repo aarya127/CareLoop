@@ -1,12 +1,12 @@
 import { Queue } from 'bullmq';
 import type Redis from 'ioredis';
-import { JobNames } from '@careloop/types';
+import { JobNames } from '@careloop/shared';
 import type {
   FinalizeTranscriptJobData,
   SyncGoogleCalendarJobData,
   AppointmentReminderJobData,
   ComputeKpisJobData,
-} from '@careloop/types';
+} from '@careloop/shared';
 
 export type QueueMap = {
   [JobNames.FINALIZE_TRANSCRIPT]: Queue<FinalizeTranscriptJobData>;

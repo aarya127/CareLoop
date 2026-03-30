@@ -1,5 +1,5 @@
 import type { Job } from 'bullmq';
-import type { SyncGoogleCalendarJobData } from '@careloop/types';
+import type { SyncGoogleCalendarJobData } from '@careloop/shared';
 
 export async function syncGoogleCalendarProcessor(
   job: Job<SyncGoogleCalendarJobData>

@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq';
 import { prisma } from '@careloop/db';
-import type { ComputeKpisJobData } from '@careloop/types';
+import type { ComputeKpisJobData } from '@careloop/shared';
 
 export async function computeKpisProcessor(
   job: Job<ComputeKpisJobData>

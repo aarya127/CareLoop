@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { HealthStatus } from '@careloop/types';
+import type { HealthStatus } from '@careloop/shared';
 
 export const dynamic = 'force-dynamic';
 
