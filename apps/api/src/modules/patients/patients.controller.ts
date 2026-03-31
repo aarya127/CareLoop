@@ -38,6 +38,24 @@ export class PatientsController {
     return updated;
   }
 
+  @Get(':id/record-section/:section')
+  async getRecordSection(@Param('id') id: string, @Param('section') section: string) {
+    return this.patientsService.findRecordSection(id, section);
+  }
+
+  @Put(':id/record-section/:section')
+  async updateRecordSection(
+    @Param('id') id: string,
+    @Param('section') section: string,
+    @Body() dto: any
+  ) {
+    const updated = await this.patientsService.upsertRecordSection(id, section, dto);
+    if (!updated) {
+      throw new BadRequestException(`Unable to update patient record section: ${section}`);
+    }
+    return updated;
+  }
+
   @Post()
   async create(@Body() dto: any) {
     const created = await this.patientsService.create(dto);

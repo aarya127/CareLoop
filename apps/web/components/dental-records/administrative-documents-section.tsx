@@ -5,7 +5,7 @@
  * Consent forms, invoices, treatment plans, insurance claims, and other documents
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
@@ -40,13 +40,75 @@ interface AdminDocumentsSectionProps {
 
 export default function AdminDocumentsSection({
   patientId,
-  adminDocuments,
+  adminDocuments: initialAdminDocuments,
   onUpdate,
 }: AdminDocumentsSectionProps) {
+  const [adminDocuments, setAdminDocuments] = useState<AdministrativeDocuments>(initialAdminDocuments);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<AdministrativeDocument | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
+  const [documentForm, setDocumentForm] = useState({
+    title: '',
+    document_type: 'consent_form',
+    status: 'pending',
+    date_issued: new Date().toISOString().slice(0, 10),
+    file_format: 'pdf',
+    linked_procedure: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    setAdminDocuments(initialAdminDocuments);
+  }, [initialAdminDocuments]);
+
+  const commitAdminDocuments = (next: AdministrativeDocuments) => {
+    setAdminDocuments(next);
+    onUpdate?.(next);
+  };
+
+  const openDocumentEditor = (doc?: AdministrativeDocument) => {
+    setEditingDocumentId(doc?.id ?? null);
+    setDocumentForm({
+      title: doc?.title ?? '',
+      document_type: doc?.document_type ?? 'consent_form',
+      status: doc?.status ?? 'pending',
+      date_issued: doc?.date_issued ?? new Date().toISOString().slice(0, 10),
+      file_format: doc?.file_format ?? 'pdf',
+      linked_procedure: doc?.linked_procedure ?? '',
+      notes: doc?.notes ?? '',
+    });
+    setShowUploadModal(true);
+  };
+
+  const saveDocument = () => {
+    if (!documentForm.title.trim()) return;
+
+    const nextDoc: AdministrativeDocument = {
+      id: editingDocumentId ?? `doc-${Date.now().toString(36)}`,
+      title: documentForm.title.trim(),
+      document_type: documentForm.document_type as AdministrativeDocument['document_type'],
+      status: documentForm.status as AdministrativeDocument['status'],
+      date_issued: documentForm.date_issued,
+      file_format: documentForm.file_format,
+      file_url: '#',
+      linked_procedure: documentForm.linked_procedure.trim() || undefined,
+      notes: documentForm.notes.trim() || undefined,
+    };
+
+    const nextDocuments = editingDocumentId
+      ? adminDocuments.documents.map(doc => (doc.id === editingDocumentId ? nextDoc : doc))
+      : [nextDoc, ...adminDocuments.documents];
+
+    commitAdminDocuments({
+      ...adminDocuments,
+      documents: nextDocuments,
+    });
+
+    setShowUploadModal(false);
+    setEditingDocumentId(null);
+  };
 
   // Document categories
   const categories = [
@@ -232,7 +294,7 @@ export default function AdminDocumentsSection({
           </div>
 
           <button
-            onClick={() => setShowUploadModal(true)}
+            onClick={() => openDocumentEditor()}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
             <Upload className="w-4 h-4" />
@@ -318,7 +380,10 @@ export default function AdminDocumentsSection({
                   <button className="flex items-center justify-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200 transition-colors">
                     <Download className="w-3 h-3" />
                   </button>
-                  <button className="flex items-center justify-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200 transition-colors">
+                  <button
+                    onClick={() => openDocumentEditor(doc)}
+                    className="flex items-center justify-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200 transition-colors"
+                  >
                     <Edit className="w-3 h-3" />
                   </button>
                 </div>
@@ -334,7 +399,7 @@ export default function AdminDocumentsSection({
           <h3 className="text-lg font-semibold text-gray-700 mb-2">No documents found</h3>
           <p className="text-gray-500 mb-6">Try adjusting your filters or upload a new document</p>
           <button
-            onClick={() => setShowUploadModal(true)}
+            onClick={() => openDocumentEditor()}
             className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
             <Upload className="w-5 h-5" />
@@ -469,7 +534,7 @@ export default function AdminDocumentsSection({
         )}
       </AnimatePresence>
 
-      {/* Upload Modal Placeholder */}
+      {/* Upload/Edit Modal */}
       <AnimatePresence>
         {showUploadModal && (
           <motion.div
@@ -487,7 +552,9 @@ export default function AdminDocumentsSection({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Upload New Document</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {editingDocumentId ? 'Edit Document' : 'Upload New Document'}
+                </h2>
                 <button
                   onClick={() => setShowUploadModal(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -496,13 +563,56 @@ export default function AdminDocumentsSection({
                 </button>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center mb-6">
-                <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 font-medium mb-2">Drag & Drop files here</p>
-                <p className="text-sm text-gray-500 mb-4">or click to browse</p>
-                <button className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                  Select Files
-                </button>
+              <div className="space-y-3 mb-6">
+                <input
+                  value={documentForm.title}
+                  onChange={e => setDocumentForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Document title"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <select
+                  value={documentForm.document_type}
+                  onChange={e => setDocumentForm(prev => ({ ...prev, document_type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="consent_form">Consent Form</option>
+                  <option value="treatment_plan">Treatment Plan</option>
+                  <option value="invoice">Invoice</option>
+                  <option value="insurance_claim">Insurance Claim</option>
+                  <option value="prescription">Prescription</option>
+                  <option value="referral_letter">Referral Letter</option>
+                  <option value="hipaa_authorization">HIPAA Authorization</option>
+                </select>
+                <select
+                  value={documentForm.status}
+                  onChange={e => setDocumentForm(prev => ({ ...prev, status: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="signed">Signed</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="archived">Archived</option>
+                  <option value="void">Void</option>
+                </select>
+                <input
+                  type="date"
+                  value={documentForm.date_issued}
+                  onChange={e => setDocumentForm(prev => ({ ...prev, date_issued: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  value={documentForm.linked_procedure}
+                  onChange={e => setDocumentForm(prev => ({ ...prev, linked_procedure: e.target.value }))}
+                  placeholder="Linked procedure (optional)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <textarea
+                  value={documentForm.notes}
+                  onChange={e => setDocumentForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Notes"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]"
+                />
               </div>
 
               <div className="flex items-center justify-end space-x-3">
@@ -512,8 +622,11 @@ export default function AdminDocumentsSection({
                 >
                   Cancel
                 </button>
-                <button className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                  Upload
+                <button
+                  onClick={saveDocument}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  {editingDocumentId ? 'Save Changes' : 'Upload'}
                 </button>
               </div>
             </motion.div>

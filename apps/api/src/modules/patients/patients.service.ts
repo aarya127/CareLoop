@@ -4,6 +4,7 @@ import { PatientsRepository } from './patients.repository';
 @Injectable()
 export class PatientsService {
   private medicalHistoryTableReady = false;
+  private recordSectionsTableReady = false;
 
   constructor(private readonly patientsRepository: PatientsRepository) {}
 
@@ -25,6 +26,28 @@ export class PatientsService {
     `);
 
     this.medicalHistoryTableReady = true;
+  }
+
+  private async ensureRecordSectionsTable(): Promise<void> {
+    if (this.recordSectionsTableReady) {
+      return;
+    }
+
+    await this.patientsRepository.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PatientRecordSectionsKv" (
+        "patientId" TEXT NOT NULL,
+        "section" TEXT NOT NULL,
+        "payload" JSONB NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "PatientRecordSectionsKv_patientId_fkey"
+          FOREIGN KEY ("patientId") REFERENCES "Patient"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "PatientRecordSectionsKv_pkey" PRIMARY KEY ("patientId", "section")
+      );
+    `);
+
+    this.recordSectionsTableReady = true;
   }
 
   private normalizeDateInput(value: unknown): Date | null | undefined {
@@ -299,6 +322,74 @@ export class PatientsService {
       );
 
       return this.findMedicalHistory(patientId);
+    } catch {
+      return null;
+    }
+  }
+
+  private isValidRecordSection(section: string): boolean {
+    return ['profile', 'clinicalChart', 'periodontalRecords', 'radiographicRecords', 'adminDocuments'].includes(section);
+  }
+
+  async findRecordSection(patientId: string, section: string): Promise<any> {
+    try {
+      if (!this.isValidRecordSection(section)) {
+        return null;
+      }
+
+      await this.ensureRecordSectionsTable();
+
+      const patient = await this.patientsRepository.prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { id: true },
+      });
+      if (!patient) {
+        return null;
+      }
+
+      const rows = await this.patientsRepository.prisma.$queryRawUnsafe<Array<{ value: unknown }>>(
+        `SELECT "payload" as value FROM "PatientRecordSectionsKv" WHERE "patientId" = $1 AND "section" = $2 LIMIT 1`,
+        patientId,
+        section
+      );
+
+      return rows[0]?.value ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async upsertRecordSection(patientId: string, section: string, payload: unknown): Promise<any> {
+    try {
+      if (!this.isValidRecordSection(section) || payload === undefined) {
+        return null;
+      }
+
+      await this.ensureRecordSectionsTable();
+
+      const patient = await this.patientsRepository.prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { id: true },
+      });
+      if (!patient) {
+        return null;
+      }
+
+      await this.patientsRepository.prisma.$executeRawUnsafe(
+        `
+          INSERT INTO "PatientRecordSectionsKv" ("patientId", "section", "payload", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT ("patientId", "section")
+          DO UPDATE SET
+            "payload" = EXCLUDED."payload",
+            "updatedAt" = CURRENT_TIMESTAMP
+        `,
+        patientId,
+        section,
+        JSON.stringify(payload)
+      );
+
+      return this.findRecordSection(patientId, section);
     } catch {
       return null;
     }

@@ -6,7 +6,7 @@
  * Tooth condition tracking, surface charting, and treatment planning
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle,
@@ -44,12 +44,35 @@ const toothNames: Record<number, string> = {
 
 export default function ClinicalChartingSection({
   patientId,
-  clinicalChart,
+  clinicalChart: initialClinicalChart,
   onUpdate,
 }: ClinicalChartingSectionProps) {
+  const [clinicalChart, setClinicalChart] = useState<ClinicalChart>(initialClinicalChart);
   const [selectedTooth, setSelectedTooth] = useState<ToothRecord | null>(null);
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [showToothEditor, setShowToothEditor] = useState(false);
+  const [showPlanEditor, setShowPlanEditor] = useState(false);
+  const [toothForm, setToothForm] = useState({
+    status: 'healthy',
+    treatment: '',
+    urgency: 'routine',
+    notes: '',
+  });
+  const [planForm, setPlanForm] = useState({
+    title: '',
+    description: '',
+    totalCost: '',
+  });
+
+  useEffect(() => {
+    setClinicalChart(initialClinicalChart);
+  }, [initialClinicalChart]);
+
+  const commitClinicalChart = (next: ClinicalChart) => {
+    setClinicalChart(next);
+    onUpdate?.(next);
+  };
 
   // Tooth status colors and icons
   const statusConfig = {
@@ -104,6 +127,61 @@ export default function ClinicalChartingSection({
     filled: clinicalChart.teeth.filter(t => t.status === 'filled').length,
     missing: clinicalChart.teeth.filter(t => t.status === 'missing').length,
     needsTreatment: clinicalChart.teeth.filter(t => t.treatment_recommended).length,
+  };
+
+  const openToothEditor = () => {
+    if (!selectedTooth) return;
+    setToothForm({
+      status: selectedTooth.status,
+      treatment: String(selectedTooth.treatment_recommended ?? ''),
+      urgency: String(selectedTooth.urgency ?? 'routine'),
+      notes: String(selectedTooth.notes ?? ''),
+    });
+    setShowToothEditor(true);
+  };
+
+  const saveToothEditor = () => {
+    if (!selectedTooth) return;
+
+    const nextTooth: ToothRecord = {
+      ...selectedTooth,
+      status: toothForm.status as ToothRecord['status'],
+      treatment_recommended: toothForm.treatment.trim() || undefined,
+      urgency: toothForm.treatment.trim()
+        ? (toothForm.urgency as 'routine' | 'soon' | 'urgent' | 'emergency')
+        : undefined,
+      notes: toothForm.notes.trim() || undefined,
+    };
+
+    setSelectedTooth(nextTooth);
+    commitClinicalChart({
+      ...clinicalChart,
+      teeth: clinicalChart.teeth.map(tooth =>
+        tooth.tooth_number === nextTooth.tooth_number ? nextTooth : tooth
+      ),
+      last_updated: new Date().toISOString().slice(0, 10),
+    });
+    setShowToothEditor(false);
+  };
+
+  const addTreatmentPlan = () => {
+    if (!planForm.title.trim()) return;
+
+    const nextPlan = {
+      id: `plan-${Date.now().toString(36)}`,
+      title: planForm.title.trim(),
+      description: planForm.description.trim(),
+      total_cost: Number(planForm.totalCost || 0),
+      procedures: [],
+    };
+
+    commitClinicalChart({
+      ...clinicalChart,
+      treatment_plans: [...(clinicalChart.treatment_plans || []), nextPlan as any],
+    });
+
+    setPlanForm({ title: '', description: '', totalCost: '' });
+    setShowPlanEditor(false);
   };
 
   return (
@@ -433,7 +511,10 @@ export default function ClinicalChartingSection({
                 <p className="text-sm text-gray-500">{clinicalChart.treatment_plans.length} active plans</p>
               </div>
             </div>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+            <button
+              onClick={() => setShowPlanEditor(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            >
               <Plus className="w-4 h-4" />
               <span>New Plan</span>
             </button>
@@ -590,13 +671,149 @@ export default function ClinicalChartingSection({
                 )}
 
                 <div className="flex space-x-3">
-                  <button className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors">
+                  <button
+                    onClick={openToothEditor}
+                    className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+                  >
                     Edit Details
                   </button>
-                  <button className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                  <button
+                    onClick={() => {
+                      setToothForm(prev => ({ ...prev, notes: `${prev.notes} `.trim() }));
+                      openToothEditor();
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
                     Add Note
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showToothEditor && selectedTooth && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowToothEditor(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-xl"
+            >
+              <h4 className="text-lg font-bold text-gray-900 mb-4">
+                Edit Tooth #{selectedTooth.tooth_number}
+              </h4>
+              <div className="space-y-3">
+                <select
+                  value={toothForm.status}
+                  onChange={e => setToothForm(prev => ({ ...prev, status: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {Object.keys(statusConfig).map(status => (
+                    <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                  ))}
+                </select>
+                <input
+                  value={toothForm.treatment}
+                  onChange={e => setToothForm(prev => ({ ...prev, treatment: e.target.value }))}
+                  placeholder="Recommended treatment"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <select
+                  value={toothForm.urgency}
+                  onChange={e => setToothForm(prev => ({ ...prev, urgency: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="routine">Routine</option>
+                  <option value="soon">Soon</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="emergency">Emergency</option>
+                </select>
+                <textarea
+                  value={toothForm.notes}
+                  onChange={e => setToothForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Notes"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]"
+                />
+              </div>
+              <div className="flex justify-end space-x-3 mt-5">
+                <button
+                  onClick={() => setShowToothEditor(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveToothEditor}
+                  className="px-4 py-2 bg-sky-500 text-white rounded-lg"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPlanEditor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPlanEditor(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-xl"
+            >
+              <h4 className="text-lg font-bold text-gray-900 mb-4">Add Treatment Plan</h4>
+              <div className="space-y-3">
+                <input
+                  value={planForm.title}
+                  onChange={e => setPlanForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Plan title"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <textarea
+                  value={planForm.description}
+                  onChange={e => setPlanForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Description"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]"
+                />
+                <input
+                  value={planForm.totalCost}
+                  onChange={e => setPlanForm(prev => ({ ...prev, totalCost: e.target.value }))}
+                  placeholder="Estimated total cost"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div className="flex justify-end space-x-3 mt-5">
+                <button
+                  onClick={() => setShowPlanEditor(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addTreatmentPlan}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg"
+                >
+                  Add Plan
+                </button>
               </div>
             </motion.div>
           </motion.div>

@@ -35,6 +35,7 @@ import type {
   ClinicalChart,
   PeriodontalRecords,
   AdministrativeDocuments,
+  RadiographicRecord,
   ToothMeasurement
 } from '@/lib/types/dental-record';
 
@@ -572,6 +573,10 @@ function PatientRecordContent() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [patientRecord, setPatientRecord] = useState<PatientProfile | null>(null);
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistory | null>(null);
+  const [clinicalChart, setClinicalChart] = useState<ClinicalChart | null>(null);
+  const [periodontalRecords, setPeriodontalRecords] = useState<PeriodontalRecords | null>(null);
+  const [adminDocuments, setAdminDocuments] = useState<AdministrativeDocuments | null>(null);
+  const [radiographicRecords, setRadiographicRecords] = useState<RadiographicRecord[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -599,13 +604,63 @@ function PatientRecordContent() {
         return getMockMedicalHistory(resolvedPatientId);
       };
 
+      const loadRecordSection = async <T,>(
+        resolvedPatientId: string,
+        section: 'profile' | 'clinicalChart' | 'periodontalRecords' | 'radiographicRecords' | 'adminDocuments',
+        fallback: T
+      ): Promise<T> => {
+        try {
+          const res = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/record-section/${section}`);
+          if (res.ok) {
+            const payload = (await res.json()) as T | null;
+            if (payload && typeof payload === 'object') {
+              return payload;
+            }
+          }
+        } catch {
+          // Fall back when section storage is unavailable.
+        }
+
+        return fallback;
+      };
+
       try {
         const res = await fetch(`${apiBaseUrl}/patients/${patientId}`);
         if (res.ok) {
           const apiPatient = (await res.json()) as ApiPatient | null;
           if (mounted && apiPatient?.id) {
-            setPatientRecord(toPatientProfileFromApi(apiPatient));
+            const mappedProfile = toPatientProfileFromApi(apiPatient);
+            const persistedProfile = await loadRecordSection(apiPatient.id, 'profile', mappedProfile);
+            setPatientRecord({ ...mappedProfile, ...persistedProfile });
             setMedicalHistory(await loadMedicalHistory(apiPatient.id));
+            setClinicalChart(
+              await loadRecordSection(
+                apiPatient.id,
+                'clinicalChart',
+                getMockClinicalChart(apiPatient.id)
+              )
+            );
+            setPeriodontalRecords(
+              await loadRecordSection(
+                apiPatient.id,
+                'periodontalRecords',
+                getMockPeriodontalRecords(apiPatient.id)
+              )
+            );
+            setAdminDocuments(
+              await loadRecordSection(
+                apiPatient.id,
+                'adminDocuments',
+                getMockAdminDocuments(apiPatient.id)
+              )
+            );
+            setRadiographicRecords(
+              await loadRecordSection(
+                apiPatient.id,
+                'radiographicRecords',
+                mappedProfile.radiographic_records || []
+              )
+            );
             setIsLoading(false);
             return;
           }
@@ -618,6 +673,22 @@ function PatientRecordContent() {
       if (mounted) {
         setPatientRecord(record || null);
         setMedicalHistory(await loadMedicalHistory(patientId));
+        setClinicalChart(
+          await loadRecordSection(patientId, 'clinicalChart', getMockClinicalChart(patientId))
+        );
+        setPeriodontalRecords(
+          await loadRecordSection(
+            patientId,
+            'periodontalRecords',
+            getMockPeriodontalRecords(patientId)
+          )
+        );
+        setAdminDocuments(
+          await loadRecordSection(patientId, 'adminDocuments', getMockAdminDocuments(patientId))
+        );
+        setRadiographicRecords(
+          await loadRecordSection(patientId, 'radiographicRecords', record?.radiographic_records || [])
+        );
         setIsLoading(false);
       }
     };
@@ -634,8 +705,19 @@ function PatientRecordContent() {
   };
 
   const handleUpdateProfile = async (updates: Partial<PatientProfile>) => {
-    if (patientRecord) {
-      setPatientRecord({ ...patientRecord, ...updates });
+    if (!patientRecord) return;
+
+    const nextProfile = { ...patientRecord, ...updates };
+    setPatientRecord(nextProfile);
+
+    try {
+      await fetch(`${apiBaseUrl}/patients/${patientRecord.patient_id}/record-section/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextProfile),
+      });
+    } catch {
+      // Keep optimistic profile update even if persistence fails.
     }
   };
 
@@ -658,6 +740,75 @@ function PatientRecordContent() {
     } catch {
       // Keep optimistic UI update even if persistence temporarily fails.
     }
+  };
+
+  const persistRecordSection = async (
+    section: 'clinicalChart' | 'periodontalRecords' | 'radiographicRecords' | 'adminDocuments',
+    payload: unknown
+  ) => {
+    if (!patientRecord) return;
+    try {
+      await fetch(`${apiBaseUrl}/patients/${patientRecord.patient_id}/record-section/${section}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      // Keep optimistic updates if save temporarily fails.
+    }
+  };
+
+  const handleUpdateClinicalChart = async (updates: Partial<ClinicalChart>) => {
+    if (!patientRecord) return;
+    const next = {
+      ...(clinicalChart ?? getMockClinicalChart(patientRecord.patient_id)),
+      ...updates,
+    };
+    setClinicalChart(next);
+    await persistRecordSection('clinicalChart', next);
+  };
+
+  const handleUpdatePeriodontalRecords = async (updates: Partial<PeriodontalRecords>) => {
+    if (!patientRecord) return;
+    const next = {
+      ...(periodontalRecords ?? getMockPeriodontalRecords(patientRecord.patient_id)),
+      ...updates,
+    };
+    setPeriodontalRecords(next);
+    await persistRecordSection('periodontalRecords', next);
+  };
+
+  const handleUpdateAdminDocuments = async (updates: Partial<AdministrativeDocuments>) => {
+    if (!patientRecord) return;
+    const next = {
+      ...(adminDocuments ?? getMockAdminDocuments(patientRecord.patient_id)),
+      ...updates,
+    };
+    setAdminDocuments(next);
+    await persistRecordSection('adminDocuments', next);
+  };
+
+  const handleUploadRadiograph = async (file: File) => {
+    if (!patientRecord) return;
+
+    const asDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Unable to read uploaded file'));
+      reader.readAsDataURL(file);
+    });
+
+    const nextRecord: RadiographicRecord = {
+      id: `xray-${Date.now().toString(36)}`,
+      type: 'intraoral_photo',
+      date_taken: new Date().toISOString().slice(0, 10),
+      file_url: asDataUrl,
+      dentist_notes: `Uploaded file: ${file.name}`,
+    };
+
+    const next = [...(radiographicRecords ?? patientRecord.radiographic_records ?? []), nextRecord];
+    setRadiographicRecords(next);
+    await persistRecordSection('radiographicRecords', next);
   };
 
   const tabs = [
@@ -853,7 +1004,8 @@ function PatientRecordContent() {
             >
               <ClinicalChartingSection
                 patientId={patientRecord.patient_id}
-                clinicalChart={getMockClinicalChart(patientRecord.patient_id)}
+                clinicalChart={clinicalChart ?? getMockClinicalChart(patientRecord.patient_id)}
+                onUpdate={handleUpdateClinicalChart}
               />
             </motion.div>
           )}
@@ -868,7 +1020,10 @@ function PatientRecordContent() {
             >
               <RadiographicFilesSection
                 patientId={patientRecord.patient_id}
-                radiographicRecords={patientRecord.radiographic_records || []}
+                radiographicRecords={
+                  radiographicRecords ?? (patientRecord.radiographic_records || [])
+                }
+                onUpload={handleUploadRadiograph}
               />
             </motion.div>
           )}
@@ -883,7 +1038,10 @@ function PatientRecordContent() {
             >
               <PeriodontalRecordsSection
                 patientId={patientRecord.patient_id}
-                periodontalRecords={getMockPeriodontalRecords(patientRecord.patient_id)}
+                periodontalRecords={
+                  periodontalRecords ?? getMockPeriodontalRecords(patientRecord.patient_id)
+                }
+                onUpdate={handleUpdatePeriodontalRecords}
               />
             </motion.div>
           )}
@@ -898,7 +1056,10 @@ function PatientRecordContent() {
             >
               <AdminDocumentsSection
                 patientId={patientRecord.patient_id}
-                adminDocuments={getMockAdminDocuments(patientRecord.patient_id)}
+                adminDocuments={
+                  adminDocuments ?? getMockAdminDocuments(patientRecord.patient_id)
+                }
+                onUpdate={handleUpdateAdminDocuments}
               />
             </motion.div>
           )}

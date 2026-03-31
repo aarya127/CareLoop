@@ -40,6 +40,46 @@ export default function PeriodontalRecordsSection({
   );
   const [viewMode, setViewMode] = useState<'chart' | 'trends'>('chart');
   const [expandedQuadrant, setExpandedQuadrant] = useState<string | null>(null);
+  const [showNewExamModal, setShowNewExamModal] = useState(false);
+  const [newExamForm, setNewExamForm] = useState({
+    examiner_name: '',
+    exam_date: new Date().toISOString().slice(0, 10),
+    diagnosis: '',
+    recommendations: '',
+  });
+
+  const handleCreateExam = () => {
+    const examinerName = newExamForm.examiner_name.trim();
+    if (!examinerName) return;
+
+    const baseline = periodontalRecords.exams[0]?.tooth_measurements ?? [];
+
+    const nextExam: PeriodontalExam = {
+      exam_id: `perio-exam-${Date.now().toString(36)}`,
+      exam_date: newExamForm.exam_date || new Date().toISOString().slice(0, 10),
+      examiner_name: examinerName,
+      tooth_measurements: baseline,
+      overall_diagnosis: newExamForm.diagnosis.trim() || undefined,
+      treatment_recommendations: newExamForm.recommendations
+        .split('\n')
+        .map(item => item.trim())
+        .filter(Boolean),
+    };
+
+    onUpdate?.({
+      ...periodontalRecords,
+      exams: [nextExam, ...periodontalRecords.exams],
+    });
+
+    setSelectedExam(nextExam);
+    setShowNewExamModal(false);
+    setNewExamForm({
+      examiner_name: '',
+      exam_date: new Date().toISOString().slice(0, 10),
+      diagnosis: '',
+      recommendations: '',
+    });
+  };
 
   // Get latest exam
   const latestExam = periodontalRecords.exams[0];
@@ -219,7 +259,10 @@ export default function PeriodontalRecordsSection({
             >
               Trends
             </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+            <button
+              onClick={() => setShowNewExamModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+            >
               <Plus className="w-4 h-4" />
               <span>New Exam</span>
             </button>
@@ -580,6 +623,68 @@ export default function PeriodontalRecordsSection({
           )}
         </div>
       )}
+
+      <AnimatePresence>
+        {showNewExamModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setShowNewExamModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-xl"
+            >
+              <h4 className="text-lg font-bold text-gray-900 mb-4">New Periodontal Exam</h4>
+              <div className="space-y-3">
+                <input
+                  value={newExamForm.examiner_name}
+                  onChange={e => setNewExamForm(prev => ({ ...prev, examiner_name: e.target.value }))}
+                  placeholder="Examiner name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  type="date"
+                  value={newExamForm.exam_date}
+                  onChange={e => setNewExamForm(prev => ({ ...prev, exam_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  value={newExamForm.diagnosis}
+                  onChange={e => setNewExamForm(prev => ({ ...prev, diagnosis: e.target.value }))}
+                  placeholder="Overall diagnosis"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <textarea
+                  value={newExamForm.recommendations}
+                  onChange={e => setNewExamForm(prev => ({ ...prev, recommendations: e.target.value }))}
+                  placeholder="Recommendations (one per line)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[100px]"
+                />
+              </div>
+              <div className="flex justify-end space-x-3 mt-5">
+                <button
+                  onClick={() => setShowNewExamModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateExam}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg"
+                >
+                  Save Exam
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
