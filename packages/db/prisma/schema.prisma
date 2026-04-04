@@ -46,17 +46,50 @@ model Practice {
 // USER & AUTH (scoped to Practice)
 // ============================================================================
 
+enum UserRole {
+  STAFF
+  MANAGER
+  ADMIN
+  SERVICE_ACCOUNT
+}
+
 model User {
-  id        String                     @id @default(cuid())
-  email     String                     @unique
-  practiceId String
-  calendars GoogleCalendarConnection[]
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String?
+  firstName    String    @default("")
+  lastName     String    @default("")
+  role         UserRole  @default(STAFF)
+  isActive     Boolean   @default(true)
+  practiceId   String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  practice     Practice                   @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+  calendars    GoogleCalendarConnection[]
   appointments Appointment[]
   participants Participant[]
 
-  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-
   @@index([practiceId])
+  @@index([email])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  lastUsedAt DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
+  isRevoked  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
 }
 
 // ============================================================================

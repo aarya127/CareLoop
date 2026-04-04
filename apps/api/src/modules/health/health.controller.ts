@@ -2,11 +2,13 @@ import { Controller, Get } from '@nestjs/common';
 import type { HealthStatus } from '@careloop/shared';
 import { prisma } from '../../config/database';
 import { getRedisClient } from '../../config/redis';
+import { Public } from '../../common/decorators';
 
 const startTime = Date.now();
 
 @Controller('health')
 export class HealthController {
+  @Public()
   @Get()
   async check(): Promise<HealthStatus> {
     let dbStatus: 'ok' | 'down' = 'down';

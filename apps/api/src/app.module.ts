@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -17,9 +19,13 @@ import { SearchModule } from './modules/search/search.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { JobsModule } from './jobs/jobs.module';
+import { SessionAuthGuard } from './common/guards/session-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 
 @Module({
   imports: [
+    // Global rate limiting: 100 req/min per IP by default; login overrides to 10/min
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     HealthModule,
     AuthModule,
     UsersModule,
@@ -38,6 +44,14 @@ import { JobsModule } from './jobs/jobs.module';
     WebhooksModule,
     AdminModule,
     JobsModule,
+  ],
+  providers: [
+    // Apply session auth globally; use @Public() on routes that don't need it
+    { provide: APP_GUARD, useClass: SessionAuthGuard },
+    // Apply role guard globally; use @Roles() to restrict
+    { provide: APP_GUARD, useClass: RolesGuard },
+    // Apply throttler globally
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

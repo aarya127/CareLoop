@@ -3,5 +3,6 @@ export class RegisterDto {
   password!: string;
   firstName!: string;
   lastName!: string;
-  role?: string;
+  practiceId!: string;
+  role?: 'STAFF' | 'MANAGER' | 'ADMIN' | 'SERVICE_ACCOUNT';
 }
