@@ -16,11 +16,10 @@ import {
   Crown,
   Zap,
   Plus,
-  Search,
-  Filter,
+  Edit3,
   Sparkles,
   FileText,
-  DollarSign,
+  Trash2,
 } from 'lucide-react';
 import type { ClinicalChart, ToothRecord } from '@/lib/types/dental-record';
 
@@ -53,6 +52,7 @@ export default function ClinicalChartingSection({
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showToothEditor, setShowToothEditor] = useState(false);
   const [showPlanEditor, setShowPlanEditor] = useState(false);
+  const [lastUpdateMessage, setLastUpdateMessage] = useState<string>('');
   const [toothForm, setToothForm] = useState({
     status: 'healthy',
     treatment: '',
@@ -69,9 +69,16 @@ export default function ClinicalChartingSection({
     setClinicalChart(initialClinicalChart);
   }, [initialClinicalChart]);
 
+  useEffect(() => {
+    if (!lastUpdateMessage) return;
+    const timeout = setTimeout(() => setLastUpdateMessage(''), 2600);
+    return () => clearTimeout(timeout);
+  }, [lastUpdateMessage]);
+
   const commitClinicalChart = (next: ClinicalChart) => {
     setClinicalChart(next);
     onUpdate?.(next);
+    setLastUpdateMessage(`Saved to clinical chart at ${new Date().toLocaleTimeString()}`);
   };
 
   // Tooth status colors and icons
@@ -184,6 +191,14 @@ export default function ClinicalChartingSection({
     setShowPlanEditor(false);
   };
 
+  const removeTreatmentPlan = (planId: string) => {
+    const nextPlans = (clinicalChart.treatment_plans || []).filter((plan: any) => plan.id !== planId);
+    commitClinicalChart({
+      ...clinicalChart,
+      treatment_plans: nextPlans,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Stats */}
@@ -278,6 +293,17 @@ export default function ClinicalChartingSection({
             <option value="missing">Missing Only</option>
           </select>
         </div>
+
+        <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          <p className="font-medium">How to edit</p>
+          <p className="mt-1">Tap a tooth in chart view to open details, then use Edit Details. All saves update this patient&apos;s clinical chart immediately.</p>
+        </div>
+
+        {lastUpdateMessage && (
+          <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+            {lastUpdateMessage}
+          </div>
+        )}
       </div>
 
       {viewMode === 'chart' ? (
@@ -304,8 +330,10 @@ export default function ClinicalChartingSection({
                           key={tooth.tooth_number}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
+                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
                           onClick={() => setSelectedTooth(tooth)}
-                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group`}
+                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
                           title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
                         >
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
@@ -333,8 +361,10 @@ export default function ClinicalChartingSection({
                           key={tooth.tooth_number}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
+                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
                           onClick={() => setSelectedTooth(tooth)}
-                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group`}
+                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
                           title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
                         >
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
@@ -371,8 +401,10 @@ export default function ClinicalChartingSection({
                           key={tooth.tooth_number}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
+                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
                           onClick={() => setSelectedTooth(tooth)}
-                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group`}
+                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
                           title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
                         >
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
@@ -400,8 +432,10 @@ export default function ClinicalChartingSection({
                           key={tooth.tooth_number}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
+                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
                           onClick={() => setSelectedTooth(tooth)}
-                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group`}
+                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
                           title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
                         >
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
@@ -490,6 +524,17 @@ export default function ClinicalChartingSection({
                         )}
                       </div>
                     </div>
+
+                    <button
+                      onClick={() => {
+                        setSelectedTooth(tooth);
+                        setTimeout(() => openToothEditor(), 0);
+                      }}
+                      className="ml-3 inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
                   </div>
                 </motion.div>
               );
@@ -533,12 +578,21 @@ export default function ClinicalChartingSection({
                     <h4 className="font-semibold text-gray-900">{plan.title || 'Treatment Plan'}</h4>
                     <p className="text-sm text-gray-600">{plan.description}</p>
                   </div>
-                  {plan.total_cost && (
-                    <div className="text-right">
+                  <div className="text-right space-y-2">
+                    {plan.total_cost && (
+                      <div>
                       <p className="text-sm text-gray-600">Estimated Cost</p>
                       <p className="text-lg font-bold text-purple-600">${plan.total_cost.toFixed(2)}</p>
-                    </div>
-                  )}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => removeTreatmentPlan(plan.id)}
+                      className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove
+                    </button>
+                  </div>
                 </div>
                 
                 {plan.procedures && (
@@ -605,6 +659,19 @@ export default function ClinicalChartingSection({
 
       {/* Selected Tooth Detail Modal */}
       <AnimatePresence>
+        {lastUpdateMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            className="fixed right-4 top-4 z-[70]"
+          >
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 shadow-lg">
+              {lastUpdateMessage}
+            </div>
+          </motion.div>
+        )}
+
         {selectedTooth && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -712,6 +779,9 @@ export default function ClinicalChartingSection({
               <h4 className="text-lg font-bold text-gray-900 mb-4">
                 Edit Tooth #{selectedTooth.tooth_number}
               </h4>
+              <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                Saving here updates tooth status and treatment details immediately in the clinical chart.
+              </div>
               <div className="space-y-3">
                 <select
                   value={toothForm.status}

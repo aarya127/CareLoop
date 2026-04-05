@@ -47,16 +47,140 @@ model Practice {
 // ============================================================================
 
 model User {
-  id        String                     @id @default(cuid())
-  email     String                     @unique
-  practiceId String
-  calendars GoogleCalendarConnection[]
-  appointments Appointment[]
-  participants Participant[]
+  id                 String                     @id @default(cuid())
+  email              String                     @unique
+  practiceId         String
+  firstName          String?
+  lastName           String?
+  passwordHash       String?
+  passwordAlgo       String                     @default("bcrypt")
+  emailVerifiedAt    DateTime?
+  status             String                     @default("active")
+  failedLoginCount   Int                        @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  deletedAt          DateTime?
+  calendars          GoogleCalendarConnection[]
+  appointments       Appointment[]
+  participants       Participant[]
+  roles              UserRole[]
+  sessions           Session[]
+  authIdentities     AuthIdentity[]
+  assignedRoles      UserRole[]                 @relation("RoleAssignedBy")
+  auditActorEntries  AuditLog[]                 @relation("AuditActorUser")
+  auditTargetEntries AuditLog[]                 @relation("AuditTargetUser")
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   @@index([practiceId])
+  @@index([status, lockedUntil])
+}
+
+model Role {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  users       UserRole[]
+}
+
+model UserRole {
+  userId     String
+  roleId     Int
+  assignedBy String?
+  assignedAt DateTime @default(now())
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("RoleAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+model Session {
+  id                 String    @id @default(cuid())
+  userId             String
+  sessionTokenHash   String    @unique
+  csrfSecretHash     String
+  createdAt          DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+  expiresAt          DateTime
+  idleExpiresAt      DateTime
+  rotatedAt          DateTime?
+  revokedAt          DateTime?
+  revokeReason       String?
+  createdByIp        String?
+  createdByUserAgentHash String?
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLogs  AuditLog[]
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@index([idleExpiresAt])
+}
+
+model ServiceAccount {
+  id               String    @id @default(cuid())
+  name             String
+  clientId         String    @unique
+  clientSecretHash String
+  status           String    @default("active")
+  scopes           String[]  @default([])
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  rotatedAt        DateTime?
+  revokedAt        DateTime?
+
+  auditLogs AuditLog[]
+}
+
+model AuditLog {
+  id                   BigInt   @id @default(autoincrement())
+  eventTime            DateTime @default(now())
+  actorUserId          String?
+  actorServiceAccountId String?
+  eventType            String
+  authMethod           String?
+  outcome              String
+  targetUserId         String?
+  sessionId            String?
+  ip                   String?
+  userAgentHash        String?
+  requestId            String?
+  metadata             Json     @default("{}")
+
+  actorUser           User?            @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorServiceAccount ServiceAccount?  @relation(fields: [actorServiceAccountId], references: [id], onDelete: SetNull)
+  targetUser          User?            @relation("AuditTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  session             Session?         @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([eventTime])
+  @@index([eventType, eventTime])
+  @@index([actorUserId, eventTime])
+  @@index([targetUserId, eventTime])
+}
+
+model AuthIdentity {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerSubject   String
+  providerEmail     String?
+  providerEmailVerified Boolean @default(false)
+  linkedAt          DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
 }
 
 // ============================================================================

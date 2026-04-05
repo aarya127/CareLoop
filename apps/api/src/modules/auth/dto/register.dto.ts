@@ -3,5 +3,6 @@ export class RegisterDto {
   password!: string;
   firstName!: string;
   lastName!: string;
+  practiceId!: string;
   role?: string;
 }

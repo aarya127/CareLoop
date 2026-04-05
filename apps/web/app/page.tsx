@@ -68,6 +68,12 @@ export default function LandingPage() {
             </Link>
             <span className="text-sm text-slate-500">Authentication is validated only by backend database credentials.</span>
           </div>
+
+          <div className="mt-5 max-w-xl rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Temporary Demo Login</p>
+            <p className="mt-1">Email: demo@careloop.dev</p>
+            <p>Password: Demo12345!</p>
+          </div>
         </motion.div>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

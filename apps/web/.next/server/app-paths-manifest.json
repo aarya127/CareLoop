@@ -1,7 +1,8 @@
 {
   "/patient-record/page": "app/patient-record/page.js",
   "/login/page": "app/login/page.js",
+  "/admin/patients/page": "app/admin/patients/page.js",
   "/admin/calendar/page": "app/admin/calendar/page.js",
   "/admin/messaging/page": "app/admin/messaging/page.js",
-  "/admin/patients/page": "app/admin/patients/page.js"
+  "/admin/page": "app/admin/page.js"
 }

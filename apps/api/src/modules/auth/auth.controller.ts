@@ -1,76 +1,125 @@
-import { Controller, Post, Body, Req, Res, Get, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import { authConfig } from '../../config/auth';
+import { AuthGuard, RequireRole, RolesGuard } from '../../common/guards';
 import { AuthService } from './auth.service';
+import { AUTH_ROLES } from './auth.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { authConfig } from '../../config/auth';
 
 @Controller('auth')
 export class AuthController {
-  private readonly authService: AuthService;
+  constructor(@Inject(AuthService) private readonly authService: AuthService) {
+    this.login = this.login.bind(this);
+    this.register = this.register.bind(this);
+    this.logout = this.logout.bind(this);
+    this.session = this.session.bind(this);
+    this.refresh = this.refresh.bind(this);
+    this.adminOverview = this.adminOverview.bind(this);
+  }
 
-  constructor(authService?: AuthService) {
-    // Some local dev setups in this repo run without decorator metadata;
-    // fall back to a direct service instance so auth endpoints remain usable.
-    this.authService = authService ?? new AuthService();
+  private setSessionCookie(res: any, token: string): void {
+    res.setCookie(authConfig.sessionCookieName, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      domain: authConfig.cookieDomain,
+      maxAge: authConfig.sessionTtlSeconds,
+    });
+  }
+
+  private clearSessionCookie(res: any): void {
+    res.setCookie(authConfig.sessionCookieName, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      domain: authConfig.cookieDomain,
+      expires: new Date(0),
+      maxAge: 0,
+    });
   }
 
   @Post('login')
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: any) {
-    const { accessToken, refreshToken, user } = await this.authService.login(dto);
-    // set httpOnly refresh token cookie
-    try {
-      res.setCookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: authConfig.sessionTtlSeconds,
-      });
-    } catch (e) {
-      // ignore if cookie helper not available
-      res.header('Set-Cookie', `refreshToken=${refreshToken}; HttpOnly; Path=/; Max-Age=${authConfig.sessionTtlSeconds}`);
-    }
-    return { accessToken, user };
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any
+  ) {
+    const data = await this.authService.login(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    this.setSessionCookie(res, data.sessionToken);
+
+    return { user: data.user };
   }
 
   @Post('register')
-  register(@Body() dto: RegisterDto) {
+  async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Post('logout')
-  async logout(@Req() req: any, @Res({ passthrough: true }) res: any) {
-    const token = req.cookies?.refreshToken ?? null;
-    await this.authService.logout(token);
-    try {
-      res.setCookie('refreshToken', '', { path: '/', expires: new Date(0) });
-    } catch (e) {
-      res.header('Set-Cookie', 'refreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT');
-    }
+  async logout(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any
+  ) {
+    const token = req.cookies?.[authConfig.sessionCookieName];
+
+    await this.authService.logout(token, {
+      userId: (req as any).user?.id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    this.clearSessionCookie(res);
     return { ok: true };
   }
 
-  @Post('refresh')
-  async refresh(@Req() req: any, @Res({ passthrough: true }) res: any) {
-    const token = req.cookies?.refreshToken ?? null;
-    const data = await this.authService.refresh(token);
-    if (data.refreshToken) {
-      try {
-        res.setCookie('refreshToken', data.refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          path: '/',
-          maxAge: authConfig.sessionTtlSeconds,
-        });
-      } catch (e) {
-        res.header('Set-Cookie', `refreshToken=${data.refreshToken}; HttpOnly; Path=/; Max-Age=${authConfig.sessionTtlSeconds}`);
-      }
+  @Get('session')
+  async session(@Req() req: any) {
+    const token = req.cookies?.[authConfig.sessionCookieName];
+    const data = await this.authService.getSession(token);
+
+    if (!data) {
+      throw new UnauthorizedException('No active session');
     }
-    return { accessToken: data.accessToken, user: data.user };
+
+    return data.user;
+  }
+
+  @Post('refresh')
+  async refresh(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any
+  ) {
+    const token = req.cookies?.[authConfig.sessionCookieName];
+    const data = await this.authService.getSession(token);
+
+    if (!data) {
+      this.clearSessionCookie(res);
+      throw new UnauthorizedException('No active session');
+    }
+
+    return { user: data.user };
   }
 
   @Get('admin-overview')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequireRole(AUTH_ROLES.ADMIN)
   async adminOverview(@Query('practiceId') practiceId?: string) {
     return this.authService.getAdminOverview(practiceId ?? 'demo-practice');
   }

@@ -1,7 +1,8 @@
 import { env } from './env';
 
 export const authConfig = {
-  jwtSecret: env.jwtSecret,
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '8h',
   sessionTtlSeconds: Number(process.env.SESSION_TTL_SECONDS ?? 28800),
+  sessionIdleTtlSeconds: Number(process.env.SESSION_IDLE_TTL_SECONDS ?? 1800),
+  sessionCookieName: process.env.SESSION_COOKIE_NAME ?? 'careloop_session',
+  cookieDomain: process.env.SESSION_COOKIE_DOMAIN || undefined,
 };

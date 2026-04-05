@@ -172,8 +172,8 @@ export default function LoginPage() {
 
           <div className="mt-8 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-xs leading-relaxed text-sky-100/90">
             Temporary dev login:<br />
-            Email: <strong>admin@demo.careloop</strong><br />
-            Password: <strong>demo123</strong>
+            Email: <strong>demo@careloop.dev</strong><br />
+            Password: <strong>Demo12345!</strong>
           </div>
         </motion.aside>
       </div>
