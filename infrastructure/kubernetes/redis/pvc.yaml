@@ -2,9 +2,11 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: redis-pvc
+  namespace: careloop-staging
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: gp3
   resources:
     requests:
       storage: 5Gi

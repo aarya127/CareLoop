@@ -4,14 +4,22 @@
 - Node.js 18+ (recommended: Node.js 20 LTS)
 - npm
 
+## Project Folder
+Run all npm commands from this folder:
+
+```bash
+/Users/saillesh/Desktop/CareLoop/CareLoop
+```
+
+If your terminal is in the parent folder (`/Users/.../Desktop/CareLoop`), run:
+
+```bash
+cd CareLoop
+```
+
 ## 1) Install dependencies
 ```bash
 npm install
-```
-
-If you are in the parent folder (`/Users/.../Desktop/CareLoop`), first run:
-```bash
-cd CareLoop
 ```
 
 ## 2) Configure environment
@@ -55,19 +63,13 @@ ELEVENLABS_API_KEY=your_elevenlabs_api_key
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 ```
-```
 
 ## 3) Generate Prisma client (if using database features)
 ```bash
 npx prisma generate
 ```
 
-## 4) Start development server (recommended: Turbopack)
-```bash
-npm run dev:turbo
-```
-
-Alternative:
+## 4) Start development server
 ```bash
 npm run dev
 ```

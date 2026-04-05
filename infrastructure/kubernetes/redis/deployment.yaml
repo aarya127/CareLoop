@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
+  namespace: careloop-staging
   labels:
     app: redis
 spec:
@@ -17,6 +18,7 @@ spec:
       containers:
         - name: redis
           image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 6379
           command: ["redis-server", "--appendonly", "yes"]
@@ -30,6 +32,10 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
       volumes:
         - name: redis-data
           persistentVolumeClaim:

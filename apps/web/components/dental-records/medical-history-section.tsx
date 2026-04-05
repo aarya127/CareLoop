@@ -17,6 +17,7 @@ import {
   Users,
   Calendar,
   Edit2,
+  Trash2,
   Plus,
   X,
   CheckCircle2,
@@ -25,7 +26,14 @@ import {
   Wine,
   Utensils,
 } from 'lucide-react';
-import type { MedicalHistory } from '@/lib/types/dental-record';
+import type {
+  AllergyRecord,
+  FamilyHistoryEntry,
+  MedicationRecord,
+  SurgeryRecord,
+  SystemicCondition,
+  MedicalHistory,
+} from '@/lib/types/dental-record';
 
 interface MedicalHistorySectionProps {
   patientId: string;
@@ -42,6 +50,14 @@ type EditorType =
   | 'family'
   | 'dental'
   | null;
+
+type UndoEntryType = 'allergy' | 'medication' | 'condition' | 'surgery' | 'family';
+
+type PendingUndoDelete = {
+  type: UndoEntryType;
+  item: AllergyRecord | MedicationRecord | SystemicCondition | SurgeryRecord | FamilyHistoryEntry;
+  index: number;
+};
 
 export default function MedicalHistorySection({
   patientId,
@@ -74,6 +90,8 @@ export default function MedicalHistorySection({
   const [editorMode, setEditorMode] = useState<'add' | 'edit'>('add');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [pendingUndoDelete, setPendingUndoDelete] = useState<PendingUndoDelete | null>(null);
+  const [undoTimeoutId, setUndoTimeoutId] = useState<number | null>(null);
 
   const commitMedicalHistory = (next: MedicalHistory) => {
     setMedicalHistory(next);
@@ -86,6 +104,14 @@ export default function MedicalHistorySection({
     setForm({});
     setEditorMode('add');
   };
+
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutId) {
+        window.clearTimeout(undoTimeoutId);
+      }
+    };
+  }, [undoTimeoutId]);
 
   const openEditor = (
     type: Exclude<EditorType, null>,
@@ -180,6 +206,156 @@ export default function MedicalHistorySection({
 
   const updateField = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const queueUndoToast = (entry: PendingUndoDelete) => {
+    if (undoTimeoutId) {
+      window.clearTimeout(undoTimeoutId);
+    }
+
+    setPendingUndoDelete(entry);
+    const timeoutId = window.setTimeout(() => {
+      setPendingUndoDelete(null);
+      setUndoTimeoutId(null);
+    }, 5000);
+    setUndoTimeoutId(timeoutId);
+  };
+
+  const deleteEntry = (type: UndoEntryType, id: string) => {
+    if (!window.confirm('Are you sure you want to remove this entry?')) return;
+
+    if (type === 'allergy') {
+      const index = medicalHistory.allergies.findIndex(item => item.id === id);
+      const deleted = medicalHistory.allergies[index];
+      if (!deleted) return;
+      commitMedicalHistory({
+        ...medicalHistory,
+        allergies: medicalHistory.allergies.filter(item => item.id !== id),
+      });
+      queueUndoToast({ type, item: deleted, index });
+      return;
+    }
+
+    if (type === 'medication') {
+      const index = medicalHistory.current_medications.findIndex(item => item.id === id);
+      const deleted = medicalHistory.current_medications[index];
+      if (!deleted) return;
+      commitMedicalHistory({
+        ...medicalHistory,
+        current_medications: medicalHistory.current_medications.filter(item => item.id !== id),
+      });
+      queueUndoToast({ type, item: deleted, index });
+      return;
+    }
+
+    if (type === 'condition') {
+      const index = medicalHistory.systemic_conditions.findIndex(item => item.id === id);
+      const deleted = medicalHistory.systemic_conditions[index];
+      if (!deleted) return;
+      commitMedicalHistory({
+        ...medicalHistory,
+        systemic_conditions: medicalHistory.systemic_conditions.filter(item => item.id !== id),
+      });
+      queueUndoToast({ type, item: deleted, index });
+      return;
+    }
+
+    if (type === 'surgery') {
+      const index = medicalHistory.past_surgeries.findIndex(item => item.id === id);
+      const deleted = medicalHistory.past_surgeries[index];
+      if (!deleted) return;
+      commitMedicalHistory({
+        ...medicalHistory,
+        past_surgeries: medicalHistory.past_surgeries.filter(item => item.id !== id),
+      });
+      queueUndoToast({ type, item: deleted, index });
+      return;
+    }
+
+    const index = medicalHistory.family_health_history.findIndex(item => item.id === id);
+    const deleted = medicalHistory.family_health_history[index];
+    if (!deleted) return;
+
+    commitMedicalHistory({
+      ...medicalHistory,
+      family_health_history: medicalHistory.family_health_history.filter(item => item.id !== id),
+    });
+    queueUndoToast({ type, item: deleted, index });
+  };
+
+  const undoDelete = () => {
+    if (!pendingUndoDelete) return;
+
+    if (undoTimeoutId) {
+      window.clearTimeout(undoTimeoutId);
+      setUndoTimeoutId(null);
+    }
+
+    if (pendingUndoDelete.type === 'allergy') {
+      const next = [...medicalHistory.allergies];
+      next.splice(pendingUndoDelete.index, 0, pendingUndoDelete.item as AllergyRecord);
+      commitMedicalHistory({ ...medicalHistory, allergies: next });
+      setPendingUndoDelete(null);
+      return;
+    }
+
+    if (pendingUndoDelete.type === 'medication') {
+      const next = [...medicalHistory.current_medications];
+      next.splice(pendingUndoDelete.index, 0, pendingUndoDelete.item as MedicationRecord);
+      commitMedicalHistory({ ...medicalHistory, current_medications: next });
+      setPendingUndoDelete(null);
+      return;
+    }
+
+    if (pendingUndoDelete.type === 'condition') {
+      const next = [...medicalHistory.systemic_conditions];
+      next.splice(pendingUndoDelete.index, 0, pendingUndoDelete.item as SystemicCondition);
+      commitMedicalHistory({ ...medicalHistory, systemic_conditions: next });
+      setPendingUndoDelete(null);
+      return;
+    }
+
+    if (pendingUndoDelete.type === 'surgery') {
+      const next = [...medicalHistory.past_surgeries];
+      next.splice(pendingUndoDelete.index, 0, pendingUndoDelete.item as SurgeryRecord);
+      commitMedicalHistory({ ...medicalHistory, past_surgeries: next });
+      setPendingUndoDelete(null);
+      return;
+    }
+
+    const next = [...medicalHistory.family_health_history];
+    next.splice(pendingUndoDelete.index, 0, pendingUndoDelete.item as FamilyHistoryEntry);
+    commitMedicalHistory({ ...medicalHistory, family_health_history: next });
+    setPendingUndoDelete(null);
+  };
+
+  const getUndoToastMessage = () => {
+    if (!pendingUndoDelete) return '';
+
+    if (pendingUndoDelete.type === 'allergy') {
+      const item = pendingUndoDelete.item as AllergyRecord;
+      return item.allergen ? `Allergy removed: ${item.allergen}` : 'Allergy removed';
+    }
+
+    if (pendingUndoDelete.type === 'medication') {
+      const item = pendingUndoDelete.item as MedicationRecord;
+      return item.name ? `Medication removed: ${item.name}` : 'Medication removed';
+    }
+
+    if (pendingUndoDelete.type === 'condition') {
+      const item = pendingUndoDelete.item as SystemicCondition;
+      return item.condition ? `Condition removed: ${item.condition}` : 'Condition removed';
+    }
+
+    if (pendingUndoDelete.type === 'surgery') {
+      const item = pendingUndoDelete.item as SurgeryRecord;
+      return item.procedure ? `Surgery removed: ${item.procedure}` : 'Surgery removed';
+    }
+
+    const item = pendingUndoDelete.item as FamilyHistoryEntry;
+    return item.relation
+      ? `Family history removed: ${item.relation}`
+      : 'Family history entry removed';
   };
 
   const saveEditor = () => {
@@ -434,12 +610,22 @@ export default function MedicalHistorySection({
                       Identified: {new Date(allergy.date_identified).toLocaleDateString()}
                     </p>
                   </div>
-                  <button
-                    onClick={() => openEditor('allergy', 'edit', allergy as unknown as Record<string, unknown>)}
-                    className="p-2 hover:bg-white/30 rounded-lg transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => openEditor('allergy', 'edit', allergy as unknown as Record<string, unknown>)}
+                      className="p-2 hover:bg-white/30 rounded-lg transition-colors"
+                      aria-label="Edit allergy"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => deleteEntry('allergy', allergy.id)}
+                      className="p-2 hover:bg-white/30 rounded-lg transition-colors"
+                      aria-label="Delete allergy"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -489,12 +675,22 @@ export default function MedicalHistorySection({
                     <h4 className="font-bold text-gray-900">{medication.name}</h4>
                     <p className="text-sm text-gray-600">{medication.dosage}</p>
                   </div>
-                  <button
-                    onClick={() => openEditor('medication', 'edit', medication as unknown as Record<string, unknown>)}
-                    className="p-1.5 hover:bg-blue-100 rounded transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4 text-gray-600" />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => openEditor('medication', 'edit', medication as unknown as Record<string, unknown>)}
+                      className="p-1.5 hover:bg-blue-100 rounded transition-colors"
+                      aria-label="Edit medication"
+                    >
+                      <Edit2 className="w-4 h-4 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => deleteEntry('medication', medication.id)}
+                      className="p-1.5 hover:bg-red-100 rounded transition-colors"
+                      aria-label="Delete medication"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-700">
@@ -586,12 +782,22 @@ export default function MedicalHistorySection({
                       Diagnosed: {new Date(condition.diagnosed_date).toLocaleDateString()}
                     </p>
                   </div>
-                  <button
-                    onClick={() => openEditor('condition', 'edit', condition as unknown as Record<string, unknown>)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4 text-gray-600" />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => openEditor('condition', 'edit', condition as unknown as Record<string, unknown>)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label="Edit condition"
+                    >
+                      <Edit2 className="w-4 h-4 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => deleteEntry('condition', condition.id)}
+                      className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                      aria-label="Delete condition"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -669,12 +875,22 @@ export default function MedicalHistorySection({
                       <p className="text-sm text-gray-600 mt-2">{surgery.notes}</p>
                     )}
                   </div>
-                  <button
-                    onClick={() => openEditor('surgery', 'edit', surgery as unknown as Record<string, unknown>)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4 text-gray-600" />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => openEditor('surgery', 'edit', surgery as unknown as Record<string, unknown>)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label="Edit surgery"
+                    >
+                      <Edit2 className="w-4 h-4 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => deleteEntry('surgery', surgery.id)}
+                      className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                      aria-label="Delete surgery"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -831,12 +1047,22 @@ export default function MedicalHistorySection({
                   <h4 className="font-semibold text-gray-900 capitalize">
                     {family.relation}
                   </h4>
-                  <button
-                    onClick={() => openEditor('family', 'edit', family as unknown as Record<string, unknown>)}
-                    className="p-1 hover:bg-white/70 rounded transition-colors"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-gray-600" />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => openEditor('family', 'edit', family as unknown as Record<string, unknown>)}
+                      className="p-1 hover:bg-white/70 rounded transition-colors"
+                      aria-label="Edit family history"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => deleteEntry('family', family.id)}
+                      className="p-1 hover:bg-red-100 rounded transition-colors"
+                      aria-label="Delete family history"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                    </button>
+                  </div>
                 </div>
                 <ul className="space-y-1 text-sm text-gray-700">
                   {family.conditions.map((condition, idx) => (
@@ -979,6 +1205,18 @@ export default function MedicalHistorySection({
           </div>
         )}
       </div>
+
+      {pendingUndoDelete && (
+        <div className="fixed bottom-4 right-4 z-[60] bg-gray-900 text-white rounded-xl px-4 py-3 shadow-2xl flex items-center gap-3">
+          <p className="text-sm">{getUndoToastMessage()}.</p>
+          <button
+            onClick={undoDelete}
+            className="text-sm font-semibold text-sky-300 hover:text-sky-200 transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
 
       {editorType && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

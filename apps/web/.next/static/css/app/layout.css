@@ -582,6 +582,9 @@
   .z-50 {
     z-index: 50;
   }
+  .z-\[60\] {
+    z-index: 60;
+  }
   .order-1 {
     order: 1;
   }
@@ -2596,6 +2599,9 @@
       color: color-mix(in oklab, var(--color-sky-100) 90%, transparent);
     }
   }
+  .text-sky-300 {
+    color: var(--color-sky-300);
+  }
   .text-sky-400 {
     color: var(--color-sky-400);
   }
@@ -3311,6 +3317,13 @@
       }
     }
   }
+  .hover\:bg-red-100 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-red-100);
+      }
+    }
+  }
   .hover\:bg-red-600 {
     &:hover {
       @media (hover: hover) {
@@ -3512,6 +3525,20 @@
     &:hover {
       @media (hover: hover) {
         color: var(--color-purple-600);
+      }
+    }
+  }
+  .hover\:text-red-600 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-red-600);
+      }
+    }
+  }
+  .hover\:text-sky-200 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-sky-200);
       }
     }
   }

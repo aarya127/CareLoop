@@ -25,6 +25,7 @@ import {
   Save,
   Download,
   Loader2,
+  Trash2,
   CreditCard,
   Image as ImageIcon,
   Clock,
@@ -74,6 +75,9 @@ export default function PatientProfileDrawer({
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [pendingDeletedNote, setPendingDeletedNote] = useState<{ note: DoctorNote; index: number } | null>(null);
+  const [noteUndoTimeoutId, setNoteUndoTimeoutId] = useState<number | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
 
   // Check access permission
@@ -211,6 +215,14 @@ export default function PatientProfileDrawer({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    return () => {
+      if (noteUndoTimeoutId) {
+        window.clearTimeout(noteUndoTimeoutId);
+      }
+    };
+  }, [noteUndoTimeoutId]);
+
   // Handle reveal PII
   const handleRevealPII = async () => {
     if (!hasScope('PII_REVEAL')) {
@@ -259,7 +271,7 @@ export default function PatientProfileDrawer({
         version: 1,
       };
 
-      setNotes([newNote, ...notes]);
+      setNotes((prev) => [newNote, ...prev]);
       setNoteText('');
       setIsEditingNotes(false);
     } catch (error) {
@@ -267,6 +279,59 @@ export default function PatientProfileDrawer({
     } finally {
       setIsSavingNote(false);
     }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!window.confirm('Remove this note?')) return;
+
+    const index = notes.findIndex((note) => note.id === noteId);
+    const removedNote = notes[index];
+    if (!removedNote) return;
+
+    setDeletingNoteId(noteId);
+    try {
+      await auditLog({
+        action: 'edit_dental_notes',
+        actor_id: user?.id,
+        patient_id: patientId,
+        source: 'profile_drawer',
+        metadata: { operation: 'delete_note', note_id: noteId },
+      });
+
+      // In production: DELETE /patients/{id}/notes/{noteId}
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setNotes((prev) => prev.filter((note) => note.id !== noteId));
+
+      if (noteUndoTimeoutId) {
+        window.clearTimeout(noteUndoTimeoutId);
+      }
+      setPendingDeletedNote({ note: removedNote, index });
+      const timeoutId = window.setTimeout(() => {
+        setPendingDeletedNote(null);
+        setNoteUndoTimeoutId(null);
+      }, 5000);
+      setNoteUndoTimeoutId(timeoutId);
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+    } finally {
+      setDeletingNoteId(null);
+    }
+  };
+
+  const handleUndoDeleteNote = () => {
+    if (!pendingDeletedNote) return;
+
+    if (noteUndoTimeoutId) {
+      window.clearTimeout(noteUndoTimeoutId);
+      setNoteUndoTimeoutId(null);
+    }
+
+    setNotes((prev) => {
+      const next = [...prev];
+      next.splice(pendingDeletedNote.index, 0, pendingDeletedNote.note);
+      return next;
+    });
+    setPendingDeletedNote(null);
   };
 
   // Handle tab change
@@ -419,12 +484,26 @@ export default function PatientProfileDrawer({
                     }}
                     onChange={setNoteText}
                     onSave={handleSaveNote}
+                    onDelete={handleDeleteNote}
+                    deletingId={deletingNoteId}
                     canEdit={hasScope('PATIENT_WRITE')}
                   />
                 )}
               </>
             )}
           </div>
+
+          {pendingDeletedNote && (
+            <div className="absolute bottom-20 right-6 z-10 bg-gray-900 text-white rounded-xl px-4 py-3 shadow-2xl flex items-center gap-3">
+              <p className="text-sm">Note removed.</p>
+              <button
+                onClick={handleUndoDeleteNote}
+                className="text-sm font-semibold text-sky-300 hover:text-sky-200 transition-colors"
+              >
+                Undo
+              </button>
+            </div>
+          )}
 
           {/* Footer Actions */}
           <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
@@ -727,6 +806,8 @@ function NotesTab({
   onCancel,
   onChange,
   onSave,
+  onDelete,
+  deletingId,
   canEdit,
 }: {
   notes: DoctorNote[];
@@ -737,6 +818,8 @@ function NotesTab({
   onCancel: () => void;
   onChange: (text: string) => void;
   onSave: () => void;
+  onDelete: (noteId: string) => void;
+  deletingId: string | null;
   canEdit: boolean;
 }) {
   return (
@@ -804,7 +887,24 @@ function NotesTab({
                   {new Date(note.created_at).toLocaleTimeString()}
                 </div>
               </div>
-              <span className="text-xs text-gray-500 capitalize">{note.visibility}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 capitalize">{note.visibility}</span>
+                {canEdit && (
+                  <button
+                    onClick={() => onDelete(note.id)}
+                    disabled={deletingId === note.id}
+                    className="p-1 rounded text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Delete note"
+                    title="Delete note"
+                  >
+                    {deletingId === note.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.text}</p>
           </div>

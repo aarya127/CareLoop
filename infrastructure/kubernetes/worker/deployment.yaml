@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: careloop-worker
+  namespace: careloop-staging
   labels:
     app: careloop-worker
 spec:
@@ -16,12 +17,16 @@ spec:
     spec:
       containers:
         - name: worker
-          image: careloop/worker:latest
+          image: careloop/worker:staging
+          imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
                 name: careloop-secrets
             - configMapRef:
                 name: careloop-config
+          env:
+            - name: NODE_ENV
+              value: production
           resources:
             requests:
               memory: "256Mi"
@@ -29,3 +34,13 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      securityContext:
+        fsGroup: 20001

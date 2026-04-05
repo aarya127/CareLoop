@@ -2,8 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: careloop-config
+  namespace: careloop-staging
 data:
-  API_URL: "https://careloop.example.com/api"
+  API_URL: "https://api.staging.careloop.company.com"
   NODE_ENV: "production"
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
+  APP_BASE_URL: "https://app.staging.careloop.company.com"

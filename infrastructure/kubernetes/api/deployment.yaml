@@ -2,10 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: careloop-api
+  namespace: careloop-staging
   labels:
     app: careloop-api
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: careloop-api
@@ -16,14 +17,19 @@ spec:
     spec:
       containers:
         - name: api
-          image: careloop/api:latest
+          image: careloop/api:staging
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3001
+              name: http
           envFrom:
             - secretRef:
                 name: careloop-secrets
             - configMapRef:
                 name: careloop-config
+          env:
+            - name: NODE_ENV
+              value: production
           resources:
             requests:
               memory: "256Mi"
@@ -31,15 +37,25 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "1000m"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           livenessProbe:
             httpGet:
               path: /health
-              port: 3001
+              port: http
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
-              port: 3001
+              port: http
             initialDelaySeconds: 10
             periodSeconds: 5
+      securityContext:
+        fsGroup: 20001
