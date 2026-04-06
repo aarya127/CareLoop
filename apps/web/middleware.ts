@@ -14,9 +14,6 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (isPublicPath(pathname)) {
-    if (pathname.startsWith('/login') && req.cookies.get(SESSION_COOKIE)?.value) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
     return NextResponse.next();
   }
 

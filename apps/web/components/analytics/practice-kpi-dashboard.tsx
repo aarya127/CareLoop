@@ -47,6 +47,7 @@ type AdminOverview = {
     newThisMonth: number;
     leftThisMonth: number;
     monthlyGrowthPct: number;
+    leftReasons: Array<{ reason: string; count: number }>;
   };
   patients: {
     total: number;
@@ -340,6 +341,21 @@ export function PracticeKpiDashboard() {
               <p className="text-xs text-gray-500">New Conversations</p>
               <p className="text-xl font-semibold text-gray-900">{overview.activity.conversationsThisMonth}</p>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-md border border-gray-200 p-3">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Client / user exit reasons</p>
+            {overview.users.leftReasons.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {overview.users.leftReasons.map((item) => (
+                  <span key={item.reason} className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
+                    {item.reason}: {item.count}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-gray-600">No removal reasons recorded yet.</p>
+            )}
           </div>
         </div>
       )}

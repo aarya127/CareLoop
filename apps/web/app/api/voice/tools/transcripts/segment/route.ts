@@ -18,13 +18,14 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    requireUser(req);
+    const user = requireUser(req);
     const body = schema.parse(await req.json());
 
     const transcript = await prisma.callTranscript.upsert({
       where: { callSid: body.callSid },
       update: {},
       create: {
+        practiceId: user.practiceId,
         callSid: body.callSid,
         orchestrator: body.orchestrator,
         startedAt: new Date(body.startedAt),

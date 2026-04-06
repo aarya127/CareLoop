@@ -196,7 +196,7 @@ export default function AdminPatientsPage() {
     filters.doctors.length > 0;
 
   const openPatientRecord = (patientId: string) => {
-    router.push(`/patient-record?id=${patientId}`);
+    router.push(`/admin/patient-record?id=${patientId}`);
   };
 
   const closeAddPatientModal = () => {

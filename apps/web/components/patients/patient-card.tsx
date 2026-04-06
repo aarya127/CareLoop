@@ -119,7 +119,7 @@ export function PatientCard({
   const canMessage = hasScope('COMMS_READ');
   
   // Format appointment date and time
-  const formatAppointmentDateTime = (date: Date) => {
+  const formatAppointmentDateTime = (date: Date | string) => {
     const dateStr = new Date(date).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',

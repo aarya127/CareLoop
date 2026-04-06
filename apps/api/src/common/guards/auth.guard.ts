@@ -13,6 +13,7 @@ type RequestWithAuth = {
   user?: {
     id: string;
     email: string;
+    practiceId: string;
     roles: string[];
     sessionId: string;
   };
@@ -37,6 +38,7 @@ export class AuthGuard implements CanActivate {
       select: {
         id: true,
         email: true,
+        practiceId: true,
       },
     });
 
@@ -47,6 +49,7 @@ export class AuthGuard implements CanActivate {
     req.user = {
       id: user.id,
       email: user.email,
+      practiceId: user.practiceId,
       roles: session.roles,
       sessionId: session.sessionId,
     };

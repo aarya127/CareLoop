@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     requireUser(req);
     const body = schema.parse(await req.json());
-    const started = await startVoiceCall(body);
+    const started = await startVoiceCall(body as any);
     return NextResponse.json({ ok: true, call: started });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "failed";

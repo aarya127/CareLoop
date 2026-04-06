@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = requireUser(req);
     const body = schema.parse(await req.json());
-    const data = await freebusy(user.id, body.timeMin, body.timeMax, body.items, body.timeZone);
+    const items = body.items.filter((item) => Boolean(item.id)) as Array<{ id: string }>;
+    const data = await freebusy(user.id, body.timeMin, body.timeMax, items, body.timeZone);
     return NextResponse.json({ ok: true, data });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message || 'failed' }, { status: 500 });

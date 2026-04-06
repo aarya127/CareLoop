@@ -30,7 +30,7 @@ export function PatientsPage() {
 
   const openPatientRecord = (patientId: string) => {
     const recordId = toDentalRecordId(patientId);
-    router.push(`/patient-record?id=${recordId}`);
+    router.push(`/admin/patient-record?id=${recordId}`);
   };
 
   // Get patient's next appointment

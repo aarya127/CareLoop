@@ -47,7 +47,6 @@ async function bootstrap() {
   // register fastify-cookie so we can read/set httpOnly cookies
   try {
     const fastifyInstance = app.getHttpAdapter().getInstance();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     await fastifyInstance.register(require('fastify-cookie'));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

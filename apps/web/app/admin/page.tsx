@@ -23,6 +23,7 @@ type AdminOverview = {
     newThisMonth: number;
     leftThisMonth: number;
     monthlyGrowthPct: number;
+    leftReasons: Array<{ reason: string; count: number }>;
   };
   patients: {
     total: number;
@@ -233,6 +234,22 @@ export default function AdminDashboard() {
                   <p className="mt-1 text-sm text-slate-600">users left during current month</p>
                 </div>
               </div>
+
+              {overview.users.leftReasons.length > 0 && (
+                <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <UserMinus className="h-4 w-4" />
+                    Why users left
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {overview.users.leftReasons.map((item) => (
+                      <span key={item.reason} className="rounded-full bg-white px-3 py-1 text-xs text-slate-700 border border-slate-200">
+                        {item.reason}: {item.count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid gap-3">

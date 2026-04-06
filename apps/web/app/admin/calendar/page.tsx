@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
@@ -46,7 +46,6 @@ async function fetchEvents(info: any, successCallback: any, failureCallback: any
 }
 
 export default function AdminCalendarPage() {
-  const calendarRef = useRef<any>(null);
   const router = useRouter();
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isBooking, setIsBooking] = useState(false);
@@ -92,8 +91,6 @@ export default function AdminCalendarPage() {
         body: JSON.stringify(event),
       });
       if (!res.ok) throw new Error('Failed to create event');
-      // Refetch events
-      calendarRef.current?.getApi().refetchEvents();
       alert('Fake booking created!');
     } catch (err) {
       alert('Error creating fake booking: ' + (err as any).message);
@@ -165,7 +162,6 @@ export default function AdminCalendarPage() {
       </div>
       <div className="bg-white rounded-lg shadow border p-4">
         <FullCalendar
-          ref={calendarRef}
           plugins={[
             dayGridPlugin,
             timeGridPlugin,
@@ -217,7 +213,7 @@ export default function AdminCalendarPage() {
               </button>
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded"
-                onClick={() => router.push(`/patient-record?id=${selectedEvent.patientId || ''}`)}
+                onClick={() => router.push(`/admin/patient-record?id=${selectedEvent.patientId || ''}`)}
               >
                 View Patient Record
               </button>

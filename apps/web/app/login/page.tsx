@@ -50,7 +50,7 @@ export default function LoginPage() {
 
       <div className="relative mx-auto grid min-h-screen max-w-6xl grid-cols-1 gap-6 px-4 py-10 md:px-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
         <motion.section
-          initial={{ opacity: 0, y: 24 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
           className="rounded-3xl border border-white/70 bg-white/70 p-8 shadow-[0_20px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-10"
@@ -141,7 +141,7 @@ export default function LoginPage() {
         </motion.section>
 
         <motion.aside
-          initial={{ opacity: 0, y: 24 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.08 }}
           className="rounded-3xl border border-white/70 bg-gradient-to-b from-[#1f3b66] to-[#0f253f] p-8 text-white shadow-[0_20px_70px_rgba(15,23,42,0.16)] md:p-10"

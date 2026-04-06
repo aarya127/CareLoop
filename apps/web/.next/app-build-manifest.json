@@ -36,15 +36,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/admin/calendar/page.js"
     ],
-    "/api/calendar/events/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/calendar/events/route.js"
-    ],
     "/admin/ai-assistant/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/ai-assistant/page.js"
+    ],
+    "/api/voice/overtake/control/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/voice/overtake/control/route.js"
     ],
     "/admin/messaging/page": [
       "static/chunks/webpack.js",
@@ -56,15 +56,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/admin/analytics/page.js"
     ],
+    "/patient-record/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/patient-record/page.js"
+    ],
     "/api/analytics/dashboard/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/analytics/dashboard/route.js"
     ],
-    "/patient-record/page": [
+    "/admin/patient-record/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/patient-record/page.js"
+      "static/chunks/app/admin/patient-record/page.js"
     ]
   }
 }

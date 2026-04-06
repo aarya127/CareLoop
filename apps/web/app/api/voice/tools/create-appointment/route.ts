@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/auth/server";
-import { AppointmentStatus } from "@prisma/client";
 
 const schema = z.object({
   patientId: z.string().optional(),
@@ -37,7 +36,7 @@ export async function POST(req: NextRequest) {
         calendarId: body.calendarId,
         source: "ai_voice",
         createdBy: "ai_voice_agent",
-        status: AppointmentStatus.scheduled,
+        status: "scheduled",
         extended: body.callSid ? { callSid: body.callSid } : undefined,
       },
     });

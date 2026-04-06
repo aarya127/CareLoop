@@ -7,10 +7,9 @@
  */
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
   ChevronLeft,
   User,
   FileText,
@@ -18,8 +17,6 @@ import {
   Image as ImageIcon,
   Heart,
   Folder,
-  Search,
-  Bot,
   Clock,
 } from 'lucide-react';
 import PatientOverview from '@/components/dental-records/patient-overview-section';
@@ -566,8 +563,10 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
 
 function PatientRecordContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const patientId = searchParams.get('id');
+  const isAdminContext = pathname?.startsWith('/admin');
   const apiBaseUrl = resolveApiBase();
   
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -701,7 +700,16 @@ function PatientRecordContent() {
   }, [patientId, apiBaseUrl]);
 
   const handleClose = () => {
-    router.back();
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push('/admin');
+  };
+
+  const handleGoHome = () => {
+    router.push('/admin');
   };
 
   const handleUpdateProfile = async (updates: Partial<PatientProfile>) => {
@@ -822,7 +830,7 @@ function PatientRecordContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${isAdminContext ? 'py-16' : 'min-h-screen'} bg-gray-50 flex items-center justify-center`}>
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#87CEEB] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading patient record...</p>
@@ -833,18 +841,18 @@ function PatientRecordContent() {
 
   if (!patientRecord) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`${isAdminContext ? 'py-16' : 'min-h-screen'} bg-gray-50 flex items-center justify-center`}>
         <div className="text-center">
-          <X className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <FileText className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Patient Not Found</h1>
           <p className="text-gray-600 mb-6">
             The patient record you're looking for doesn't exist.
           </p>
           <button
-            onClick={handleClose}
+            onClick={handleGoHome}
             className="px-6 py-3 bg-[#87CEEB] text-white rounded-xl hover:bg-[#6BA8D9] transition-colors"
           >
-            Go Back
+            Go Home
           </button>
         </div>
       </div>
@@ -856,15 +864,25 @@ function PatientRecordContent() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-gray-50"
+      className={`${isAdminContext ? '' : 'min-h-screen'} bg-gray-50`}
     >
-      {/* Sticky Header */}
+      {/* Header */}
       <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm"
+        initial={isAdminContext ? { opacity: 0, y: 8 } : { y: -100 }}
+        animate={isAdminContext ? { opacity: 1, y: 0 } : { y: 0 }}
+        className={
+          isAdminContext
+            ? 'relative z-10 bg-white border border-gray-200 shadow-sm rounded-2xl'
+            : 'sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm'
+        }
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div
+          className={
+            isAdminContext
+              ? 'w-full px-4 sm:px-6 lg:px-6'
+              : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
+          }
+        >
           <div className="flex items-center justify-between h-20">
             {/* Back Button & Patient Info */}
             <div className="flex items-center space-x-4">
@@ -893,35 +911,7 @@ function PatientRecordContent() {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex items-center space-x-3">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <Search className="w-4 h-4" />
-                <span className="hidden sm:inline">Search Records</span>
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-              >
-                <Bot className="w-4 h-4" />
-                <span className="hidden sm:inline">AI Assistant</span>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-6 h-6 text-gray-600" />
-              </motion.button>
-            </div>
+            <div />
           </div>
 
           {/* Tab Navigation */}
@@ -952,7 +942,13 @@ function PatientRecordContent() {
       </motion.div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div
+        className={
+          isAdminContext
+            ? 'w-full py-6'
+            : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'
+        }
+      >
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
             <motion.div

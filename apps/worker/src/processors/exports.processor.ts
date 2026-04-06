@@ -4,11 +4,14 @@ import type { ExportDataJobData } from '@careloop/shared';
 export async function exportsProcessor(
   job: Job<ExportDataJobData>,
 ): Promise<void> {
-  const { exportType, format, requestedBy } = job.data;
-  job.log(`Starting ${format} export of type ${exportType} for user ${requestedBy}`);
+  const { resource, format, requestedBy, practiceId } = job.data;
+  job.log(`Starting ${format} export of ${resource} for user ${requestedBy} in practice ${practiceId}`);
 
   // TODO: generate export file and upload to storage, notify user
-  void exportType; void format; void requestedBy;
+  void resource;
+  void format;
+  void requestedBy;
+  void practiceId;
 
-  job.log(`Export complete for type ${exportType}`);
+  job.log(`Export complete for resource ${resource}`);
 }

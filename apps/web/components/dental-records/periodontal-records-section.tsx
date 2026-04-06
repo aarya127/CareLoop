@@ -42,10 +42,10 @@ export default function PeriodontalRecordsSection({
   const [editingTooth, setEditingTooth] = useState<ToothMeasurement | null>(null);
   const [lastUpdateMessage, setLastUpdateMessage] = useState<string>('');
   const [measurementForm, setMeasurementForm] = useState({
-    pocketDepths: '3,3,3,3,3,3',
-    bleeding: 'false,false,false,false,false,false',
-    recession: '0,0,0,0,0,0',
-    mobilityGrade: '0',
+    pocketDepths: [3, 3, 3, 3, 3, 3],
+    bleeding: [false, false, false, false, false, false],
+    recession: [0, 0, 0, 0, 0, 0],
+    mobilityGrade: 0,
     furcationInvolvement: 'none',
   });
   const [newExamForm, setNewExamForm] = useState({
@@ -115,32 +115,42 @@ export default function PeriodontalRecordsSection({
     setSelectedExam(nextExams[0]);
   };
 
-  const parseNumberArray = (value: string, fallback: number[]) => {
-    const parsed = value
-      .split(',')
-      .map((item) => Number(item.trim()))
-      .filter((item) => !Number.isNaN(item));
-    return parsed.length === fallback.length ? parsed : fallback;
-  };
-
-  const parseBooleanArray = (value: string, fallback: boolean[]) => {
-    const parsed = value
-      .split(',')
-      .map((item) => item.trim().toLowerCase())
-      .map((item) => item === 'true' || item === '1' || item === 'yes');
-    return parsed.length === fallback.length ? parsed : fallback;
-  };
+  const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
   const openMeasurementEditor = (tooth: ToothMeasurement) => {
     setEditingTooth(tooth);
     setMeasurementForm({
-      pocketDepths: tooth.pocket_depths.join(','),
-      bleeding: tooth.bleeding_on_probing.join(','),
-      recession: tooth.recession_mm.join(','),
-      mobilityGrade: String(tooth.mobility_grade),
+      pocketDepths: [...tooth.pocket_depths],
+      bleeding: [...tooth.bleeding_on_probing],
+      recession: [...tooth.recession_mm],
+      mobilityGrade: tooth.mobility_grade,
       furcationInvolvement: tooth.furcation_involvement || 'none',
     });
     setShowMeasurementEditor(true);
+  };
+
+  const updatePocketDepth = (idx: number, nextValue: number) => {
+    setMeasurementForm((prev) => {
+      const next = [...prev.pocketDepths];
+      next[idx] = clamp(nextValue, 1, 12);
+      return { ...prev, pocketDepths: next };
+    });
+  };
+
+  const updateRecession = (idx: number, nextValue: number) => {
+    setMeasurementForm((prev) => {
+      const next = [...prev.recession];
+      next[idx] = clamp(nextValue, 0, 8);
+      return { ...prev, recession: next };
+    });
+  };
+
+  const toggleBleeding = (idx: number) => {
+    setMeasurementForm((prev) => {
+      const next = [...prev.bleeding];
+      next[idx] = !next[idx];
+      return { ...prev, bleeding: next };
+    });
   };
 
   const saveMeasurementEditor = () => {
@@ -148,10 +158,10 @@ export default function PeriodontalRecordsSection({
 
     const nextMeasurement: ToothMeasurement = {
       ...editingTooth,
-      pocket_depths: parseNumberArray(measurementForm.pocketDepths, editingTooth.pocket_depths),
-      bleeding_on_probing: parseBooleanArray(measurementForm.bleeding, editingTooth.bleeding_on_probing),
-      recession_mm: parseNumberArray(measurementForm.recession, editingTooth.recession_mm),
-      mobility_grade: Number(measurementForm.mobilityGrade) || 0,
+      pocket_depths: measurementForm.pocketDepths.map((depth) => clamp(depth, 1, 12)),
+      bleeding_on_probing: [...measurementForm.bleeding],
+      recession_mm: measurementForm.recession.map((value) => clamp(value, 0, 8)),
+      mobility_grade: clamp(Number(measurementForm.mobilityGrade) || 0, 0, 3),
       furcation_involvement: measurementForm.furcationInvolvement as ToothMeasurement['furcation_involvement'],
     };
 
@@ -228,6 +238,13 @@ export default function PeriodontalRecordsSection({
     if (grade <= 1) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  const siteLabel = (idx: number) => {
+    const labels = ['M', 'B', 'D', 'M', 'L', 'D'];
+    return labels[idx];
+  };
+
+  const sectionTitle = (idx: number) => (idx < 3 ? 'Buccal' : 'Lingual');
 
   // Get quadrant teeth
   const getQuadrantTeeth = (quadrant: 'UR' | 'UL' | 'LL' | 'LR') => {
@@ -810,44 +827,102 @@ export default function PeriodontalRecordsSection({
               <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
                 This save updates periodontal depths, bleeding, recession, mobility, and furcation for this tooth in the selected exam.
               </div>
-              <div className="space-y-3">
-                <input
-                  value={measurementForm.pocketDepths}
-                  onChange={(e) => setMeasurementForm((prev) => ({ ...prev, pocketDepths: e.target.value }))}
-                  placeholder="Pocket depths (6 values, comma separated)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-                <input
-                  value={measurementForm.bleeding}
-                  onChange={(e) => setMeasurementForm((prev) => ({ ...prev, bleeding: e.target.value }))}
-                  placeholder="Bleeding flags (6 values true/false, comma separated)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-                <input
-                  value={measurementForm.recession}
-                  onChange={(e) => setMeasurementForm((prev) => ({ ...prev, recession: e.target.value }))}
-                  placeholder="Recession mm (6 values, comma separated)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  max={3}
-                  value={measurementForm.mobilityGrade}
-                  onChange={(e) => setMeasurementForm((prev) => ({ ...prev, mobilityGrade: e.target.value }))}
-                  placeholder="Mobility grade"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-                <select
-                  value={measurementForm.furcationInvolvement}
-                  onChange={(e) => setMeasurementForm((prev) => ({ ...prev, furcationInvolvement: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="none">No furcation</option>
-                  <option value="class_i">Class I</option>
-                  <option value="class_ii">Class II</option>
-                  <option value="class_iii">Class III</option>
-                </select>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-gray-200 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Tooth Surface Chart Editor</p>
+                  <div className="space-y-3">
+                    {[0, 3].map((start) => (
+                      <div key={start} className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+                        <p className="text-xs font-semibold text-gray-700 mb-2">{sectionTitle(start)} Sites</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[start, start + 1, start + 2].map((idx) => (
+                            <div key={idx} className="rounded-md border border-gray-200 bg-white p-2">
+                              <p className="text-xs font-semibold text-gray-500 mb-1">{siteLabel(idx)} site</p>
+                              <div className="space-y-2">
+                                <div>
+                                  <p className="text-[11px] text-gray-500">Depth (mm)</p>
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <button
+                                      onClick={() => updatePocketDepth(idx, measurementForm.pocketDepths[idx] - 1)}
+                                      className="h-6 w-6 rounded bg-gray-100 text-sm font-bold text-gray-700 hover:bg-gray-200"
+                                    >
+                                      -
+                                    </button>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={12}
+                                      value={measurementForm.pocketDepths[idx]}
+                                      onChange={(e) => updatePocketDepth(idx, Number(e.target.value) || 1)}
+                                      className="w-full rounded border border-gray-300 px-1 py-1 text-center text-sm"
+                                    />
+                                    <button
+                                      onClick={() => updatePocketDepth(idx, measurementForm.pocketDepths[idx] + 1)}
+                                      className="h-6 w-6 rounded bg-gray-100 text-sm font-bold text-gray-700 hover:bg-gray-200"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <p className="text-[11px] text-gray-500">Recession (mm)</p>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={8}
+                                    value={measurementForm.recession[idx]}
+                                    onChange={(e) => updateRecession(idx, Number(e.target.value) || 0)}
+                                    className="mt-1 w-full rounded border border-gray-300 px-1 py-1 text-center text-sm"
+                                  />
+                                </div>
+
+                                <button
+                                  onClick={() => toggleBleeding(idx)}
+                                  className={`w-full rounded px-2 py-1 text-xs font-semibold transition-colors ${measurementForm.bleeding[idx] ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-emerald-100 text-emerald-700 border border-emerald-300'}`}
+                                >
+                                  {measurementForm.bleeding[idx] ? 'Bleeding: Yes' : 'Bleeding: No'}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Mobility grade</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={3}
+                      value={measurementForm.mobilityGrade}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, mobilityGrade: clamp(Number(e.target.value) || 0, 0, 3) }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Furcation</label>
+                    <select
+                      value={measurementForm.furcationInvolvement}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, furcationInvolvement: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="none">No furcation</option>
+                      <option value="class_i">Class I</option>
+                      <option value="class_ii">Class II</option>
+                      <option value="class_iii">Class III</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                  Tip: Use + / - for quick probing depth updates, and tap Bleeding to toggle each site.
+                </div>
               </div>
               <div className="flex justify-end space-x-3 mt-5">
                 <button

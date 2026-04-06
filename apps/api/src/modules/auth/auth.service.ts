@@ -34,6 +34,7 @@ type AdminOverview = {
     newThisMonth: number;
     leftThisMonth: number;
     monthlyGrowthPct: number;
+    leftReasons: Array<{ reason: string; count: number }>;
   };
   patients: {
     total: number;
@@ -418,6 +419,7 @@ export class AuthService {
       joinedCurrent,
       joinedPrevious,
       leftCurrent,
+      leftUsers,
       patientTotal,
       patientNewThisMonth,
       appointmentThisMonth,
@@ -425,26 +427,39 @@ export class AuthService {
       transcriptsThisMonth,
       conversationsThisMonth,
     ] = await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: { practiceId } }),
       prisma.user.count({
         where: {
+          practiceId,
           status: 'active',
-          OR: [{ deletedAt: null }, { deletedAt: { gt: new Date() } }],
+          deletedAt: null,
         },
       }),
       prisma.user.count({
         where: {
+          practiceId,
           createdAt: { gte: currentMonthStart, lt: nextMonthStart },
         },
       }),
       prisma.user.count({
         where: {
+          practiceId,
           createdAt: { gte: previousMonthStart, lt: currentMonthStart },
         },
       }),
       prisma.user.count({
         where: {
+          practiceId,
           deletedAt: { gte: currentMonthStart, lt: nextMonthStart },
+        },
+      }),
+      prisma.user.findMany({
+        where: {
+          practiceId,
+          deletedAt: { gte: currentMonthStart, lt: nextMonthStart },
+        },
+        select: {
+          deletedReason: true,
         },
       }),
       prisma.patient.count({ where: { practiceId } }),
@@ -472,6 +487,7 @@ export class AuthService {
         newThisMonth: joinedCurrent,
         leftThisMonth: leftCurrent,
         monthlyGrowthPct: this.pctChange(joinedCurrent, joinedPrevious),
+        leftReasons: this.countRemovalReasons(leftUsers),
       },
       patients: {
         total: patientTotal,
@@ -487,5 +503,18 @@ export class AuthService {
         conversationsThisMonth,
       },
     };
+  }
+
+  private countRemovalReasons(users: Array<{ deletedReason: string | null }>) {
+    const reasonCounts = new Map<string, number>();
+
+    for (const user of users) {
+      const reason = user.deletedReason?.trim() || 'Not provided';
+      reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+    }
+
+    return Array.from(reasonCounts.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((left, right) => right.count - left.count);
   }
 }

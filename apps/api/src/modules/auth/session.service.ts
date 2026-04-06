@@ -62,6 +62,10 @@ export class SessionService {
       throw new UnauthorizedException('Session not found');
     }
 
+    if (!session.user || session.user.status !== 'active' || session.user.deletedAt) {
+      throw new UnauthorizedException('Session not found');
+    }
+
     const now = new Date();
     if (session.expiresAt <= now || session.idleExpiresAt <= now) {
       await prisma.session.update({

@@ -4,11 +4,11 @@ import type { AnalyticsRefreshJobData } from '@careloop/shared';
 export async function analyticsRefreshProcessor(
   job: Job<AnalyticsRefreshJobData>,
 ): Promise<void> {
-  const { scope } = job.data;
-  job.log(`Starting analytics refresh for scope: ${scope}`);
+  const { practiceId } = job.data;
+  job.log(`Starting analytics refresh for practice: ${practiceId}`);
 
   // TODO: run aggregation queries and cache results
-  void scope;
+  void practiceId;
 
-  job.log(`Analytics refresh complete for scope: ${scope}`);
+  job.log(`Analytics refresh complete for practice: ${practiceId}`);
 }

@@ -1,2 +1,2 @@
 // ORM configuration and helpers
-export { prisma } from '../config/database';
+export { prisma } from '../../config/database';

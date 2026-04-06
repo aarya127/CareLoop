@@ -17,7 +17,6 @@ import {
   Zap,
   Plus,
   Edit3,
-  Sparkles,
   FileText,
   Trash2,
 } from 'lucide-react';
@@ -605,52 +604,6 @@ export default function ClinicalChartingSection({
                     ))}
                   </div>
                 )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* AI Suggestions */}
-      {clinicalChart.ai_suggestions && clinicalChart.ai_suggestions.length > 0 && (
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border-2 border-indigo-200 p-6 shadow-sm">
-          <div className="flex items-center space-x-3 mb-4">
-            <Sparkles className="w-6 h-6 text-indigo-600" />
-            <h3 className="text-lg font-bold text-gray-900">AI Treatment Suggestions</h3>
-          </div>
-
-          <div className="space-y-3">
-            {clinicalChart.ai_suggestions.map((suggestion: any, index: number) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-4 bg-white rounded-lg border border-indigo-200"
-              >
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 mb-1">{suggestion.suggestion}</p>
-                    <p className="text-xs text-gray-600">{suggestion.reason}</p>
-                    {suggestion.confidence && (
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                          <span>Confidence</span>
-                          <span>{suggestion.confidence}%</span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-indigo-500 rounded-full transition-all"
-                            style={{ width: `${suggestion.confidence}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </motion.div>
             ))}
           </div>
