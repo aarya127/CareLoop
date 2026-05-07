@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "app/admin/analytics/page.tsx -> @/components/analytics/practice-kpi-dashboard": {
     "id": "app/admin/analytics/page.tsx -> @/components/analytics/practice-kpi-dashboard",
@@ -12,3 +13,6 @@
     ]
   }
 }
+=======
+{}
+>>>>>>> auth

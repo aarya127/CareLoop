@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "pages": {
     "/layout": [
       "static/chunks/webpack.js",
@@ -72,4 +73,7 @@
       "static/chunks/app/admin/patient-record/page.js"
     ]
   }
+=======
+  "pages": {}
+>>>>>>> auth
 }

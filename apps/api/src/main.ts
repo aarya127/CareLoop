@@ -4,6 +4,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import fastifyCookie from '@fastify/cookie';
 import { AppModule } from './app.module';
 
 // fastify cookie parsing for http-only cookies
@@ -12,6 +13,7 @@ import { AppModule } from './app.module';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 const HOST = process.env.API_HOST ?? '0.0.0.0';
+const COOKIE_SECRET = process.env.COOKIE_SECRET ?? 'change-me-in-production-use-32-char-secret';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -20,12 +22,17 @@ async function bootstrap() {
     { bufferLogs: true }
   );
 
+<<<<<<< HEAD
   const configuredOrigins = (process.env.WEB_URL ?? 'http://localhost:3000')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
 
   const devOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+=======
+  // Register cookie plugin — required before any route handling
+  await app.register(fastifyCookie, { secret: COOKIE_SECRET });
+>>>>>>> auth
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -42,6 +49,8 @@ async function bootstrap() {
       callback(new Error(`Origin ${origin} not allowed by CORS`), false);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
   });
 
   // register fastify-cookie so we can read/set httpOnly cookies

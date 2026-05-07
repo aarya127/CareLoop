@@ -46,7 +46,15 @@ model Practice {
 // USER & AUTH (scoped to Practice)
 // ============================================================================
 
+enum UserRole {
+  STAFF
+  MANAGER
+  ADMIN
+  SERVICE_ACCOUNT
+}
+
 model User {
+<<<<<<< HEAD
   id                 String                     @id @default(cuid())
   email              String                     @unique
   practiceId         String
@@ -72,10 +80,27 @@ model User {
   assignedRoles      UserRole[]                 @relation("RoleAssignedBy")
   auditActorEntries  AuditLog[]                 @relation("AuditActorUser")
   auditTargetEntries AuditLog[]                 @relation("AuditTargetUser")
+=======
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String?
+  firstName    String    @default("")
+  lastName     String    @default("")
+  role         UserRole  @default(STAFF)
+  isActive     Boolean   @default(true)
+  practiceId   String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  practice     Practice                   @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+  calendars    GoogleCalendarConnection[]
+  appointments Appointment[]
+  participants Participant[]
+>>>>>>> auth
 
   @@index([practiceId])
+<<<<<<< HEAD
   @@index([status, lockedUntil])
 }
 
@@ -182,6 +207,26 @@ model AuthIdentity {
 
   @@unique([provider, providerSubject])
   @@index([userId])
+=======
+  @@index([email])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  lastUsedAt DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
+  isRevoked  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+>>>>>>> auth
 }
 
 // ============================================================================
