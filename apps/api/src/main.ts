@@ -22,17 +22,15 @@ async function bootstrap() {
     { bufferLogs: true }
   );
 
-<<<<<<< HEAD
+  // Register cookie plugin — required before any route handling
+  await app.register(fastifyCookie, { secret: COOKIE_SECRET });
+
   const configuredOrigins = (process.env.WEB_URL ?? 'http://localhost:3000')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
 
   const devOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
-=======
-  // Register cookie plugin — required before any route handling
-  await app.register(fastifyCookie, { secret: COOKIE_SECRET });
->>>>>>> auth
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -52,15 +50,6 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
   });
-
-  // register fastify-cookie so we can read/set httpOnly cookies
-  try {
-    const fastifyInstance = app.getHttpAdapter().getInstance();
-    await fastifyInstance.register(require('fastify-cookie'));
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn('fastify-cookie not registered:', message);
-  }
 
   await app.listen(PORT, HOST);
   console.info(`[API] listening on http://${HOST}:${PORT}`);

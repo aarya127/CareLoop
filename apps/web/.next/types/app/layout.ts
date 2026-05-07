@@ -1,4 +1,4 @@
-// File: /Users/saillesh/Desktop/CareLoop/CareLoop/apps/web/app/layout.tsx
+// File: /Users/aaryas127/Documents/GitHub/CareLoop/apps/web/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

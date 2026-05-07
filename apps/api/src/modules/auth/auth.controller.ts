@@ -1,8 +1,9 @@
 import {
-<<<<<<< HEAD
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Post,
   Query,
@@ -11,21 +12,10 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { authConfig } from '../../config/auth';
-import { AuthGuard, RequireRole, RolesGuard } from '../../common/guards';
-=======
-  Controller,
-  Post,
-  Get,
-  Body,
-  Req,
-  Res,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { FastifyRequest, FastifyReply } from 'fastify';
->>>>>>> auth
+import { authConfig } from '../../config/auth';
+import { AuthGuard, RequireRole, RolesGuard } from '../../common/guards';
 import { AuthService } from './auth.service';
 import { AUTH_ROLES } from './auth.constants';
 import { LoginDto } from './dto/login.dto';
@@ -79,7 +69,7 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('login')
-<<<<<<< HEAD
+  @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
     @Req() req: any,
@@ -90,48 +80,25 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     });
 
-    this.setSessionCookie(res, data.sessionToken);
+    res.setCookie(SESSION_COOKIE, data.sessionToken, COOKIE_OPTS);
 
-    return { user: data.user };
-=======
-  @HttpCode(HttpStatus.OK)
-  async login(
-    @Body() dto: LoginDto,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
-    const meta = {
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-    };
-
-    const { sessionToken, user } = await this.authService.login(dto, meta);
-
-    reply.setCookie(SESSION_COOKIE, sessionToken, COOKIE_OPTS);
-
-    // Return sessionToken in body so proxy clients (Next.js) can relay it
-    return { user, sessionToken };
->>>>>>> auth
+    return { user: data.user, sessionToken: data.sessionToken };
   }
 
   @Public()
   @Post('register')
-<<<<<<< HEAD
-  async register(@Body() dto: RegisterDto) {
-=======
   @HttpCode(HttpStatus.CREATED)
-  register(@Body() dto: RegisterDto) {
->>>>>>> auth
+  async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Post('logout')
-<<<<<<< HEAD
+  @HttpCode(HttpStatus.OK)
   async logout(
     @Req() req: any,
     @Res({ passthrough: true }) res: any
   ) {
-    const token = req.cookies?.[authConfig.sessionCookieName];
+    const token = req.cookies?.[SESSION_COOKIE];
 
     await this.authService.logout(token, {
       userId: (req as any).user?.id,
@@ -143,15 +110,19 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Get('me')
+  async me(@Req() req: any) {
+    const token = req.cookies?.[SESSION_COOKIE];
+    const data = await this.authService.getSession(token);
+    if (!data) throw new UnauthorizedException('No active session');
+    return data.user;
+  }
+
   @Get('session')
   async session(@Req() req: any) {
-    const token = req.cookies?.[authConfig.sessionCookieName];
+    const token = req.cookies?.[SESSION_COOKIE];
     const data = await this.authService.getSession(token);
-
-    if (!data) {
-      throw new UnauthorizedException('No active session');
-    }
-
+    if (!data) throw new UnauthorizedException('No active session');
     return data.user;
   }
 
@@ -160,14 +131,12 @@ export class AuthController {
     @Req() req: any,
     @Res({ passthrough: true }) res: any
   ) {
-    const token = req.cookies?.[authConfig.sessionCookieName];
+    const token = req.cookies?.[SESSION_COOKIE];
     const data = await this.authService.getSession(token);
-
     if (!data) {
       this.clearSessionCookie(res);
       throw new UnauthorizedException('No active session');
     }
-
     return { user: data.user };
   }
 
@@ -176,21 +145,5 @@ export class AuthController {
   @RequireRole(AUTH_ROLES.ADMIN)
   async adminOverview(@Query('practiceId') practiceId?: string) {
     return this.authService.getAdminOverview(practiceId ?? 'demo-practice');
-=======
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-    @CurrentUser() user: { sessionToken: string },
-  ) {
-    const token: string | undefined = (req.cookies as Record<string, string>)[SESSION_COOKIE];
-    if (token) await this.authService.logout(token);
-    reply.clearCookie(SESSION_COOKIE, { path: '/' });
-  }
-
-  @Get('me')
-  me(@CurrentUser() user: unknown) {
-    return user;
->>>>>>> auth
   }
 }

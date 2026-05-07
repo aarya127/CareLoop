@@ -45,7 +45,7 @@ export class SessionAuthGuard implements CanActivate {
       firstName: session.user.firstName,
       lastName: session.user.lastName,
       practiceId: session.user.practiceId,
-      sessionToken: session.token,
+      sessionToken: token,
     };
 
     return true;

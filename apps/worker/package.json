@@ -9,13 +9,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@careloop/db": "*",
-    "@careloop/shared": "*",
+    "@careloop/db": "workspace:*",
+    "@careloop/shared": "workspace:*",
     "bullmq": "^5.28.0",
     "ioredis": "^5.4.1"
   },
   "devDependencies": {
-    "@careloop/shared": "*",
+    "@careloop/shared": "workspace:*",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2"
