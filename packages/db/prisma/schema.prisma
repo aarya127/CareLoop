@@ -38,6 +38,13 @@ model Practice {
   promptVersions    AIPromptVersion[]
   alertThresholds   AlertThreshold[]
   routingPolicies   RoutingPolicy[]
+  intakeSubmissions IntakeSubmission[]
+  treatmentRecords  TreatmentRecord[]
+  invoices          Invoice[]
+  payments          PaymentRecord[]
+  documents         Document[]
+  reminders         Reminder[]
+  sensitiveNotes    PatientSensitiveNote[]
 
   @@index([name])
 }
@@ -72,6 +79,8 @@ model User {
   assignedRoles      UserRole[]                 @relation("RoleAssignedBy")
   auditActorEntries  AuditLog[]                 @relation("AuditActorUser")
   auditTargetEntries AuditLog[]                 @relation("AuditTargetUser")
+  uploadedDocuments  Document[]
+  sensitiveNotes     PatientSensitiveNote[]
 
   practice           Practice                   @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
@@ -199,10 +208,17 @@ model Patient {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  practice         Practice           @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  practice         Practice             @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   insuranceRecords PatientInsurance[]
   transcripts      CallTranscript[]
   participants     Participant[]
+  intakeSubmissions IntakeSubmission[]
+  treatmentRecords  TreatmentRecord[]
+  invoices          Invoice[]
+  payments          PaymentRecord[]
+  documents         Document[]
+  reminders         Reminder[]
+  sensitiveNotes    PatientSensitiveNote[]
 
   @@index([practiceId, lastName, firstName])
   @@unique([practiceId, phoneE164])
@@ -214,6 +230,7 @@ model PatientInsurance {
   payerName       String
   planName        String?
   memberIdEnc     String
+  memberIdHash    String?  // SHA-256 of raw member ID for indexed lookup
   groupNumberEnc  String?
   coverageSummary Json?
   active          Boolean  @default(true)
@@ -223,6 +240,7 @@ model PatientInsurance {
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId, active])
+  @@index([memberIdHash])
 }
 
 // ============================================================================
@@ -244,6 +262,7 @@ model Provider {
   schedules        ProviderSchedule[]
   availabilityBlocks AvailabilityBlock[]
   holds            AppointmentHold[]
+  treatmentRecords TreatmentRecord[]
 
   @@unique([practiceId, name])
   @@index([practiceId, isActive])
@@ -298,6 +317,7 @@ model Appointment {
   provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Restrict)
   room            Room?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
   callTranscripts CallTranscript[]
+  reminders       Reminder[]
 
   @@index([practiceId, patientId, start])
   @@index([practiceId, userId, start])
@@ -562,4 +582,186 @@ model Message {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, sentAt])
+}
+
+// ============================================================================
+// INTAKE SUBMISSIONS
+// ============================================================================
+
+model IntakeSubmission {
+  id          String    @id @default(cuid())
+  practiceId  String
+  patientId   String?
+  formType    String    // "new_patient", "medical_history", "consent", etc.
+  status      String    @default("pending") // pending, reviewed, archived
+  data        Json      // raw form fields
+  submittedAt DateTime  @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@index([practiceId, status, submittedAt])
+  @@index([patientId, submittedAt])
+}
+
+// ============================================================================
+// TREATMENT RECORDS
+// ============================================================================
+
+model TreatmentRecord {
+  id            String    @id @default(cuid())
+  practiceId    String
+  patientId     String
+  appointmentId String?
+  providerId    String?
+  procedureCode String?
+  toothNumber   Int?
+  surface       String?
+  notes         String?
+  status        String    @default("planned") // planned, in_progress, completed, cancelled
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  practice    Practice     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider    Provider?    @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  invoice     Invoice?
+
+  @@index([practiceId, patientId, createdAt])
+  @@index([practiceId, status, createdAt])
+  @@index([patientId, procedureCode])
+}
+
+// ============================================================================
+// INVOICES
+// ============================================================================
+
+model Invoice {
+  id               String    @id @default(cuid())
+  practiceId       String
+  patientId        String
+  treatmentId      String?   @unique
+  status           String    @default("draft") // draft, sent, paid, overdue, void
+  totalAmountCents Int
+  dueDate          DateTime?
+  issuedAt         DateTime?
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  practice  Practice        @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  treatment TreatmentRecord? @relation(fields: [treatmentId], references: [id], onDelete: SetNull)
+  payments  PaymentRecord[]
+
+  @@index([practiceId, patientId, createdAt])
+  @@index([practiceId, status, dueDate])
+}
+
+// ============================================================================
+// PAYMENT RECORDS
+// ============================================================================
+
+model PaymentRecord {
+  id             String    @id @default(cuid())
+  practiceId     String
+  invoiceId      String
+  patientId      String
+  method         String    // "card", "cash", "insurance", "check"
+  amountCents    Int
+  status         String    @default("pending") // pending, completed, refunded, failed
+  transactionRef String?
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, createdAt])
+  @@index([practiceId, status, createdAt])
+  @@index([invoiceId])
+}
+
+// ============================================================================
+// DOCUMENTS
+// ============================================================================
+
+model Document {
+  id         String   @id @default(cuid())
+  practiceId String
+  patientId  String?
+  uploadedBy String?
+  category   String   // "xray", "consent", "insurance_card", "lab_report", etc.
+  fileName   String
+  mimeType   String
+  storageKey String   // S3 key or local path — never expose directly
+  sizeBytes  Int?
+  status     String   @default("active") // active, archived, deleted
+  uploadedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  uploader User?    @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@index([practiceId, patientId, uploadedAt])
+  @@index([practiceId, category, uploadedAt])
+  @@index([practiceId, uploadedAt])
+}
+
+// ============================================================================
+// REMINDERS
+// ============================================================================
+
+model Reminder {
+  id            String    @id @default(cuid())
+  practiceId    String
+  patientId     String
+  appointmentId String?
+  channel       String    // "sms", "email", "push"
+  type          String    // "appointment_reminder", "recall", "payment_due"
+  status        String    @default("pending") // pending, sent, failed, cancelled
+  scheduledAt   DateTime
+  sentAt        DateTime?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  practice    Practice     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([practiceId, status, scheduledAt])
+  @@index([patientId, scheduledAt])
+  @@index([appointmentId])
+}
+
+// ============================================================================
+// PATIENT SENSITIVE NOTES (vertical partition — separate from Patient core)
+// Access requires elevated permission; audited on every read/write.
+// ============================================================================
+
+model PatientSensitiveNote {
+  id         String   @id @default(cuid())
+  practiceId String
+  patientId  String
+  authorId   String?
+  noteType   String   @default("clinical") // clinical, social, administrative
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([practiceId, patientId, createdAt])
 }
