@@ -5,7 +5,6 @@ import {
   Injectable,
   SetMetadata,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 
 export const ROLE_METADATA_KEY = 'careloop:roles';
 export const ROLES_KEY = 'roles';
@@ -21,13 +20,11 @@ type RequestWithAuth = {
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
-
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLE_METADATA_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    // Use Reflect.getMetadata directly — avoids Reflector DI issues with tsx/esbuild
+    const requiredRoles =
+      Reflect.getMetadata(ROLE_METADATA_KEY, context.getHandler()) ||
+      Reflect.getMetadata(ROLE_METADATA_KEY, context.getClass());
 
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
@@ -38,7 +35,7 @@ export class RolesGuard implements CanActivate {
 
     if (userRoles.includes('ADMIN')) return true;
 
-    const authorized = requiredRoles.some((role) => userRoles.includes(role));
+    const authorized = requiredRoles.some((role: string) => userRoles.includes(role));
 
     if (!authorized) {
       throw new ForbiddenException('Insufficient role');

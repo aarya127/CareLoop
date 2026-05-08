@@ -4,7 +4,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { AuthService } from '../../modules/auth/auth.service';
 import { SESSION_COOKIE } from '../../modules/auth/session.service';
 import type { FastifyRequest } from 'fastify';
@@ -13,16 +12,13 @@ export const IS_PUBLIC_KEY = 'isPublic';
 
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly reflector: Reflector,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    // Use Reflect.getMetadata directly — avoids Reflector DI issues with tsx/esbuild
+    const isPublic =
+      Reflect.getMetadata(IS_PUBLIC_KEY, context.getHandler()) ||
+      Reflect.getMetadata(IS_PUBLIC_KEY, context.getClass());
     if (isPublic) return true;
 
     const req = context.switchToHttp().getRequest<FastifyRequest & { user?: unknown }>();
