@@ -33,14 +33,7 @@ const COOKIE_OPTS = {
 
 @Controller('auth')
 export class AuthController {
-  constructor(@Inject(AuthService) private readonly authService: AuthService) {
-    this.login = this.login.bind(this);
-    this.register = this.register.bind(this);
-    this.logout = this.logout.bind(this);
-    this.session = this.session.bind(this);
-    this.refresh = this.refresh.bind(this);
-    this.adminOverview = this.adminOverview.bind(this);
-  }
+  constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   private setSessionCookie(res: any, token: string): void {
     res.setCookie(authConfig.sessionCookieName, token, {

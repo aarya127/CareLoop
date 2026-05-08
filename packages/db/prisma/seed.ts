@@ -22,16 +22,57 @@ async function main() {
     },
   });
 
-  // ── 1. Users ──────────────────────────────────────────────────────────────
-  const user = await prisma.user.upsert({
-    where: { email: 'demo@careloop.dev' },
-    update: {},
-    create: {
-      id: 'demo-user',
-      email: 'demo@careloop.dev',
-      practiceId: practice.id,
-    },
-  });
+  // ── 1. Demo users with hashed passwords ──────────────────────────────────
+  // bcrypt hash of "demo123" with cost=10 — pre-computed to avoid bcryptjs dep in @careloop/db
+  const DEMO_PASSWORD_HASH = '$2a$10$L1iVNEbNip76XftiA7wEUuK5yRR8u2/h2wGRHSnr/Vh/sDhsIpd.S';
+  // bcrypt hash of "Demo12345!" with cost=10 (used by main login page dev hint)
+  const DEMO2_PASSWORD_HASH = '$2a$10$8gPwKxZ1Q6kH/RhruTNvxegHwzpRyVCQeRijJr6nuHbXblewDJbhW';
+
+  const demoDefs = [
+    { id: 'user-admin',       email: 'admin@careloop.demo',       firstName: 'Admin',      lastName: 'User',    roleName: 'ADMIN',    hash: DEMO_PASSWORD_HASH },
+    { id: 'user-doctor',      email: 'doctor@careloop.demo',      firstName: 'Doctor',     lastName: 'Demo',    roleName: 'PROVIDER', hash: DEMO_PASSWORD_HASH },
+    { id: 'user-hygienist',   email: 'hygienist@careloop.demo',   firstName: 'Hygienist',  lastName: 'Demo',    roleName: 'HYGIENIST',hash: DEMO_PASSWORD_HASH },
+    { id: 'user-receptionist',email: 'receptionist@careloop.demo',firstName: 'Receptionist',lastName: 'Demo',   roleName: 'STAFF',    hash: DEMO_PASSWORD_HASH },
+    // Main login page dev hint credentials
+    { id: 'user-dev',         email: 'demo@careloop.dev',         firstName: 'Dev',        lastName: 'Admin',   roleName: 'ADMIN',    hash: DEMO2_PASSWORD_HASH },
+  ];
+
+  const users = await Promise.all(
+    demoDefs.map((u) =>
+      prisma.user.upsert({
+        where: { email: u.email },
+        update: { passwordHash: u.hash, passwordAlgo: 'bcrypt', status: 'active' },
+        create: {
+          id: u.id,
+          email: u.email,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          practiceId: practice.id,
+          passwordHash: u.hash,
+          passwordAlgo: 'bcrypt',
+          status: 'active',
+        },
+      })
+    )
+  );
+
+  // Keep backward compat reference used by appointments below
+  const user = users[0];
+
+  // ── 1b. Roles + UserRole assignments ─────────────────────────────────────
+  for (let i = 0; i < demoDefs.length; i++) {
+    const roleName = demoDefs[i].roleName;
+    const roleRecord = await prisma.role.upsert({
+      where: { name: roleName },
+      update: {},
+      create: { name: roleName, description: roleName },
+    });
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: users[i].id, roleId: roleRecord.id } },
+      update: {},
+      create: { userId: users[i].id, roleId: roleRecord.id, assignedBy: users[0].id },
+    });
+  }
 
   // ── 2. Providers ──────────────────────────────────────────────────────────
   const providers = await Promise.all([
@@ -319,7 +360,8 @@ async function main() {
   // ── Summary ───────────────────────────────────────────────────────────────
   console.log('✅  Seed complete');
   console.log(`    Practice:     ${practice.name}`);
-  console.log(`    Users:        1  (${user.email})`);
+  console.log(`    Users:        ${users.length}  (${demoDefs.map(u => u.email).join(', ')})`);
+  console.log(`    Password:     demo123`);
   console.log(`    Providers:    ${providers.length}`);
   console.log(`    Rooms:        ${rooms.length}`);
   console.log(`    Patients:     ${patients.length}`);

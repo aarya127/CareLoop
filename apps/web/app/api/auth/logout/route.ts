@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
   if (token) {
     // Tell the API to revoke the session
-    await fetch(`${API_URL}/api/v1/auth/logout`, {
+    await fetch(`${API_URL}/auth/logout`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {}); // best-effort

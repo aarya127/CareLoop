@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return NextResponse.json(null, { status: 401 });
 
-  const res = await fetch(`${API_URL}/api/v1/auth/me`, {
+  const res = await fetch(`${API_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
