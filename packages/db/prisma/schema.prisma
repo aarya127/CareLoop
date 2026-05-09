@@ -39,6 +39,7 @@ model Practice {
   alertThresholds   AlertThreshold[]
   routingPolicies   RoutingPolicy[]
   intakeSubmissions IntakeSubmission[]
+  intakeDrafts      IntakeDraft[]
   treatmentRecords  TreatmentRecord[]
   invoices          Invoice[]
   payments          PaymentRecord[]
@@ -213,6 +214,7 @@ model Patient {
   transcripts      CallTranscript[]
   participants     Participant[]
   intakeSubmissions IntakeSubmission[]
+  intakeDrafts      IntakeDraft[]
   treatmentRecords  TreatmentRecord[]
   invoices          Invoice[]
   payments          PaymentRecord[]
@@ -606,6 +608,29 @@ model IntakeSubmission {
 
   @@index([practiceId, status, submittedAt])
   @@index([patientId, submittedAt])
+}
+
+// ============================================================================
+// INTAKE DRAFTS (pre-submission form state)
+// ============================================================================
+
+model IntakeDraft {
+  id             String    @id @default(cuid())
+  practiceId     String
+  token          String    @unique @default(cuid())
+  status         String    @default("draft") // draft | submitted
+  data           Json      @default("{}")
+  patientId      String?
+  idempotencyKey String?   @unique
+  submittedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@index([practiceId, status])
+  @@index([token])
 }
 
 // ============================================================================

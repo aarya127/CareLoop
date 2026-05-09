@@ -1,4 +1,4 @@
-// Intake DTOs
+export type IntakeDraftStatus = 'draft' | 'submitted';
 
 export interface DemographicsData {
   firstName?: string;
@@ -34,13 +34,20 @@ export interface IntakeDraftData {
   notes?: string;
 }
 
-export class CreateDraftDto {
-  practiceId!: string;
+export interface IntakeDraft {
+  id: string;
+  practiceId: string;
+  token: string;
+  status: IntakeDraftStatus;
+  data: IntakeDraftData;
+  patientId?: string | null;
+  submittedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export class UpdateDraftDto {
-  demographics?: DemographicsData;
-  emergencyContact?: EmergencyContactData;
-  insurance?: InsuranceData;
-  notes?: string;
+export interface IntakeSubmitResult {
+  patient: { id: string; firstName: string; lastName: string };
+  insurance: { id: string } | null;
+  submission: { id: string };
 }
