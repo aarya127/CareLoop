@@ -46,7 +46,7 @@ export class RemindersService {
         channel: dto.channel,
         type: dto.type,
         scheduledAt: new Date(dto.scheduledAt),
-        metadata: dto.metadata ?? {},
+        metadata: (dto.metadata ?? {}) as any,
       },
     });
   }

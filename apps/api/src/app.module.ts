@@ -22,6 +22,7 @@ import { RemindersModule } from './modules/reminders/reminders.module';
 import { JobsModule } from './jobs/jobs.module';
 import { SessionAuthGuard } from './common/guards/session-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { IdempotencyService } from './common/services/idempotency.service';
 
 @Module({
   imports: [
@@ -54,6 +55,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     { provide: APP_GUARD, useClass: RolesGuard },
     // Apply throttler globally
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Idempotency service available to all modules
+    IdempotencyService,
   ],
 })
 export class AppModule {}

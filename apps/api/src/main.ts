@@ -5,7 +5,9 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import fastifyCookie from '@fastify/cookie';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 // fastify cookie parsing for http-only cookies
 // register dynamically to avoid build-time issues if plugin missing
@@ -24,6 +26,19 @@ async function bootstrap() {
 
   // Register cookie plugin — required before any route handling
   await app.register(fastifyCookie, { secret: COOKIE_SECRET });
+
+  // Global validation — strip unknown fields, auto-transform types, reject bad input
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: false,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    })
+  );
+
+  // Global exception filter — standard JSON error shape for all errors
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   const configuredOrigins = (process.env.WEB_URL ?? 'http://localhost:3000')
     .split(',')

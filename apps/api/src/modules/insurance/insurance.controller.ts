@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query } from '@nestjs/common';
 import { InsuranceService } from './insurance.service';
 
 @Controller('insurance')
@@ -8,6 +8,11 @@ export class InsuranceController {
   @Get('patient/:patientId')
   findByPatient(@Param('patientId') patientId: string) {
     return this.insuranceService.findByPatientId(patientId);
+  }
+
+  @Get('lookup')
+  findByMemberId(@Query('memberId') memberId: string) {
+    return this.insuranceService.findByMemberId(memberId);
   }
 
   @Post()

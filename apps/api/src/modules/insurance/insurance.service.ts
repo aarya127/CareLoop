@@ -1,20 +1,72 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import crypto from 'crypto';
+import { prisma } from '../../config/database';
+
+function hashMemberId(raw: string): string {
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
 
 @Injectable()
 export class InsuranceService {
-  async findByPatientId(_patientId: string): Promise<any[]> {
-    throw new Error('Not implemented');
+  async findByPatientId(patientId: string) {
+    return prisma.patientInsurance.findMany({
+      where: { patientId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
-  async create(_dto: any): Promise<any> {
-    throw new Error('Not implemented');
+  async findByMemberId(rawMemberId: string) {
+    return prisma.patientInsurance.findMany({
+      where: { memberIdHash: hashMemberId(rawMemberId) },
+    });
   }
 
-  async update(_id: string, _dto: any): Promise<any> {
-    throw new Error('Not implemented');
+  async create(dto: {
+    patientId: string;
+    payerName: string;
+    planName?: string;
+    memberIdEnc: string;
+    groupNumberEnc?: string;
+    coverageSummary?: object;
+  }) {
+    return prisma.patientInsurance.create({
+      data: {
+        patientId: dto.patientId,
+        payerName: dto.payerName,
+        planName: dto.planName,
+        memberIdEnc: dto.memberIdEnc,
+        memberIdHash: hashMemberId(dto.memberIdEnc),
+        groupNumberEnc: dto.groupNumberEnc,
+        coverageSummary: dto.coverageSummary ?? {},
+      },
+    });
   }
 
-  async remove(_id: string): Promise<void> {
-    throw new Error('Not implemented');
+  async update(id: string, dto: {
+    payerName?: string;
+    planName?: string;
+    memberIdEnc?: string;
+    groupNumberEnc?: string;
+    coverageSummary?: object;
+    active?: boolean;
+  }) {
+    const existing = await prisma.patientInsurance.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Insurance record ${id} not found`);
+
+    return prisma.patientInsurance.update({
+      where: { id },
+      data: {
+        ...dto,
+        // Recompute hash whenever memberIdEnc changes
+        ...(dto.memberIdEnc ? { memberIdHash: hashMemberId(dto.memberIdEnc) } : {}),
+      },
+    });
+  }
+
+  async remove(id: string) {
+    const existing = await prisma.patientInsurance.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Insurance record ${id} not found`);
+    await prisma.patientInsurance.delete({ where: { id } });
   }
 }
+
