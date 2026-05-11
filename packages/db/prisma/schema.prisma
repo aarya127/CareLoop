@@ -719,19 +719,20 @@ model PaymentRecord {
 // ============================================================================
 
 model Document {
-  id         String   @id @default(cuid())
-  practiceId String
-  patientId  String?
-  uploadedBy String?
-  category   String   // "xray", "consent", "insurance_card", "lab_report", etc.
-  fileName   String
-  mimeType   String
-  storageKey String   // S3 key or local path — never expose directly
-  sizeBytes  Int?
-  status     String   @default("active") // active, archived, deleted
-  uploadedAt DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               String   @id @default(cuid())
+  practiceId       String
+  patientId        String?
+  uploadedBy       String?
+  category         String   // "xray", "consent", "insurance_card", "lab_report", etc.
+  fileName         String
+  mimeType         String
+  storageKey       String   // S3 key — never expose directly
+  sizeBytes        Int?
+  checksumSha256   String?  // hex SHA-256 of file bytes, client-supplied
+  status           String   @default("uploading") // uploading, active, deleted
+  uploadedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   patient  Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)

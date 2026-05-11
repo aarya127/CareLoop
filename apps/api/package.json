@@ -10,6 +10,8 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1045.0",
+    "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "@careloop/db": "workspace:*",
     "@careloop/shared": "workspace:*",
     "@fastify/cookie": "^9.4.0",
@@ -35,6 +37,7 @@
     "@nestjs/testing": "^10.4.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.0.0",
+    "s3rver": "^3.7.1",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2"
   }
