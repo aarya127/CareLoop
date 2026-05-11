@@ -3,6 +3,31 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
+import { appointmentsApi, type AppointmentRecord } from '@/lib/api/appointments';
+import { AppointmentFormModal } from '@/components/appointments/appointment-form-modal';
+
+const DEMO_PRACTICE_ID = process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID ?? '';
+const DEMO_USER_ID = process.env.NEXT_PUBLIC_DEMO_USER_ID ?? '';
+
+/** Map an API AppointmentRecord to CalendarAppointment */
+function toCalendarAppt(a: AppointmentRecord): CalendarAppointment {
+  return {
+    id: a.id,
+    patientId: a.patientId ?? '',
+    patientName: a.title,
+    startTime: new Date(a.start),
+    endTime: new Date(a.end),
+    duration: Math.round(
+      (new Date(a.end).getTime() - new Date(a.start).getTime()) / 60_000,
+    ),
+    procedure: a.procedureCode ?? '',
+    doctorId: a.providerId,
+    doctorName: '',
+    source: a.source === 'ai' ? 'AI' : a.source === 'rescheduled' ? 'Rescheduled' : 'Manual',
+    status: (a.status === 'confirmed' ? 'scheduled' : a.status) as CalendarAppointment['status'],
+    insuranceCovered: true,
+  };
+}
 import TopNavigation from '@/components/shared/top-navigation';
 import { CalendarControls } from '@/components/calendar/calendar-controls';
 import { CustomMonthView } from '@/components/calendar/custom-month-view';
@@ -23,7 +48,7 @@ import {
   getNavigationDisplayText,
 } from '@/lib/utils/calendar-helpers';
 
-// Mock appointments data
+// Static fallback — used when DEMO_PRACTICE_ID is not set
 const mockAppointments: CalendarAppointment[] = [
   {
     id: 'apt-1',
@@ -245,6 +270,29 @@ const viewTransitionVariants = {
 };
 
 export default function CustomCalendarPage() {
+  const [liveAppointments, setLiveAppointments] = useState<CalendarAppointment[]>([]);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [defaultStart, setDefaultStart] = useState<string | undefined>();
+
+  // Fetch real appointments when a practiceId is configured
+  useEffect(() => {
+    if (!DEMO_PRACTICE_ID) return;
+    const from = new Date();
+    from.setDate(from.getDate() - 7);
+    const to = new Date();
+    to.setDate(to.getDate() + 30);
+    appointmentsApi
+      .list({
+        practiceId: DEMO_PRACTICE_ID,
+        from: from.toISOString(),
+        to: to.toISOString(),
+      })
+      .then((records) => setLiveAppointments(records.map(toCalendarAppt)))
+      .catch(() => {/* silently fall back to mock data */});
+  }, []);
+
+  const appointments = liveAppointments.length > 0 ? liveAppointments : mockAppointments;
+
   const [calendarState, setCalendarState] = useState<CalendarState>({
     currentDate: new Date(),
     selectedDate: new Date(),
@@ -304,8 +352,8 @@ export default function CustomCalendarPage() {
 
   // Handle slot click (booking)
   const handleSlotClick = (time: Date) => {
-    console.log('Slot clicked:', time);
-    // Open booking modal (to be implemented)
+    setDefaultStart(time.toISOString());
+    setBookingModalOpen(true);
   };
 
   // Close drawer
@@ -318,9 +366,9 @@ export default function CustomCalendarPage() {
   };
 
   // Generate view data based on current view mode
-  const monthDays = generateMonthViewDays(calendarState.currentDate, mockAppointments);
-  const daySlots = generateDayViewSlots(calendarState.selectedDate || calendarState.currentDate, mockAppointments);
-  const weekDays = generateWeekViewDays(calendarState.currentDate, mockAppointments);
+  const monthDays = generateMonthViewDays(calendarState.currentDate, appointments);
+  const daySlots = generateDayViewSlots(calendarState.selectedDate || calendarState.currentDate, appointments);
+  const weekDays = generateWeekViewDays(calendarState.currentDate, appointments);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -431,7 +479,7 @@ export default function CustomCalendarPage() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-br from-sky-400 to-sky-500 text-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center z-30"
-          onClick={() => console.log('Open booking modal')}
+          onClick={() => { setDefaultStart(undefined); setBookingModalOpen(true); }}
         >
           <Plus className="w-6 h-6" />
         </motion.button>
@@ -444,7 +492,19 @@ export default function CustomCalendarPage() {
         data={drawerData}
       />
 
-      {/* Keyboard shortcuts legend (hidden, just for reference) */}
+      {/* Appointment booking modal */}
+      <AppointmentFormModal
+        isOpen={bookingModalOpen}
+        onClose={() => setBookingModalOpen(false)}
+        practiceId={DEMO_PRACTICE_ID}
+        userId={DEMO_USER_ID}
+        defaultStart={defaultStart}
+        onCreated={(appt) => {
+          setLiveAppointments((prev) => [...prev, toCalendarAppt(appt)]);
+          setBookingModalOpen(false);
+        }}
+      />
+
       <div className="sr-only">
         Keyboard shortcuts: ← → (navigate), D (day view), W (week view), M (month view), T (today), ESC (close)
       </div>
