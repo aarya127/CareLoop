@@ -18,6 +18,8 @@ import {
   Heart,
   Folder,
   Clock,
+  Plus,
+  Stethoscope,
 } from 'lucide-react';
 import PatientOverview from '@/components/dental-records/patient-overview-section';
 import RadiographicFilesSection from '@/components/dental-records/radiographic-files-section';
@@ -26,6 +28,7 @@ import ClinicalChartingSection from '@/components/dental-records/clinical-charti
 import PeriodontalRecordsSection from '@/components/dental-records/periodontal-records-section';
 import AdminDocumentsSection from '@/components/dental-records/administrative-documents-section';
 import { getDentalRecordById } from '@/lib/data/mock-dental-records';
+import { treatmentsApi, STATUS_LABELS, STATUS_COLORS, type TreatmentRecord } from '@/lib/api/treatments';
 import type { 
   PatientProfile, 
   MedicalHistory, 
@@ -490,7 +493,7 @@ const getMockAdminDocuments = (patientId: string): AdministrativeDocuments => {
   };
 };
 
-type TabType = 'overview' | 'history' | 'charting' | 'radiographs' | 'periodontal' | 'documents';
+type TabType = 'overview' | 'history' | 'treatments' | 'charting' | 'radiographs' | 'periodontal' | 'documents';
 
 type ApiPatient = {
   id: string;
@@ -576,6 +579,18 @@ function PatientRecordContent() {
   const [periodontalRecords, setPeriodontalRecords] = useState<PeriodontalRecords | null>(null);
   const [adminDocuments, setAdminDocuments] = useState<AdministrativeDocuments | null>(null);
   const [radiographicRecords, setRadiographicRecords] = useState<RadiographicRecord[] | null>(null);
+  const [treatmentRecords, setTreatmentRecords] = useState<TreatmentRecord[]>([]);
+  const [treatmentsLoading, setTreatmentsLoading] = useState(false);
+  const [showTreatmentForm, setShowTreatmentForm] = useState(false);
+  const [treatmentForm, setTreatmentForm] = useState({
+    procedureCode: '',
+    toothNumber: '',
+    surface: '',
+    notes: '',
+    status: 'planned',
+    practiceId: '',
+  });
+  const [treatmentSubmitting, setTreatmentSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -699,6 +714,17 @@ function PatientRecordContent() {
     };
   }, [patientId, apiBaseUrl]);
 
+  // Load treatment records when the treatments tab is opened
+  useEffect(() => {
+    if (activeTab !== 'treatments' || !patientRecord) return;
+    setTreatmentsLoading(true);
+    treatmentsApi
+      .list({ patientId: patientRecord.patient_id })
+      .then(setTreatmentRecords)
+      .catch(() => {})
+      .finally(() => setTreatmentsLoading(false));
+  }, [activeTab, patientRecord]);
+
   const handleClose = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
@@ -819,9 +845,50 @@ function PatientRecordContent() {
     await persistRecordSection('radiographicRecords', next);
   };
 
+  const handleCreateTreatment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientRecord) return;
+    setTreatmentSubmitting(true);
+    try {
+      const practiceId =
+        treatmentForm.practiceId ||
+        process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID ||
+        'demo-practice';
+      const record = await treatmentsApi.create(
+        {
+          practiceId,
+          patientId: patientRecord.patient_id,
+          procedureCode: treatmentForm.procedureCode || undefined,
+          toothNumber: treatmentForm.toothNumber ? Number(treatmentForm.toothNumber) : undefined,
+          surface: treatmentForm.surface || undefined,
+          notes: treatmentForm.notes || undefined,
+          status: treatmentForm.status,
+        },
+        process.env.NEXT_PUBLIC_DEMO_USER_ID,
+      );
+      setTreatmentRecords((prev) => [record, ...prev]);
+      setTreatmentForm({ procedureCode: '', toothNumber: '', surface: '', notes: '', status: 'planned', practiceId: '' });
+      setShowTreatmentForm(false);
+    } catch {
+      // keep form open on error
+    } finally {
+      setTreatmentSubmitting(false);
+    }
+  };
+
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      const updated = await treatmentsApi.update(id, { status }, process.env.NEXT_PUBLIC_DEMO_USER_ID);
+      setTreatmentRecords((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch {
+      // ignore
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Patient Overview', icon: User },
     { id: 'history', label: 'Medical & Dental History', icon: FileText },
+    { id: 'treatments', label: 'Treatment History', icon: Stethoscope },
     { id: 'charting', label: 'Clinical Charting', icon: Activity },
     { id: 'radiographs', label: 'X-Rays & Diagnostics', icon: ImageIcon },
     { id: 'periodontal', label: 'Periodontal Records', icon: Heart },
@@ -987,6 +1054,183 @@ function PatientRecordContent() {
                 medicalHistory={medicalHistory ?? getMockMedicalHistory(patientRecord.patient_id)}
                 onUpdate={handleUpdateMedicalHistory}
               />
+            </motion.div>
+          )}
+
+          {activeTab === 'treatments' && (
+            <motion.div
+              key="treatments"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="p-6"
+            >
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Treatment History</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Clinical care records linked to this patient</p>
+                </div>
+                <button
+                  onClick={() => setShowTreatmentForm((v) => !v)}
+                  className="flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Record
+                </button>
+              </div>
+
+              {/* Create form */}
+              {showTreatmentForm && (
+                <motion.form
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onSubmit={handleCreateTreatment}
+                  className="mb-6 p-5 bg-white border border-gray-200 rounded-xl shadow-sm space-y-4"
+                >
+                  <h3 className="font-semibold text-gray-800">New Treatment Record</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Procedure Code</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. D2140"
+                        value={treatmentForm.procedureCode}
+                        onChange={(e) => setTreatmentForm((f) => ({ ...f, procedureCode: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Tooth Number</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={32}
+                        placeholder="1–32"
+                        value={treatmentForm.toothNumber}
+                        onChange={(e) => setTreatmentForm((f) => ({ ...f, toothNumber: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Surface</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. MOD"
+                        value={treatmentForm.surface}
+                        onChange={(e) => setTreatmentForm((f) => ({ ...f, surface: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                      <select
+                        value={treatmentForm.status}
+                        onChange={(e) => setTreatmentForm((f) => ({ ...f, status: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      >
+                        <option value="planned">Planned</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Clinical Notes</label>
+                      <textarea
+                        rows={3}
+                        placeholder="Clinical notes..."
+                        value={treatmentForm.notes}
+                        onChange={(e) => setTreatmentForm((f) => ({ ...f, notes: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowTreatmentForm(false)}
+                      className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={treatmentSubmitting}
+                      className="px-4 py-2 text-sm bg-sky-500 text-white rounded-lg hover:bg-sky-600 disabled:opacity-50"
+                    >
+                      {treatmentSubmitting ? 'Saving...' : 'Save Record'}
+                    </button>
+                  </div>
+                </motion.form>
+              )}
+
+              {/* Records list */}
+              {treatmentsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="w-8 h-8 border-4 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : treatmentRecords.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                  <Stethoscope className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No treatment records yet. Add the first one.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {treatmentRecords.map((rec) => (
+                    <div
+                      key={rec.id}
+                      className="bg-white border border-gray-200 rounded-xl p-4 flex items-start gap-4 shadow-sm"
+                    >
+                      {/* Status badge */}
+                      <div className="pt-0.5">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[rec.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {STATUS_LABELS[rec.status] ?? rec.status}
+                        </span>
+                      </div>
+
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {rec.procedureCode && (
+                            <span className="font-mono text-sm font-semibold text-gray-800">{rec.procedureCode}</span>
+                          )}
+                          {rec.toothNumber && (
+                            <span className="text-xs text-gray-500">Tooth #{rec.toothNumber}</span>
+                          )}
+                          {rec.surface && (
+                            <span className="text-xs text-gray-500">Surface: {rec.surface}</span>
+                          )}
+                          {rec.provider && (
+                            <span className="text-xs text-gray-500">· {rec.provider.name}</span>
+                          )}
+                        </div>
+                        {rec.notes && (
+                          <p className="mt-1 text-sm text-gray-600 line-clamp-2">{rec.notes}</p>
+                        )}
+                        <p className="mt-1 text-xs text-gray-400">
+                          Created {new Date(rec.createdAt).toLocaleDateString()}
+                          {rec.completedAt && ` · Completed ${new Date(rec.completedAt).toLocaleDateString()}`}
+                          {rec.createdBy && ` · by ${rec.createdBy}`}
+                        </p>
+                      </div>
+
+                      {/* Inline status changer */}
+                      <select
+                        value={rec.status}
+                        onChange={(e) => handleStatusChange(rec.id, e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                      >
+                        <option value="planned">Planned</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 

@@ -649,6 +649,8 @@ model TreatmentRecord {
   notes         String?
   status        String    @default("planned") // planned, in_progress, completed, cancelled
   completedAt   DateTime?
+  createdBy     String?   // userId of the clinician who created this record
+  updatedBy     String?   // userId of the last person to update this record
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -671,11 +673,16 @@ model Invoice {
   practiceId       String
   patientId        String
   treatmentId      String?   @unique
+  payerType        String    @default("patient") // patient | insurance
   status           String    @default("draft") // draft, sent, paid, overdue, void
   totalAmountCents Int
+  lineItems        Json?     // [{ description, procedureCode?, qty, unitPriceCents }]
+  notes            String?
   dueDate          DateTime?
   issuedAt         DateTime?
   paidAt           DateTime?
+  createdBy        String?
+  updatedBy        String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -697,10 +704,12 @@ model PaymentRecord {
   practiceId     String
   invoiceId      String
   patientId      String
-  method         String    // "card", "cash", "insurance", "check"
+  payerType      String    @default("patient") // patient | insurance
+  method         String    // card | cash | insurance | check | ach
   amountCents    Int
   status         String    @default("pending") // pending, completed, refunded, failed
   transactionRef String?
+  createdBy      String?
   paidAt         DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

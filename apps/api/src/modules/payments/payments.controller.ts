@@ -1,22 +1,48 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  Headers,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
+import type { CreatePaymentDto, UpdatePaymentDto, PaymentFilter } from './dto';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Post('intent')
-  createIntent(@Body() dto: any) {
-    return this.paymentsService.createIntent(dto);
+  @Get()
+  listPayments(@Query() query: PaymentFilter) {
+    return this.paymentsService.listPayments(query);
   }
 
-  @Post('confirm')
-  confirm(@Body() dto: any) {
-    return this.paymentsService.confirm(dto);
+  @Get(':id')
+  getPayment(@Param('id') id: string) {
+    return this.paymentsService.getPayment(id);
   }
 
-  @Get('history/:patientId')
-  history(@Param('patientId') patientId: string) {
-    return this.paymentsService.getHistory(patientId);
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  createPayment(
+    @Body() dto: CreatePaymentDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-actor-user-id') actorUserId?: string,
+  ) {
+    return this.paymentsService.createPayment(dto, idempotencyKey, actorUserId);
+  }
+
+  @Patch(':id')
+  updatePayment(
+    @Param('id') id: string,
+    @Body() dto: UpdatePaymentDto,
+    @Headers('x-actor-user-id') actorUserId?: string,
+  ) {
+    return this.paymentsService.updatePayment(id, dto, actorUserId);
   }
 }
