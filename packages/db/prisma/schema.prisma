@@ -801,6 +801,27 @@ model WebhookLog {
 }
 
 // ============================================================================
+// DEAD-LETTER / FAILED JOBS
+// Written by the worker failed event handler after all BullMQ retries exhausted.
+// ============================================================================
+
+model FailedJob {
+  id           String    @id @default(cuid())
+  queue        String
+  jobId        String
+  jobName      String
+  data         Json      @default("{}")
+  failReason   String
+  attemptsMade Int       @default(0)
+  practiceId   String?
+  failedAt     DateTime  @default(now())
+  retriedAt    DateTime?
+
+  @@index([queue, failedAt])
+  @@index([practiceId, failedAt])
+}
+
+// ============================================================================
 // PATIENT SENSITIVE NOTES (vertical partition — separate from Patient core)
 // Access requires elevated permission; audited on every read/write.
 // ============================================================================

@@ -166,3 +166,9 @@ export interface ProcessWebhookJobData {
   webhookLogId: string;     // FK to WebhookLog for status update
   idempotencyKey: string;   // already claimed in WebhookLog
 }
+
+/** Fired by the hourly scheduler to find and enqueue pending reminders. */
+export interface ReminderScanJobData {
+  /** ISO date string — scan window upper bound. Defaults to now+5min in processor. */
+  scanUpTo?: string;
+}

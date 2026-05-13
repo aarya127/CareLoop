@@ -24,4 +24,8 @@ export const QUEUE_NAMES = {
   DOCUMENTS: 'document-cleanup',
   EXPORTS: 'exports',
   WEBHOOKS: 'webhooks',
+  SCHEDULER: 'scheduler',
 } as const;
+
+// Dead-letter queue — jobs moved here after all retries exhausted
+export const DLQ_QUEUE_NAME = 'dead-letter' as const;
