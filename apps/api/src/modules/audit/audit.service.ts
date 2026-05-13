@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, prisma } from '@careloop/db';
+import { getRedisClient } from '../../config/redis';
 
 export interface AuditEntry {
   eventType: string;
@@ -12,9 +13,22 @@ export interface AuditEntry {
   metadata?: Record<string, unknown>;
 }
 
+export interface AuditLogQuery {
+  eventType?: string;
+  outcome?: string;
+  actorUserId?: string;
+  targetUserId?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+}
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
+  /** Audit read queries are cached for 30 seconds — enough for dashboard polling. */
+  private readonly readCacheTtlSeconds = 30;
 
   /**
    * Write an audit log entry. Failures are swallowed so they never
@@ -40,21 +54,15 @@ export class AuditService {
     }
   }
 
-  async getLog(query: {
-    eventType?: string;
-    actorUserId?: string;
-    targetUserId?: string;
-    from?: string;
-    to?: string;
-    limit?: number;
-    offset?: number;
-  }) {
-    const where: Prisma.AuditLogWhereInput = {};
+  async getLog(query: AuditLogQuery) {
+    const limit = Math.min(Number(query.limit ?? 50), 200);
+    const offset = Number(query.offset ?? 0);
 
-    if (query.eventType) where.eventType = query.eventType;
+    const where: Prisma.AuditLogWhereInput = {};
+    if (query.eventType) where.eventType = { contains: query.eventType, mode: 'insensitive' };
+    if (query.outcome) where.outcome = query.outcome;
     if (query.actorUserId) where.actorUserId = query.actorUserId;
     if (query.targetUserId) where.targetUserId = query.targetUserId;
-
     if (query.from || query.to) {
       where.eventTime = {
         ...(query.from ? { gte: new Date(query.from) } : {}),
@@ -62,17 +70,44 @@ export class AuditService {
       };
     }
 
+    // Build a stable cache key from filter params
+    const cacheKey = `audit:log:${JSON.stringify({ where, limit, offset })}`;
+    try {
+      const redis = getRedisClient();
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch { /* Redis unavailable */ }
+
     const [rows, total] = await Promise.all([
       prisma.auditLog.findMany({
         where,
         orderBy: { eventTime: 'desc' },
-        take: Math.min(query.limit ?? 50, 200),
-        skip: query.offset ?? 0,
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          eventTime: true,
+          eventType: true,
+          outcome: true,
+          actorUserId: true,
+          targetUserId: true,
+          ip: true,
+          authMethod: true,
+          sessionId: true,
+          requestId: true,
+          metadata: true,
+        },
       }),
       prisma.auditLog.count({ where }),
     ]);
 
-    return { rows, total };
+    const result = { rows, total, limit, offset };
+
+    try {
+      const redis = getRedisClient();
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', this.readCacheTtlSeconds);
+    } catch { /* ok */ }
+
+    return result;
   }
 }
-

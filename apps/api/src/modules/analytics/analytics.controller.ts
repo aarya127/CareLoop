@@ -1,6 +1,11 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 
+interface AnalyticsQuery {
+  practiceId?: string;
+  rangeDays?: string;
+}
+
 @Controller('analytics')
 export class AnalyticsController {
   private readonly analyticsService: AnalyticsService;
@@ -11,37 +16,49 @@ export class AnalyticsController {
   }
 
   @Get('overview')
-  getOverview(@Query() query: any) {
+  getOverview(@Query() query: AnalyticsQuery) {
     return this.analyticsService.getOverview(query);
   }
 
   @Get('dashboard')
-  getDashboard(@Query() query: any) {
+  getDashboard(@Query() query: AnalyticsQuery) {
     return this.analyticsService.getDashboard(query);
   }
 
   @Get('kpis')
-  getKpis(@Query() query: any) {
+  getKpis(@Query() query: AnalyticsQuery) {
     return this.analyticsService.getKpis(query);
   }
 
   @Get('revenue')
-  getRevenue(@Query() query: any) {
+  getRevenue(@Query() query: AnalyticsQuery) {
     return this.analyticsService.getRevenue(query);
   }
 
+  /** Real invoice + payment data, broken down by status and daily trend. */
+  @Get('payments')
+  getPayments(@Query() query: AnalyticsQuery) {
+    return this.analyticsService.getPayments(query);
+  }
+
   @Get('patients')
-  getPatientStats(@Query() query: any) {
+  getPatientStats(@Query() query: AnalyticsQuery) {
     return this.analyticsService.getPatientStats(query);
   }
 
   @Get('appointments')
-  getAppointmentStats(@Query() query: any) {
+  getAppointmentStats(@Query() query: AnalyticsQuery) {
     return this.analyticsService.getAppointmentStats(query);
   }
 
+  /** Daily no-show counts and rate trend for charting. */
+  @Get('no-show')
+  getNoShowTrend(@Query() query: AnalyticsQuery) {
+    return this.analyticsService.getNoShowTrend(query);
+  }
+
   @Get('decision-actions')
-  getDecisionActions(@Query() query: any) {
+  getDecisionActions(@Query() query: AnalyticsQuery) {
     return this.analyticsService.getDecisionActions(query);
   }
 
@@ -51,12 +68,13 @@ export class AnalyticsController {
   }
 
   @Post('automation/trigger')
-  triggerAutomation(@Body() body: any) {
+  triggerAutomation(@Body() body: Record<string, unknown>) {
     return this.analyticsService.triggerAutomation(body);
   }
 
   @Post('seed-phase1')
-  seedPhase1(@Body() body: any) {
+  seedPhase1(@Body() body: Record<string, unknown>) {
     return this.analyticsService.seedPhase1TestData(body);
   }
 }
+

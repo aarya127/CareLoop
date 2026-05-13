@@ -40,7 +40,12 @@ type ActionKey =
 @Injectable()
 export class AnalyticsService {
   private readonly localMetricsCache = new Map<string, { expiresAt: number; value: CoreMetrics }>();
-  private readonly metricsCacheTtlSeconds = 30;
+  /**
+   * 5-minute cache TTL for core metrics.
+   * Analytics queries are expensive (full table scans on appointment/invoice tables).
+   * L1 = in-process Map; L2 = Redis. Nightly rollup populates PracticeKPI from workers.
+   */
+  private readonly metricsCacheTtlSeconds = 300;
 
   private async safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
     try {
@@ -445,6 +450,192 @@ export class AnalyticsService {
       decision: 'Adjust overbooking and slot release policy',
       automation: 'Auto-fill vacancies and tighten policy for risky segments',
     };
+  }
+
+  /**
+   * GET /analytics/payments
+   * Real revenue data from Invoice + PaymentRecord tables.
+   * Returns: period totals, by-status breakdown, and daily trend.
+   * Cached for 5 minutes in Redis (key: analytics:payments:<practiceId>:<rangeDays>).
+   */
+  async getPayments(query: any): Promise<any> {
+    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const rangeDays = asInt(query?.rangeDays, 30);
+    const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
+
+    const cacheKey = `analytics:payments:${practiceId}:${rangeDays}`;
+    try {
+      const redis = getRedisClient();
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch { /* Redis unavailable — continue */ }
+
+    const [invoicesByStatus, revenueByDay, paymentsThisPeriod] = await Promise.all([
+      // Total amounts grouped by invoice status
+      this.safe(
+        () =>
+          prisma.invoice.groupBy({
+            by: ['status'],
+            where: { practiceId, issuedAt: { gte: since } },
+            _sum: { totalAmountCents: true },
+            _count: { id: true },
+          }),
+        [] as Array<{ status: string; _sum: { totalAmountCents: number | null }; _count: { id: number } }>,
+      ),
+      // Daily paid revenue for trend chart — bucket by paidAt day
+      this.safe(
+        () =>
+          prisma.invoice.findMany({
+            where: {
+              practiceId,
+              status: 'paid',
+              paidAt: { gte: since, not: null },
+            },
+            select: { paidAt: true, totalAmountCents: true },
+            orderBy: { paidAt: 'asc' },
+          }),
+        [] as Array<{ paidAt: Date | null; totalAmountCents: number | null }>,
+      ),
+      // Total payments received (PaymentRecord)
+      this.safe(
+        () =>
+          prisma.paymentRecord.aggregate({
+            where: {
+              practiceId,
+              status: 'completed',
+              paidAt: { gte: since },
+            },
+            _sum: { amountCents: true },
+            _count: { id: true },
+          }),
+        { _sum: { amountCents: null }, _count: { id: 0 } },
+      ),
+    ]);
+
+    // Build daily trend: bucket by day
+    const dailyMap = new Map<string, number>();
+    for (const row of revenueByDay) {
+      if (!row.paidAt) continue;
+      const day = row.paidAt.toISOString().slice(0, 10);
+      dailyMap.set(day, (dailyMap.get(day) ?? 0) + (row.totalAmountCents ?? 0));
+    }
+    const dailyTrend = Array.from(dailyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, amountCents]) => ({ date, amountCents, amountDollars: round2(amountCents / 100) }));
+
+    const byStatus = Object.fromEntries(
+      invoicesByStatus.map((r) => [
+        r.status,
+        { count: r._count.id, amountCents: r._sum.totalAmountCents ?? 0 },
+      ]),
+    );
+
+    const totalPaidCents = (byStatus['paid']?.amountCents ?? 0);
+    const totalOutstandingCents = (byStatus['sent']?.amountCents ?? 0) + (byStatus['overdue']?.amountCents ?? 0);
+
+    const result = {
+      rangeDays,
+      currency: 'CAD',
+      totalPaidCents,
+      totalPaidDollars: round2(totalPaidCents / 100),
+      totalOutstandingCents,
+      totalOutstandingDollars: round2(totalOutstandingCents / 100),
+      paymentsReceived: paymentsThisPeriod._count.id,
+      paymentsReceivedCents: paymentsThisPeriod._sum.amountCents ?? 0,
+      byStatus,
+      dailyTrend,
+      generatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const redis = getRedisClient();
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', this.metricsCacheTtlSeconds);
+    } catch { /* ok */ }
+
+    return result;
+  }
+
+  /**
+   * GET /analytics/no-show
+   * Returns daily no-show counts for the range window (for trend charting)
+   * plus the overall rate and a breakdown by appointment status.
+   * Cached for 5 minutes.
+   */
+  async getNoShowTrend(query: any): Promise<any> {
+    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const rangeDays = asInt(query?.rangeDays, 30);
+    const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
+
+    const cacheKey = `analytics:noshowtrend:${practiceId}:${rangeDays}`;
+    try {
+      const redis = getRedisClient();
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch { /* ok */ }
+
+    const [appts, byStatus] = await Promise.all([
+      this.safe(
+        () =>
+          prisma.appointment.findMany({
+            where: { practiceId, start: { gte: since } },
+            select: { start: true, status: true },
+            orderBy: { start: 'asc' },
+          }),
+        [] as Array<{ start: Date; status: string }>,
+      ),
+      this.safe(
+        () =>
+          prisma.appointment.groupBy({
+            by: ['status'],
+            where: { practiceId, start: { gte: since } },
+            _count: { status: true },
+          }),
+        [] as Array<{ status: string; _count: { status: number } }>,
+      ),
+    ]);
+
+    // Daily no-show counts
+    const dailyMap = new Map<string, { noShow: number; total: number }>();
+    for (const appt of appts) {
+      const day = appt.start.toISOString().slice(0, 10);
+      if (!dailyMap.has(day)) dailyMap.set(day, { noShow: 0, total: 0 });
+      const bucket = dailyMap.get(day)!;
+      bucket.total += 1;
+      if (appt.status === 'no_show') bucket.noShow += 1;
+    }
+
+    const dailyTrend = Array.from(dailyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, { noShow, total }]) => ({
+        date,
+        noShow,
+        total,
+        ratePct: pct(noShow, total),
+      }));
+
+    const statusBreakdown = Object.fromEntries(
+      byStatus.map((r) => [r.status, r._count.status]),
+    );
+
+    const totalAppts = appts.length;
+    const totalNoShows = appts.filter((a) => a.status === 'no_show').length;
+
+    const result = {
+      rangeDays,
+      noShowRatePct: pct(totalNoShows, totalAppts),
+      totalNoShows,
+      totalAppointments: totalAppts,
+      statusBreakdown,
+      dailyTrend,
+      generatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const redis = getRedisClient();
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', this.metricsCacheTtlSeconds);
+    } catch { /* ok */ }
+
+    return result;
   }
 
   async getOverview(query: any): Promise<any> {

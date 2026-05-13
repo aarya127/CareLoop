@@ -1,12 +1,37 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { AuditService } from './audit.service';
+import { AuditService, type AuditLogQuery } from './audit.service';
 
 @Controller('audit')
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
+  /**
+   * GET /audit
+   * Query params: eventType, outcome, actorUserId, targetUserId, from, to, limit, offset.
+   * Returns paginated audit log rows + total count.
+   * Results cached 30s in Redis.
+   */
   @Get()
-  getLog(@Query() query: any) {
+  getLog(
+    @Query('eventType') eventType?: string,
+    @Query('outcome') outcome?: string,
+    @Query('actorUserId') actorUserId?: string,
+    @Query('targetUserId') targetUserId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const query: AuditLogQuery = {
+      eventType,
+      outcome,
+      actorUserId,
+      targetUserId,
+      from,
+      to,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    };
     return this.auditService.getLog(query);
   }
 }
