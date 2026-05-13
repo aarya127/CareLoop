@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { appointmentsApi, type AppointmentRecord } from '@/lib/api/appointments';
 import { AppointmentFormModal } from '@/components/appointments/appointment-form-modal';
+import { useAppointmentEvents, type AppointmentEvent } from '@/hooks/useAppointmentEvents';
 
 const DEMO_PRACTICE_ID = process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID ?? '';
 const DEMO_USER_ID = process.env.NEXT_PUBLIC_DEMO_USER_ID ?? '';
@@ -290,6 +291,59 @@ export default function CustomCalendarPage() {
       .then((records) => setLiveAppointments(records.map(toCalendarAppt)))
       .catch(() => {/* silently fall back to mock data */});
   }, []);
+
+  // Live appointment board: apply SSE events from colleagues' mutations
+  const handleAppointmentEvent = useCallback((event: AppointmentEvent) => {
+    setLiveAppointments((prev) => {
+      switch (event.type) {
+        case 'created': {
+          if (prev.some((a) => a.id === event.id)) return prev; // already present
+          const mapped: CalendarAppointment = {
+            id: event.id,
+            patientId: event.patientId ?? '',
+            patientName: event.title,
+            startTime: new Date(event.start),
+            endTime: new Date(event.end),
+            duration: Math.round(
+              (new Date(event.end).getTime() - new Date(event.start).getTime()) / 60_000,
+            ),
+            procedure: '',
+            doctorId: event.providerId,
+            doctorName: '',
+            source: event.source === 'ai_booked' ? 'AI' : 'Manual',
+            status: 'scheduled',
+            insuranceCovered: true,
+          };
+          return [...prev, mapped];
+        }
+        case 'cancelled':
+          return prev.map((a) =>
+            a.id === event.id ? { ...a, status: 'cancelled' as CalendarAppointment['status'] } : a,
+          );
+        case 'rescheduled':
+          return prev.map((a) =>
+            a.id === event.id
+              ? {
+                  ...a,
+                  startTime: new Date(event.start),
+                  endTime: new Date(event.end),
+                  duration: Math.round(
+                    (new Date(event.end).getTime() - new Date(event.start).getTime()) / 60_000,
+                  ),
+                  status: (event.status === 'confirmed'
+                    ? 'scheduled'
+                    : event.status) as CalendarAppointment['status'],
+                }
+              : a,
+          );
+        default:
+          return prev;
+      }
+    });
+  }, []);
+
+  // Connect SSE only when we have a real practiceId (avoids connecting on mock data)
+  useAppointmentEvents(DEMO_PRACTICE_ID || undefined, handleAppointmentEvent);
 
   const appointments = liveAppointments.length > 0 ? liveAppointments : mockAppointments;
 

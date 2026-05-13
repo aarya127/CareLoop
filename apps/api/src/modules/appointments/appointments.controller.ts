@@ -7,11 +7,15 @@ import {
   Param,
   Body,
   Query,
+  Req,
+  Res,
   Headers,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
+import { APPT_EVENTS_CHANNEL } from './appointments.service';
+import { getRedisClient } from '../../config/redis';
 import type {
   CreateAppointmentDto,
   RescheduleDto,
@@ -33,6 +37,55 @@ export class AppointmentsController {
   @Get('availability')
   getAvailability(@Query() query: GetSlotsDto) {
     return this.appointmentsService.getAvailability(query);
+  }
+
+  /**
+   * GET /appointments/events?practiceId=
+   *
+   * Server-Sent Events endpoint for the live appointment board.
+   * Streams Redis pub/sub messages for the practice to the browser.
+   * The client uses the native EventSource API (no library needed).
+   *
+   * Works across multiple API replicas because events flow through Redis.
+   * The connection is long-lived; nginx must have proxy_read_timeout >= 90s
+   * and X-Accel-Buffering: no to prevent response buffering.
+   */
+  @Get('events')
+  async streamEvents(
+    @Req() req: any,
+    @Res() reply: any,
+    @Query('practiceId') practiceId: string,
+  ): Promise<void> {
+    const res: import('http').ServerResponse = reply.raw;
+
+    res.writeHead(200, {
+      'Content-Type':  'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection':    'keep-alive',
+      'X-Accel-Buffering': 'no', // tells nginx NOT to buffer this response
+    });
+    // Flush headers immediately
+    res.write(': connected\n\n');
+
+    // Dedicated subscriber connection (Redis subscriber mode is exclusive)
+    const subscriber = getRedisClient().duplicate();
+    await subscriber.subscribe(APPT_EVENTS_CHANNEL(practiceId ?? ''));
+
+    const onMessage = (_channel: string, message: string) => {
+      res.write(`data: ${message}\n\n`);
+    };
+    subscriber.on('message', onMessage);
+
+    // Heartbeat keeps the connection alive through proxies that close idle streams
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+    }, 25_000);
+
+    req.raw.on('close', () => {
+      clearInterval(heartbeat);
+      subscriber.off('message', onMessage);
+      void subscriber.unsubscribe().finally(() => subscriber.disconnect());
+    });
   }
 
   /** GET /appointments/:id */

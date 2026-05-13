@@ -8,7 +8,24 @@ import { AppointmentsRepository } from './appointments.repository';
 import { AvailabilityService } from './availability.service';
 import { AuditService } from '../audit/audit.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
+import { getRedisClient } from '../../config/redis';
 import type { CreateAppointmentDto, RescheduleDto, CancelDto, GetSlotsDto } from './dto';
+
+export const APPT_EVENTS_CHANNEL = (practiceId: string) => `appt-events:${practiceId}`;
+
+export interface AppointmentEventPayload {
+  type: 'created' | 'cancelled' | 'rescheduled';
+  id: string;
+  practiceId: string;
+  providerId: string;
+  patientId: string | null;
+  title: string;
+  start: string;
+  end: string;
+  status: string;
+  source: string;
+  ts: number;
+}
 
 @Injectable()
 export class AppointmentsService {
@@ -139,6 +156,20 @@ export class AppointmentsService {
       await this.idempotency.complete(idempotencyKey, 201, appointment);
     }
 
+    this.publishEvent({
+      type: 'created',
+      id: appointment.id,
+      practiceId: appointment.practiceId,
+      providerId: appointment.providerId,
+      patientId: appointment.patientId ?? null,
+      title: appointment.title,
+      start: appointment.start.toISOString(),
+      end: appointment.end.toISOString(),
+      status: appointment.status,
+      source: appointment.source,
+      ts: Date.now(),
+    });
+
     return appointment;
   }
 
@@ -210,6 +241,20 @@ export class AppointmentsService {
         : Promise.resolve(),
     ]);
 
+    this.publishEvent({
+      type: 'rescheduled',
+      id: updated.id,
+      practiceId: updated.practiceId,
+      providerId: updated.providerId,
+      patientId: updated.patientId ?? null,
+      title: updated.title,
+      start: updated.start.toISOString(),
+      end: updated.end.toISOString(),
+      status: updated.status,
+      source: updated.source,
+      ts: Date.now(),
+    });
+
     return updated;
   }
 
@@ -247,7 +292,30 @@ export class AppointmentsService {
     const dateStr = appt.start.toISOString().split('T')[0];
     await this.availability.invalidateCache(appt.providerId, dateStr);
 
+    this.publishEvent({
+      type: 'cancelled',
+      id: updated.id,
+      practiceId: updated.practiceId,
+      providerId: updated.providerId,
+      patientId: updated.patientId ?? null,
+      title: updated.title,
+      start: updated.start.toISOString(),
+      end: updated.end.toISOString(),
+      status: updated.status,
+      source: updated.source,
+      ts: Date.now(),
+    });
+
     return updated;
+  }
+
+  // ── Redis pub/sub event publishing ───────────────────────────────────────
+
+  private publishEvent(payload: AppointmentEventPayload): void {
+    // Fire-and-forget — SSE is a UX enhancement; don't fail the mutation if Redis is down
+    getRedisClient()
+      .publish(APPT_EVENTS_CHANNEL(payload.practiceId), JSON.stringify(payload))
+      .catch(() => {});
   }
 
   // ── Legacy stubs (used by older calendar components) ─────────────────────
