@@ -1,5 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { prisma } from '@careloop/db';
+import { getRedisClient } from '../../config/redis';
+
+const SEARCH_CACHE_TTL_SECONDS = 30;
+const SEARCH_CACHE_VERSION = 'v1';
+
+function searchCacheKey(type: string, practiceId: string | undefined, query: string): string {
+  return `search:${SEARCH_CACHE_VERSION}:${type}:${practiceId ?? '_'}:${query.toLowerCase()}`;
+}
 
 type SearchType = 'patients' | 'appointments' | 'treatments' | 'documents' | 'all';
 
@@ -29,6 +37,33 @@ export class SearchService {
     }
 
     const q = query.trim();
+
+    // Cache results for queries >= 3 chars to reduce DB load on typeahead
+    if (q.length >= 3) {
+      const cacheKey = searchCacheKey(type, practiceId, q);
+      try {
+        const cached = await getRedisClient().get(cacheKey);
+        if (cached) return JSON.parse(cached) as SearchResult[];
+      } catch { /* non-fatal cache miss */ }
+
+      const results = await this._runSearch(type, q, practiceId, limit);
+
+      try {
+        await getRedisClient().set(cacheKey, JSON.stringify(results), 'EX', SEARCH_CACHE_TTL_SECONDS);
+      } catch { /* non-fatal */ }
+
+      return results;
+    }
+
+    return this._runSearch(type, q, practiceId, limit);
+  }
+
+  private async _runSearch(
+    type: SearchType,
+    q: string,
+    practiceId: string | undefined,
+    limit: number,
+  ): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
 
     if (type === 'patients' || type === 'all') {

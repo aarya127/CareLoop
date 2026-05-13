@@ -1,14 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, BadRequestException } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { PatientsRepository } from './patients.repository';
 
 @Controller('patients')
 export class PatientsController {
-  private readonly patientsService: PatientsService;
-
-  constructor(patientsService?: PatientsService) {
-    this.patientsService = patientsService ?? new PatientsService(new PatientsRepository());
-  }
+  constructor(private readonly patientsService: PatientsService) {}
 
   @Get()
   findAll(@Query() query: any) {
@@ -16,8 +12,8 @@ export class PatientsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.patientsService.findById(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.patientsService.findById(id, (req as any).user?.id);
   }
 
   @Get(':id/medical-history')
@@ -57,8 +53,8 @@ export class PatientsController {
   }
 
   @Post()
-  async create(@Body() dto: any) {
-    const created = await this.patientsService.create(dto);
+  async create(@Body() dto: any, @Req() req: any) {
+    const created = await this.patientsService.create(dto, (req as any).user?.id);
     if (!created) {
       throw new BadRequestException('Unable to create patient');
     }
@@ -66,8 +62,8 @@ export class PatientsController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: any) {
-    const updated = await this.patientsService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+    const updated = await this.patientsService.update(id, dto, (req as any).user?.id);
     if (!updated) {
       throw new BadRequestException('Unable to update patient');
     }
@@ -75,7 +71,7 @@ export class PatientsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.patientsService.remove(id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.patientsService.remove(id, (req as any).user?.id);
   }
 }

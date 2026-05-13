@@ -3,6 +3,22 @@ import Twilio from 'twilio';
 import nodemailer from 'nodemailer';
 import type { AppointmentReminderJobData } from '@careloop/shared';
 import { prisma } from '@careloop/db';
+import type { Prisma } from '@careloop/db';
+
+// ── Audit helper ─────────────────────────────────────────────────────────────
+
+async function auditReminder(eventType: string, outcome: string, meta: Prisma.InputJsonValue): Promise<void> {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        eventType,
+        outcome,
+        authMethod: 'system',
+        metadata: meta,
+      },
+    });
+  } catch { /* audit writes must never crash the worker */ }
+}
 
 // ── Provider helpers ─────────────────────────────────────────────────────────
 
@@ -71,6 +87,12 @@ export async function remindersProcessor(
       where: { id: reminderId },
       data: { status: 'sent', sentAt: new Date() },
     });
+
+    void auditReminder('reminder_sent', 'success', {
+      reminderId,
+      channel: effectiveChannel,
+      messageId,
+    } as Prisma.InputJsonValue);
 
     job.log(`[reminder:${reminderId}] Sent. messageId=${messageId}`);
   } catch (err) {

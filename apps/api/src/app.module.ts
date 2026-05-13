@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { RedisThrottlerStorage } from './common/services/redis-throttler.storage';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -26,8 +27,13 @@ import { IdempotencyService } from './common/services/idempotency.service';
 
 @Module({
   imports: [
-    // Global rate limiting: 100 req/min per IP by default; login overrides to 10/min
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    // Global rate limiting: 100 req/min per IP by default; login overrides to 10/min.
+    // RedisThrottlerStorage ensures counters are shared across all API replicas
+    // so rate limits are enforced per-IP globally, not per-instance.
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60000, limit: 100 }],
+      storage: new RedisThrottlerStorage(),
+    }),
     HealthModule,
     AuthModule,
     UsersModule,

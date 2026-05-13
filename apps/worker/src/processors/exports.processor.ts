@@ -1,6 +1,15 @@
 import type { Job } from 'bullmq';
 import { prisma } from '@careloop/db';
+import type { Prisma } from '@careloop/db';
 import type { ExportDataJobData } from '@careloop/shared';
+
+async function auditExport(eventType: string, outcome: string, meta: Prisma.InputJsonValue): Promise<void> {
+  try {
+    await prisma.auditLog.create({
+      data: { eventType, outcome, authMethod: 'system', metadata: meta },
+    });
+  } catch { /* never crash the worker */ }
+}
 
 // ── CSV helpers ──────────────────────────────────────────────────────────────
 
@@ -33,8 +42,7 @@ async function exportPatients(practiceId: string) {
       lastName: true,
       dateOfBirth: true,
       phoneE164: true,
-      email: true,
-      status: true,
+      patientType: true,
       createdAt: true,
     },
     orderBy: { lastName: 'asc' },
@@ -66,10 +74,10 @@ async function exportBilling(practiceId: string) {
     select: {
       id: true,
       patientId: true,
-      amountCents: true,
+      totalAmountCents: true,
       status: true,
       issuedAt: true,
-      dueAt: true,
+      dueDate: true,
       paidAt: true,
     },
     orderBy: { issuedAt: 'desc' },
@@ -78,9 +86,9 @@ async function exportBilling(practiceId: string) {
   return rows.map((r) => ({
     ...r,
     issuedAt: r.issuedAt?.toISOString(),
-    dueAt: r.dueAt?.toISOString(),
+    dueDate: r.dueDate?.toISOString(),
     paidAt: r.paidAt?.toISOString(),
-    amountDollars: ((r.amountCents ?? 0) / 100).toFixed(2),
+    amountDollars: ((r.totalAmountCents ?? 0) / 100).toFixed(2),
   }));
 }
 
@@ -104,6 +112,14 @@ export async function exportsProcessor(
   // For now, log a preview and return metadata.
   job.log(`Export complete: rows=${rows.length} bytes=${output.length}`);
   job.log(`Preview (first 200 chars): ${output.slice(0, 200)}`);
+
+  void auditExport('analytics_export_completed', 'success', {
+    resource,
+    format,
+    requestedBy,
+    practiceId,
+    rowCount: rows.length,
+  } as Prisma.InputJsonValue);
 
   return { rowCount: rows.length, preview: output.slice(0, 200) };
 }

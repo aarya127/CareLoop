@@ -6,7 +6,9 @@ import {
 } from '@nestjs/platform-fastify';
 import fastifyCookie from '@fastify/cookie';
 import { ValidationPipe } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { LatencyInterceptor } from './common/interceptors';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 // fastify cookie parsing for http-only cookies
@@ -17,7 +19,48 @@ const PORT = Number(process.env.API_PORT ?? 3001);
 const HOST = process.env.API_HOST ?? '0.0.0.0';
 const COOKIE_SECRET = process.env.COOKIE_SECRET ?? 'change-me-in-production-use-32-char-secret';
 
+/**
+ * Validate that all required secrets are set in production.
+ * Fails fast at startup so a misconfigured deployment surfaces immediately
+ * rather than silently running with insecure defaults.
+ */
+function validateSecrets(): void {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const INSECURE_DEFAULTS = new Set([
+    'change-me-in-production',
+    'change-me-in-production-use-32-char-secret',
+    'secret',
+    'password',
+    '',
+  ]);
+
+  const required: Array<{ key: string; value: string | undefined }> = [
+    { key: 'COOKIE_SECRET', value: process.env.COOKIE_SECRET },
+    { key: 'DATABASE_URL', value: process.env.DATABASE_URL },
+    { key: 'REDIS_URL', value: process.env.REDIS_URL },
+    { key: 'SESSION_TTL_SECONDS', value: process.env.SESSION_TTL_SECONDS },
+  ];
+
+  const problems: string[] = [];
+
+  for (const { key, value } of required) {
+    if (!value || INSECURE_DEFAULTS.has(value.trim())) {
+      problems.push(`  - ${key} is missing or set to an insecure default`);
+    }
+  }
+
+  if (problems.length > 0) {
+    console.error('\n[SECURITY] Production startup aborted due to misconfigured secrets:\n');
+    problems.forEach((p) => console.error(p));
+    console.error('\nSet these in your secrets manager and inject them as environment variables.\n');
+    process.exit(1);
+  }
+}
+
 async function bootstrap() {
+  validateSecrets();
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ logger: process.env.NODE_ENV !== 'production' }),
@@ -40,6 +83,9 @@ async function bootstrap() {
 
   // Global exception filter — standard JSON error shape for all errors
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Global latency interceptor — logs slow requests (>=500 ms) as WARN
+  app.useGlobalInterceptors(new LatencyInterceptor());
 
   const configuredOrigins = (process.env.WEB_URL ?? 'http://localhost:3000')
     .split(',')
@@ -64,7 +110,12 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type'],
+    allowedHeaders: [
+      'Content-Type',
+      'X-Idempotency-Key',
+      'X-CSRF-Token',
+      'X-Request-ID',
+    ],
   });
 
   await app.listen(PORT, HOST);

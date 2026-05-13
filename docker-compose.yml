@@ -47,14 +47,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    deploy:
+      replicas: 1        # Increase to 2-3 when ready for horizontal web scaling
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
-    ports:
-      - "3001:3001"
+    # No direct port binding: requests route through the nginx load balancer.
+    # Expose 3001 for local dev only by adding "3001:3001" here.
     environment:
       DATABASE_URL: postgresql://careloop:careloop@postgres:5432/careloop?schema=public
       REDIS_URL: redis://redis:6379
@@ -67,6 +69,20 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      replicas: 2        # Run 2 stateless API replicas; rate limiting and session state are in Redis/Postgres
+
+  # Nginx load balancer routes incoming traffic across API replicas.
+  # In production (Kubernetes) this is replaced by a Kubernetes Service + Ingress.
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "3001:80"        # External port 3001 → nginx → api replicas on :3001
+    volumes:
+      - ./infrastructure/nginx/docker-lb.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
 
   worker:
     build:
@@ -84,6 +100,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      replicas: 2        # Workers are stateless; BullMQ distributes jobs across replicas automatically.
 
   minio:
     image: minio/minio:latest

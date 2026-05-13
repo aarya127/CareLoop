@@ -2,8 +2,19 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { prisma } from '@careloop/db';
 import { authConfig } from '../../config/auth';
 import { hashToken, hashUserAgent, randomToken } from './auth.utils';
+import { getRedisClient } from '../../config/redis';
 
 export const SESSION_COOKIE = 'cl_session';
+
+// Redis cache TTL for validated session context (60 s is short enough that
+// revocations propagate within one minute, long enough to avoid per-request
+// DB round-trips under normal load).
+const SESSION_CACHE_TTL_SECONDS = 60;
+const SESSION_CACHE_VERSION = 'v1';
+
+function sessionCacheKey(tokenHash: string): string {
+  return `sess:${SESSION_CACHE_VERSION}:${tokenHash}`;
+}
 
 export type SessionContext = {
   sessionId: string;
@@ -45,6 +56,30 @@ export class SessionService {
 
   async validateSession(rawToken: string): Promise<SessionContext> {
     const tokenHash = hashToken(rawToken);
+    const cacheKey = sessionCacheKey(tokenHash);
+
+    // ── L1: Redis cache ──────────────────────────────────────────────────────
+    // Avoids a DB round-trip on every authenticated request.
+    // Cache is invalidated immediately on revocation.
+    try {
+      const redis = getRedisClient();
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const ctx = JSON.parse(cached) as SessionContext;
+        // Update lastSeenAt async — don't block the request on it
+        void prisma.session
+          .updateMany({
+            where: { sessionTokenHash: tokenHash, revokedAt: null },
+            data: { lastSeenAt: new Date() },
+          })
+          .catch(() => {});
+        return ctx;
+      }
+    } catch {
+      // Redis unavailable — fall through to DB
+    }
+
+    // ── L2: DB lookup ────────────────────────────────────────────────────────
     const session = await prisma.session.findUnique({
       where: { sessionTokenHash: tokenHash },
       include: {
@@ -88,16 +123,30 @@ export class SessionService {
       },
     });
 
-    return {
+    const ctx: SessionContext = {
       sessionId: session.id,
       userId: session.userId,
       roles: session.user.roles.map((item) => item.role.name),
     };
+
+    // Cache the validated context for subsequent requests
+    try {
+      const redis = getRedisClient();
+      await redis.set(cacheKey, JSON.stringify(ctx), 'EX', SESSION_CACHE_TTL_SECONDS);
+    } catch {
+      // Non-fatal — next request will re-validate from DB
+    }
+
+    return ctx;
   }
 
   async revokeSession(rawToken: string, reason = 'logout'): Promise<void> {
     if (!rawToken) return;
     const tokenHash = hashToken(rawToken);
+    // Evict from cache immediately so subsequent requests re-validate from DB
+    try {
+      await getRedisClient().del(sessionCacheKey(tokenHash));
+    } catch { /* non-fatal */ }
     await prisma.session.updateMany({
       where: {
         sessionTokenHash: tokenHash,
@@ -121,5 +170,68 @@ export class SessionService {
         revokeReason: reason,
       },
     });
+  }
+
+  /**
+   * Revoke a specific session by its ID.
+   * Only revokes if the session belongs to the given userId (prevents IDOR).
+   */
+  async revokeSessionById(sessionId: string, userId: string, reason = 'user_revoked'): Promise<void> {
+    await prisma.session.updateMany({
+      where: {
+        id: sessionId,
+        userId,      // ownership check — prevents users from revoking others' sessions
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokeReason: reason,
+      },
+    });
+  }
+
+  /**
+   * Return a user's active (non-revoked, non-expired) sessions for device accountability.
+   * Never returns the raw token or its hash.
+   */
+  async listUserSessions(userId: string): Promise<
+    Array<{
+      id: string;
+      createdAt: Date;
+      expiresAt: Date;
+      idleExpiresAt: Date;
+      lastSeenAt: Date | null;
+      createdByIp: string | null;
+      userAgentHash: string | null;
+    }>
+  > {
+    const now = new Date();
+    return prisma.session.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        expiresAt: true,
+        idleExpiresAt: true,
+        lastSeenAt: true,
+        createdByIp: true,
+        createdByUserAgentHash: true,
+      },
+      orderBy: { lastSeenAt: 'desc' },
+    }).then((rows) =>
+      rows.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt,
+        expiresAt: r.expiresAt,
+        idleExpiresAt: r.idleExpiresAt,
+        lastSeenAt: r.lastSeenAt,
+        createdByIp: r.createdByIp ?? null,
+        userAgentHash: r.createdByUserAgentHash ?? null,
+      }))
+    );
   }
 }

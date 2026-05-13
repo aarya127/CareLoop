@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PatientsRepository } from './patients.repository';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class PatientsService {
   private medicalHistoryTableReady = false;
   private recordSectionsTableReady = false;
 
-  constructor(private readonly patientsRepository: PatientsRepository) {}
+  constructor(
+    private readonly patientsRepository: PatientsRepository,
+    private readonly audit: AuditService,
+  ) {}
 
   private async ensureMedicalHistoryTable(): Promise<void> {
     if (this.medicalHistoryTableReady) {
@@ -197,9 +201,9 @@ export class PatientsService {
     }
   }
 
-  async findById(id: string): Promise<any> {
+  async findById(id: string, actorUserId?: string): Promise<any> {
     try {
-      return await this.patientsRepository.prisma.patient.findUnique({
+      const patient = await this.patientsRepository.prisma.patient.findUnique({
         where: { id },
         include: {
           insuranceRecords: {
@@ -208,12 +212,20 @@ export class PatientsService {
           },
         },
       });
+      // HIPAA: record every access to a patient record
+      void this.audit.record({
+        eventType: 'patient_viewed',
+        outcome: 'success',
+        actorUserId,
+        metadata: { patientId: id, practiceId: patient?.practiceId },
+      });
+      return patient;
     } catch {
       return null;
     }
   }
 
-  async create(dto: any): Promise<any> {
+  async create(dto: any, actorUserId?: string): Promise<any> {
     try {
       const practiceId = String(dto?.practiceId ?? 'demo-practice');
 
@@ -227,7 +239,7 @@ export class PatientsService {
         },
       });
 
-      return await this.patientsRepository.prisma.patient.create({
+      const patient = await this.patientsRepository.prisma.patient.create({
         data: {
           practiceId,
           firstName: String(dto?.firstName ?? dto?.first_name ?? ''),
@@ -237,14 +249,23 @@ export class PatientsService {
           patientType: String(dto?.patientType ?? dto?.patient_type ?? 'existing'),
         },
       });
+
+      void this.audit.record({
+        eventType: 'patient_created',
+        outcome: 'success',
+        actorUserId,
+        metadata: { patientId: patient?.id, practiceId },
+      });
+
+      return patient;
     } catch {
       return null;
     }
   }
 
-  async update(id: string, dto: any): Promise<any> {
+  async update(id: string, dto: any, actorUserId?: string): Promise<any> {
     try {
-      return await this.patientsRepository.prisma.patient.update({
+      const patient = await this.patientsRepository.prisma.patient.update({
         where: { id },
         data: {
           firstName: dto?.firstName ?? dto?.first_name,
@@ -254,14 +275,29 @@ export class PatientsService {
           patientType: dto?.patientType ?? dto?.patient_type,
         },
       });
+
+      void this.audit.record({
+        eventType: 'patient_updated',
+        outcome: 'success',
+        actorUserId,
+        metadata: { patientId: id, fields: Object.keys(dto ?? {}) },
+      });
+
+      return patient;
     } catch {
       return null;
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, actorUserId?: string): Promise<void> {
     try {
       await this.patientsRepository.prisma.patient.delete({ where: { id } });
+      void this.audit.record({
+        eventType: 'patient_deleted',
+        outcome: 'success',
+        actorUserId,
+        metadata: { patientId: id },
+      });
     } catch {
       return;
     }
