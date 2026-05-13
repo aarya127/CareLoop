@@ -761,11 +761,13 @@ model Reminder {
   practiceId    String
   patientId     String
   appointmentId String?
-  channel       String    // "sms", "email", "push"
-  type          String    // "appointment_reminder", "recall", "payment_due"
+  channel       String    // "sms" | "email" | "push"
+  type          String    // "appointment_reminder" | "recall" | "payment_due"
   status        String    @default("pending") // pending, sent, failed, cancelled
   scheduledAt   DateTime
   sentAt        DateTime?
+  failReason    String?
+  retryCount    Int       @default(0)
   metadata      Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -777,6 +779,25 @@ model Reminder {
   @@index([practiceId, status, scheduledAt])
   @@index([patientId, scheduledAt])
   @@index([appointmentId])
+}
+
+// ============================================================================
+// WEBHOOK INBOUND EVENT LOG
+// idempotencyKey is unique — ensures each inbound webhook is processed once.
+// ============================================================================
+
+model WebhookLog {
+  id             String    @id @default(cuid())
+  provider       String    // twilio | sendgrid | google_calendar | stripe
+  event          String    // e.g. "inbound_sms", "delivered", "calendar_push"
+  idempotencyKey String    @unique // provider-scoped dedup key
+  rawPayload     Json      @default("{}")
+  status         String    @default("received") // received | processed | failed | duplicate
+  processedAt    DateTime?
+  error          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([provider, event, createdAt])
 }
 
 // ============================================================================
