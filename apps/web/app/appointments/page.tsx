@@ -298,26 +298,6 @@ export default function AppointmentsPage() {
 }
 
 
-// ── Status badge ────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    confirmed: 'bg-green-100 text-green-700',
-    pending: 'bg-amber-100 text-amber-700',
-    cancelled: 'bg-red-100 text-red-700',
-    completed: 'bg-blue-100 text-blue-700',
-    no_show: 'bg-gray-100 text-gray-600',
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        colors[status] ?? 'bg-muted text-muted-foreground'
-      }`}
-    >
-      {STATUS_LABELS[status] ?? status}
-    </span>
-  );
-}
-
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
