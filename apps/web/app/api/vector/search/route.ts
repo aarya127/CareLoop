@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { loadIndex, searchIndex } from '@/lib/vector/store';
 
+const API_URL = process.env.API_URL ?? 'https://careloop-tf2l.onrender.com';
+
+// Vector search is handled by the NestJS API on Render (which has persistent storage).
+// Running it as a Next.js serverless function would exceed the 250 MB size limit.
 export async function GET(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const q = url.searchParams.get('q') || '';
-    const k = Number(url.searchParams.get('k') || 8);
-    const index = loadIndex();
-    if (!index) return NextResponse.json({ ok: false, error: 'index_not_built' }, { status: 400 });
-    const results = searchIndex(index, q, k);
-    return NextResponse.json({ ok: true, count: results.length, results });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || 'failed' }, { status: 500 });
+    const { search } = new URL(req.url);
+    const upstream = await fetch(`${API_URL}/vector/search${search}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await upstream.json().catch(() => ({}));
+    return NextResponse.json(data, { status: upstream.status });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { ok: false, error: String(err) },
+      { status: 502 }
+    );
   }
 }
