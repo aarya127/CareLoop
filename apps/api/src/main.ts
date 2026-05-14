@@ -15,7 +15,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 // register dynamically to avoid build-time issues if plugin missing
 // (fastify-cookie is expected to be installed in dev environment)
 
-const PORT = Number(process.env.API_PORT ?? 3001);
+const PORT = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
 const HOST = process.env.API_HOST ?? '0.0.0.0';
 const COOKIE_SECRET = process.env.COOKIE_SECRET ?? 'change-me-in-production-use-32-char-secret';
 
