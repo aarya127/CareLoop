@@ -233,7 +233,10 @@ export class AuthService {
 
   async login(dto: LoginDto, context: { ip?: string; userAgent?: string }): Promise<LoginResult> {
     try {
-      const email = dto.email.trim().toLowerCase();
+      const email = (dto?.email ?? '').trim().toLowerCase();
+      if (!email) {
+        throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
+      }
       const ipKey = context.ip ?? 'unknown-ip';
 
       this.enforceRateLimit(
