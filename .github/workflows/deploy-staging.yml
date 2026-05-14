@@ -12,6 +12,7 @@ concurrency:
 jobs:
   deploy-staging:
     name: Deploy to Staging
+    if: false # disabled until AWS/K8s secrets are configured
     runs-on: ubuntu-latest
     environment:
       name: staging

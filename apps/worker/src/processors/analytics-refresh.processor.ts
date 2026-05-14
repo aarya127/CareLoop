@@ -25,7 +25,7 @@ async function refreshForPractice(practiceId: string): Promise<void> {
           status: { in: ['paid'] },
           issuedAt: { gte: thirtyDaysAgo },
         },
-        _sum: { amountCents: true },
+        _sum: { totalAmountCents: true },
       }),
 
       prisma.appointment.count({
@@ -38,7 +38,7 @@ async function refreshForPractice(practiceId: string): Promise<void> {
     ]);
 
   const noShowRate = totalAppts > 0 ? noShowCount / totalAppts : 0;
-  const revenueCents = revenueResult._sum.amountCents ?? 0;
+  const revenueCents = revenueResult._sum?.totalAmountCents ?? 0;
   const completedCount =
     appointmentsByStatus.find((r) => r.status === 'completed')?._count.id ?? 0;
 

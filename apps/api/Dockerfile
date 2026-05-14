@@ -25,4 +25,4 @@ COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./dist
 COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
 USER apiuser
 EXPOSE 3001
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]

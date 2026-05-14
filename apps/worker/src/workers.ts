@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq';
 import type Redis from 'ioredis';
 import { JobNames, QUEUE_NAMES, DLQ_QUEUE_NAME } from '@careloop/shared';
-import { prisma } from '@careloop/db';
+import { prisma, Prisma } from '@careloop/db';
 import { finalizeTranscriptProcessor } from './processors/finalize-transcript';
 import { syncGoogleCalendarProcessor } from './processors/sync-google-calendar';
 import { appointmentReminderProcessor } from './processors/appointment-reminder';
@@ -42,13 +42,13 @@ function withFailedHandler(worker: Worker): Worker {
             queue: job.queueName,
             jobId: job.id ?? '',
             jobName: job.name,
-            data: job.data as Record<string, unknown>,
+            data: job.data as Prisma.InputJsonValue,
             failReason: err.message,
             attemptsMade: job.attemptsMade,
             practiceId: practiceId ?? null,
           },
         })
-        .catch((dbErr) =>
+        .catch((dbErr: unknown) =>
           console.error(
             `[dead-letter] Failed to record dead-letter for job ${job.id}:`,
             dbErr,
@@ -68,61 +68,22 @@ export function createWorkers(connection: Redis): Worker[] {
   const workerOptions = { connection };
 
   // Legacy workers — concurrency kept, retry policy added
+  // Note: defaultJobOptions lives on the Queue, not the Worker — removed here.
   const legacyWorkers: Worker[] = [
-    new Worker(JobNames.FINALIZE_TRANSCRIPT, finalizeTranscriptProcessor, {
-      ...workerOptions,
-      concurrency: 5,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
-    new Worker(JobNames.SYNC_GOOGLE_CALENDAR, syncGoogleCalendarProcessor, {
-      ...workerOptions,
-      concurrency: 3,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
-    new Worker(JobNames.APPOINTMENT_REMINDER, appointmentReminderProcessor, {
-      ...workerOptions,
-      concurrency: 10,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
-    new Worker(JobNames.COMPUTE_KPIS, computeKpisProcessor, {
-      ...workerOptions,
-      concurrency: 1,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
+    new Worker(JobNames.FINALIZE_TRANSCRIPT, finalizeTranscriptProcessor, { ...workerOptions, concurrency: 5 }),
+    new Worker(JobNames.SYNC_GOOGLE_CALENDAR, syncGoogleCalendarProcessor, { ...workerOptions, concurrency: 3 }),
+    new Worker(JobNames.APPOINTMENT_REMINDER, appointmentReminderProcessor, { ...workerOptions, concurrency: 10 }),
+    new Worker(JobNames.COMPUTE_KPIS, computeKpisProcessor, { ...workerOptions, concurrency: 1 }),
   ];
 
   // New spec-aligned workers
   const newWorkers: Worker[] = [
-    new Worker(QUEUE_NAMES.REMINDERS, remindersProcessor, {
-      ...workerOptions,
-      concurrency: 10,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
-    new Worker(QUEUE_NAMES.ANALYTICS, analyticsRefreshProcessor, {
-      ...workerOptions,
-      concurrency: 1,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
-    new Worker(QUEUE_NAMES.DOCUMENTS, documentCleanupProcessor, {
-      ...workerOptions,
-      concurrency: 2,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
-    new Worker(QUEUE_NAMES.EXPORTS, exportsProcessor, {
-      ...workerOptions,
-      concurrency: 2,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    }),
-    new Worker(QUEUE_NAMES.WEBHOOKS, webhooksProcessor, {
-      ...workerOptions,
-      concurrency: 5,
-      defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
-    }),
-    new Worker(QUEUE_NAMES.SCHEDULER, reminderScanProcessor, {
-      ...workerOptions,
-      concurrency: 1,
-      defaultJobOptions: { attempts: 2, backoff: { type: 'fixed', delay: 10000 } },
-    }),
+    new Worker(QUEUE_NAMES.REMINDERS, remindersProcessor, { ...workerOptions, concurrency: 10 }),
+    new Worker(QUEUE_NAMES.ANALYTICS, analyticsRefreshProcessor, { ...workerOptions, concurrency: 1 }),
+    new Worker(QUEUE_NAMES.DOCUMENTS, documentCleanupProcessor, { ...workerOptions, concurrency: 2 }),
+    new Worker(QUEUE_NAMES.EXPORTS, exportsProcessor, { ...workerOptions, concurrency: 2 }),
+    new Worker(QUEUE_NAMES.WEBHOOKS, webhooksProcessor, { ...workerOptions, concurrency: 5 }),
+    new Worker(QUEUE_NAMES.SCHEDULER, reminderScanProcessor, { ...workerOptions, concurrency: 1 }),
   ];
 
   const allWorkers = [...legacyWorkers, ...newWorkers];

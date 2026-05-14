@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@careloop/db';
 import { prisma } from '../../config/database';
 import { enqueueWebhook } from '../../jobs/producers';
 import { TwilioService } from '../messaging/twilio.service';
@@ -29,7 +30,7 @@ export class WebhooksService {
   ): Promise<string | null> {
     try {
       const log = await prisma.webhookLog.create({
-        data: { provider, event, idempotencyKey, rawPayload },
+        data: { provider, event, idempotencyKey, rawPayload: rawPayload as Prisma.InputJsonValue },
       });
       return log.id;
     } catch (err: any) {
