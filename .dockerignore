@@ -1,0 +1,94 @@
+# OS / editor
+.DS_Store
+
+# Secrets / local env
+.env
+.env*.local
+.envrc
+key.txt
+
+# Node / Next.js
+node_modules/
+/.pnp
+/.pnp.js
+.next/
+.turbo/
+/out/
+/build
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python env / cache
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+
+# Python packaging / build
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Python app files
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache
+.scrapy
+docs/_build/
+.pybuilder/
+target/
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+celerybeat-schedule
+celerybeat.pid
+*.sage.py
+
+# Datasets (large image files)
+datasets/**/*.jpg
+datasets/**/*.JPG
+datasets/**/*.jpeg
+datasets/**/*.JPEG
+datasets/**/*.png
+datasets/**/*.PNG
+
+# Misc
+*.pem
+.cursorignore
+.cursorindexingignore
+__marimo__/
+marimo/_static/
+marimo/_lsp/
+.pypirc
