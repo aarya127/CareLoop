@@ -1,14 +1,1 @@
-{
-  "app/admin/analytics/page.tsx -> @/components/analytics/practice-kpi-dashboard": {
-    "id": "app/admin/analytics/page.tsx -> @/components/analytics/practice-kpi-dashboard",
-    "files": [
-      "static/chunks/_app-pages-browser_components_analytics_practice-kpi-dashboard_tsx.js"
-    ]
-  },
-  "app/admin/calendar/page.tsx -> @fullcalendar/react": {
-    "id": "app/admin/calendar/page.tsx -> @fullcalendar/react",
-    "files": [
-      "static/chunks/_app-pages-browser_node_modules_pnpm_fullcalendar_react_6_1_20__fullcalendar_core_6_1_20_reac-e29440.js"
-    ]
-  }
-}
+{}

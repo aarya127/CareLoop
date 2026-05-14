@@ -7,11 +7,11 @@ function getRangeDays(range: string): number {
 }
 
 function resolveApiBase(): string {
-  const configured = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-  if (!configured) return 'http://localhost:3001';
+  const configured = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  if (!configured) return 'https://careloop-tf2l.onrender.com';
   const normalized = configured.replace(/\/$/, '');
   if (normalized.includes('localhost:3000') || normalized.includes('127.0.0.1:3000') || normalized === '/') {
-    return 'http://localhost:3001';
+    return 'https://careloop-tf2l.onrender.com';
   }
   return normalized;
 }

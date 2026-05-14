@@ -1,6 +1,6 @@
 // API Base Configuration
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL || 'ws://localhost:3001';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://careloop-tf2l.onrender.com';
+export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL || 'wss://careloop-tf2l.onrender.com';
 
 // API Endpoints
 export const ENDPOINTS = {
