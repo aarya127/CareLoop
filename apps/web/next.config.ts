@@ -27,7 +27,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  output: 'standalone',
   // PWA support would be added via next-pwa
 };
 
