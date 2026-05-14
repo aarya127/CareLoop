@@ -4,7 +4,19 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "NODE_ENV",
+        "API_URL",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "WEB_URL",
+        "APP_BASE_URL",
+        "COOKIE_SECRET",
+        "ENCRYPTION_KEY",
+        "NEXT_PUBLIC_DEMO_PRACTICE_ID",
+        "NEXT_PUBLIC_DEMO_USER_ID"
+      ]
     },
     "dev": {
       "cache": false,
