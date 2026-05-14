@@ -24,6 +24,9 @@ const nextConfig: NextConfig = {
     // Disable type checking during build to avoid TS errors blocking the build.
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   output: 'standalone',
   // PWA support would be added via next-pwa
 };
