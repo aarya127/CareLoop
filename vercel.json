@@ -1,7 +1,1 @@
-{
-  "framework": "nextjs",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm turbo run build --filter=@careloop/web",
-  "outputDirectory": "apps/web/.next",
-  "devCommand": "pnpm --filter=@careloop/web dev"
-}
+{}
