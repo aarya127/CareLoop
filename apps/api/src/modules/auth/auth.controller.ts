@@ -116,6 +116,9 @@ export class AuthController {
 
   @Get('me')
   async me(@Req() req: any) {
+    // req.user is populated by SessionAuthGuard (accepts cookie OR Bearer token)
+    if (req.user) return req.user;
+    // fallback: re-validate from cookie (direct browser calls)
     const token = req.cookies?.[SESSION_COOKIE];
     const data = await this.authService.getSession(token);
     if (!data) throw new UnauthorizedException('No active session');
@@ -124,6 +127,7 @@ export class AuthController {
 
   @Get('session')
   async session(@Req() req: any) {
+    if (req.user) return req.user;
     const token = req.cookies?.[SESSION_COOKIE];
     const data = await this.authService.getSession(token);
     if (!data) throw new UnauthorizedException('No active session');
@@ -135,6 +139,7 @@ export class AuthController {
     @Req() req: any,
     @Res({ passthrough: true }) res: any
   ) {
+    if (req.user) return { user: req.user };
     const token = req.cookies?.[SESSION_COOKIE];
     const data = await this.authService.getSession(token);
     if (!data) {
