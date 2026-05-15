@@ -12,3 +12,4 @@ pytest
 typing-extensions
 faker
 kagglehub
+boto3
