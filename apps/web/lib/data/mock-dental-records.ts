@@ -1866,14 +1866,24 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
  * Get dental record by patient ID
  */
 export function getDentalRecordById(patientId: string): PatientProfile | undefined {
-  return mockDentalRecords[patientId];
+  const rec = mockDentalRecords[patientId];
+  if (!rec) return undefined;
+  // Return a shallow copy with radiographic records removed
+  return {
+    ...rec,
+    radiographic_records: [],
+  } as PatientProfile;
 }
 
 /**
  * Get all dental records
  */
 export function getAllDentalRecords(): PatientProfile[] {
-  return Object.values(mockDentalRecords);
+  // Return shallow copies with radiographic records removed
+  return Object.values(mockDentalRecords).map((r) => ({
+    ...r,
+    radiographic_records: [],
+  } as PatientProfile));
 }
 
 /**

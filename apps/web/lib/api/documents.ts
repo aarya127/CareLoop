@@ -75,7 +75,6 @@ export function formatBytes(bytes: number | null): string {
 }
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  xray: 'X-Ray',
   consent: 'Consent Form',
   insurance_card: 'Insurance Card',
   lab_report: 'Lab Report',

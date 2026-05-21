@@ -727,12 +727,21 @@ model PaymentRecord {
 // DOCUMENTS
 // ============================================================================
 
+// Document categories (removed 'xray' category)
+enum DocumentCategory {
+  consent
+  insurance_card
+  lab_report
+  referral
+  other
+}
+
 model Document {
   id               String   @id @default(cuid())
   practiceId       String
   patientId        String?
   uploadedBy       String?
-  category         String   // "xray", "consent", "insurance_card", "lab_report", etc.
+  category         DocumentCategory
   fileName         String
   mimeType         String
   storageKey       String   // S3 key — never expose directly

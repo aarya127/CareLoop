@@ -10,6 +10,14 @@ import { DocumentsRepository } from './documents.repository';
 import { AuditService } from '../audit/audit.service';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from '../../config/storage';
 
+const ALLOWED_DOCUMENT_CATEGORIES = new Set([
+  'consent',
+  'insurance_card',
+  'lab_report',
+  'referral',
+  'other',
+]);
+
 @Injectable()
 export class DocumentsService {
   constructor(
@@ -20,7 +28,11 @@ export class DocumentsService {
 
   async findByPatientId(patientId: string, query: any): Promise<any[]> {
     const practiceId = String(query?.practiceId ?? 'demo-practice');
-    return this.repo.findByPatientId(patientId, practiceId, query?.category);
+    const category = query?.category;
+    if (category && !ALLOWED_DOCUMENT_CATEGORIES.has(category)) {
+      throw new BadRequestException(`Invalid document category: ${category}`);
+    }
+    return this.repo.findByPatientId(patientId, practiceId, category);
   }
 
   /**
@@ -54,6 +66,10 @@ export class DocumentsService {
 
     // ── File name sanitisation ───────────────────────────────────────────────
     const safeName = dto.fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
+
+    if (!dto.category || !ALLOWED_DOCUMENT_CATEGORIES.has(dto.category)) {
+      throw new BadRequestException(`Invalid document category: ${dto.category}`);
+    }
 
     const practiceId = String(dto.practiceId ?? 'demo-practice');
     const storageKey = `${practiceId}/${dto.patientId ?? 'unassigned'}/${randomUUID()}/${safeName}`;
