@@ -5,13 +5,14 @@ import { X, Calendar, FileText, Download, MoreVertical, Phone, Mail } from 'luci
 import { useState } from 'react';
 import { Patient } from '@/lib/types/patient';
 import { cn } from '@/lib/utils';
+import { PatientDocuments } from './patient-documents';
 
 interface PatientDetailsPanelProps {
   patient: Patient;
   onClose: () => void;
 }
 
-type TabType = 'overview' | 'medical' | 'visits' | 'billing';
+type TabType = 'overview' | 'medical' | 'visits' | 'billing' | 'documents';
 
 export function PatientDetailsPanel({ patient, onClose }: PatientDetailsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -27,6 +28,7 @@ export function PatientDetailsPanel({ patient, onClose }: PatientDetailsPanelPro
     { id: 'medical' as TabType, label: 'Medical History' },
     { id: 'visits' as TabType, label: 'Visits' },
     { id: 'billing' as TabType, label: 'Billing' },
+    { id: 'documents' as TabType, label: 'Documents' },
   ];
 
   const maskMemberId = (id: string) => {
@@ -365,6 +367,10 @@ export function PatientDetailsPanel({ patient, onClose }: PatientDetailsPanelPro
                   )}
                 </div>
               </>
+            )}
+
+            {activeTab === 'documents' && (
+              <PatientDocuments patientId={patient.id} />
             )}
 
             {activeTab === 'billing' && (

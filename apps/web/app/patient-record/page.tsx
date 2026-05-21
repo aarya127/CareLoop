@@ -22,7 +22,6 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import PatientOverview from '@/components/dental-records/patient-overview-section';
-import RadiographicFilesSection from '@/components/dental-records/radiographic-files-section';
 import MedicalHistorySection from '@/components/dental-records/medical-history-section';
 import ClinicalChartingSection from '@/components/dental-records/clinical-charting-section';
 import PeriodontalRecordsSection from '@/components/dental-records/periodontal-records-section';
@@ -493,7 +492,7 @@ const getMockAdminDocuments = (patientId: string): AdministrativeDocuments => {
   };
 };
 
-type TabType = 'overview' | 'history' | 'treatments' | 'charting' | 'radiographs' | 'periodontal' | 'documents';
+type TabType = 'overview' | 'history' | 'treatments' | 'charting' | 'periodontal' | 'documents';
 
 type ApiPatient = {
   id: string;
@@ -890,7 +889,6 @@ function PatientRecordContent() {
     { id: 'history', label: 'Medical & Dental History', icon: FileText },
     { id: 'treatments', label: 'Treatment History', icon: Stethoscope },
     { id: 'charting', label: 'Clinical Charting', icon: Activity },
-    { id: 'radiographs', label: 'X-Rays & Diagnostics', icon: ImageIcon },
     { id: 'periodontal', label: 'Periodontal Records', icon: Heart },
     { id: 'documents', label: 'Administrative Docs', icon: Folder },
   ];
@@ -1250,23 +1248,7 @@ function PatientRecordContent() {
             </motion.div>
           )}
 
-          {activeTab === 'radiographs' && (
-            <motion.div
-              key="radiographs"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <RadiographicFilesSection
-                patientId={patientRecord.patient_id}
-                radiographicRecords={
-                  radiographicRecords ?? (patientRecord.radiographic_records || [])
-                }
-                onUpload={handleUploadRadiograph}
-              />
-            </motion.div>
-          )}
+          {/* Radiographs tab removed */}
 
           {activeTab === 'periodontal' && (
             <motion.div

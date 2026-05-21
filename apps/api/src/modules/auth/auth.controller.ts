@@ -27,10 +27,14 @@ import { SESSION_COOKIE, SessionService } from './session.service';
 
 const COOKIE_OPTS = {
   httpOnly: true,
-  sameSite: 'lax' as const,
+  // Allow runtime configuration of SameSite so cross-site clients can receive cookies
+  sameSite: (process.env.SESSION_COOKIE_SAME_SITE ?? 'lax') as 'lax' | 'strict' | 'none',
   path: '/',
-  secure: process.env.NODE_ENV === 'production',
+  // Secure must be true for SameSite=None. Also set in production.
+  secure: process.env.NODE_ENV === 'production' || (process.env.SESSION_COOKIE_SAME_SITE === 'none'),
   maxAge: 8 * 60 * 60, // 8 hours in seconds
+  // domain may be undefined (default), but can be set via SESSION_COOKIE_DOMAIN
+  domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
 };
 
 @Controller('auth')
@@ -41,26 +45,14 @@ export class AuthController {
   ) {}
 
   private setSessionCookie(res: any, token: string): void {
-    res.setCookie(authConfig.sessionCookieName, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      domain: authConfig.cookieDomain,
-      maxAge: authConfig.sessionTtlSeconds,
-    });
+    // Use configured cookie options but ensure TTL/domain come from auth config
+    const opts = { ...COOKIE_OPTS, maxAge: authConfig.sessionTtlSeconds, domain: authConfig.cookieDomain };
+    res.setCookie(authConfig.sessionCookieName, token, opts);
   }
 
   private clearSessionCookie(res: any): void {
-    res.setCookie(authConfig.sessionCookieName, '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      domain: authConfig.cookieDomain,
-      expires: new Date(0),
-      maxAge: 0,
-    });
+    const opts = { ...COOKIE_OPTS, domain: authConfig.cookieDomain, expires: new Date(0), maxAge: 0 } as any;
+    res.setCookie(authConfig.sessionCookieName, '', opts);
   }
 
   /** 10 attempts per minute per IP to prevent brute-force */
