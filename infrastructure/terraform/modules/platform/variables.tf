@@ -121,3 +121,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "cors_allowed_origins" {
+  description = "Origins allowed to make presigned-URL requests to the documents bucket."
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "api_service_account_namespace" {
+  description = "Kubernetes namespace where the API service account lives."
+  type        = string
+  default     = "default"
+}
+
+variable "api_service_account_name" {
+  description = "Kubernetes service account name for the API pod."
+  type        = string
+  default     = "careloop-api"
+}

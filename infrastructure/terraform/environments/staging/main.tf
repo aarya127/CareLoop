@@ -65,6 +65,10 @@ module "platform" {
     "api.staging.careloop.company.com"
   ]
 
+  cors_allowed_origins          = ["https://app.staging.careloop.company.com"]
+  api_service_account_namespace = "careloop"
+  api_service_account_name      = "careloop-api"
+
   tags = {
     Owner = "platform"
     Tier  = "non-prod"
@@ -77,4 +81,12 @@ output "cluster_name" {
 
 output "acm_certificate_arn" {
   value = module.platform.acm_certificate_arn
+}
+
+output "documents_bucket_name" {
+  value = module.platform.documents_bucket_name
+}
+
+output "documents_s3_role_arn" {
+  value = module.platform.documents_s3_role_arn
 }

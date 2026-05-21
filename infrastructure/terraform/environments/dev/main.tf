@@ -54,6 +54,10 @@ module "platform" {
   private_domain_name     = "dev.careloop.company.internal"
   create_acm_certificate  = false
 
+  cors_allowed_origins          = ["http://localhost:3000"]
+  api_service_account_namespace = "careloop"
+  api_service_account_name      = "careloop-api"
+
   tags = {
     Owner = "platform"
     Tier  = "non-prod"
@@ -66,4 +70,12 @@ output "cluster_name" {
 
 output "cluster_endpoint" {
   value = module.platform.cluster_endpoint
+}
+
+output "documents_bucket_name" {
+  value = module.platform.documents_bucket_name
+}
+
+output "documents_s3_role_arn" {
+  value = module.platform.documents_s3_role_arn
 }

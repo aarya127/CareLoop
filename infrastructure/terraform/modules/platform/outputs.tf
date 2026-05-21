@@ -42,3 +42,18 @@ output "acm_certificate_arn" {
   description = "ACM certificate ARN for ingress TLS."
   value       = try(aws_acm_certificate_validation.ingress[0].certificate_arn, null)
 }
+
+output "documents_bucket_name" {
+  description = "Name of the S3 documents bucket."
+  value       = aws_s3_bucket.documents.id
+}
+
+output "documents_bucket_arn" {
+  description = "ARN of the S3 documents bucket."
+  value       = aws_s3_bucket.documents.arn
+}
+
+output "documents_s3_role_arn" {
+  description = "IAM role ARN for IRSA — annotate the API service account with this."
+  value       = aws_iam_role.documents_s3.arn
+}
