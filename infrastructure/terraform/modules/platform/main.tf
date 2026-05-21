@@ -144,3 +144,143 @@ resource "aws_acm_certificate_validation" "ingress" {
   certificate_arn = aws_acm_certificate.ingress[0].arn
   validation_record_fqdns = [for rec in aws_route53_record.ingress_cert_validation : rec.fqdn]
 }
+
+# ---------------------------------------------------------------------------
+# S3 — Document storage bucket
+# ---------------------------------------------------------------------------
+
+resource "aws_s3_bucket" "documents" {
+  bucket = "${var.name_prefix}-documents-${var.environment}"
+
+  tags = merge(var.tags, {
+    Environment = var.environment
+    Purpose     = "document-storage"
+  })
+}
+
+resource "aws_s3_bucket_versioning" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  rule {
+    id     = "transition-to-ia"
+    status = "Enabled"
+
+    transition {
+      days          = 90
+      storage_class = "STANDARD_IA"
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 365
+    }
+  }
+}
+
+resource "aws_s3_bucket_cors_configuration" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "PUT"]
+    allowed_origins = var.cors_allowed_origins
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3600
+  }
+}
+
+# ---------------------------------------------------------------------------
+# IRSA — IAM role for API pods to access the documents bucket
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "documents_s3" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+    ]
+    resources = ["${aws_s3_bucket.documents.arn}/*"]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.documents.arn]
+  }
+}
+
+resource "aws_iam_policy" "documents_s3" {
+  name        = "${local.cluster_name}-documents-s3"
+  description = "Allows API pods to access the CareLoop documents S3 bucket"
+  policy      = data.aws_iam_policy_document.documents_s3.json
+
+  tags = merge(var.tags, {
+    Environment = var.environment
+  })
+}
+
+data "aws_iam_policy_document" "documents_s3_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:${var.api_service_account_namespace}:${var.api_service_account_name}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "documents_s3" {
+  name               = "${local.cluster_name}-documents-s3"
+  assume_role_policy = data.aws_iam_policy_document.documents_s3_assume_role.json
+
+  tags = merge(var.tags, {
+    Environment = var.environment
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "documents_s3" {
+  role       = aws_iam_role.documents_s3.name
+  policy_arn = aws_iam_policy.documents_s3.arn
+}
