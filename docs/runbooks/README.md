@@ -4,9 +4,7 @@ Operational runbooks for CareLoop.
 
 ## Index
 
-- `database-backup.md` — Manual backup and restore procedures
-- `scaling.md` — How to scale services up/down
-- `incident-response.md` — steps for P1/P2 incidents
-- `deployment-rollback.md` — Rolling back a bad deploy
+- [`backup-recovery.md`](backup-recovery.md) — Backup and restore procedures
+- [`secrets-management.md`](secrets-management.md) — Managing and rotating secrets
 
 > Runbooks are added here as procedures are established.
