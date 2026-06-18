@@ -1,32 +1,19 @@
 # CareLoop — Run Locally
 
 ## Prerequisites
-- Node.js 18+ (recommended: Node.js 20 LTS)
-- npm
-
-## Project Folder
-Run all npm commands from this folder:
-
-```bash
-/Users/saillesh/Desktop/CareLoop/CareLoop
-```
-
-If your terminal is in the parent folder (`/Users/.../Desktop/CareLoop`), run:
-
-```bash
-cd CareLoop
-```
+- Node.js 20 LTS or newer (the repo requires `>=20`)
+- pnpm 10 (this is a pnpm workspace using the `workspace:*` protocol; npm/yarn
+  cannot install it). Enable via `corepack enable`.
 
 ## 1) Install dependencies
 ```bash
-npm install
+pnpm install
 ```
 
 ## 2) Configure environment
 Create a `.env` file in the project root (or copy from `.env.example` if present).
-
-You can also use `key.txt` in the project root for API tokens. The backend now
-reads secrets from `key.txt` first, then falls back to `.env`.
+All secrets are read from the environment (`.env` locally; a secrets manager in
+deployed environments) — do not commit secrets to the repo.
 
 Minimum values commonly needed:
 ```env
@@ -57,13 +44,6 @@ TWILIO_PHONE_NUMBER=+15555555555
 LOG_LEVEL=info
 ```
 
-`key.txt` format example:
-```txt
-ELEVENLABS_API_KEY=your_elevenlabs_api_key
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-```
-
 ## 3) Generate Prisma client (if using database features)
 ```bash
 npx prisma generate
@@ -71,7 +51,7 @@ npx prisma generate
 
 ## 4) Start development server
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open: http://localhost:3000
@@ -83,8 +63,14 @@ If port 3000 is already in use, Next.js will automatically pick another port
 
 ## Production
 ```bash
-npm run build
-npm run start
+pnpm build
+pnpm start
+```
+
+## Run tests
+```bash
+pnpm test            # all workspaces
+pnpm --filter @careloop/api test
 ```
 
 # CareLoop

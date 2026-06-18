@@ -7,7 +7,9 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
@@ -43,6 +45,7 @@
     "@types/nodemailer": "^8.0.0",
     "s3rver": "^3.7.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.9"
   }
 }
