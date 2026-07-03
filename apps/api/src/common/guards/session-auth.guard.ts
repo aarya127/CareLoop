@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,7 +13,10 @@ export const IS_PUBLIC_KEY = 'isPublic';
 
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
+  // Explicit @Inject token: the tsx/esbuild dev runtime does not emit
+  // design:paramtypes metadata, so plain constructor injection resolves to
+  // undefined here. Matches the pattern used in AuthController.
+  constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Use Reflect.getMetadata directly — avoids Reflector DI issues with tsx/esbuild

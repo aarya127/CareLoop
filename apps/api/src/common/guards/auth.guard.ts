@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,7 +22,8 @@ type RequestWithAuth = {
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly sessionService: SessionService) {}
+  // Explicit @Inject token — see SessionAuthGuard for why (tsx/esbuild metadata).
+  constructor(@Inject(SessionService) private readonly sessionService: SessionService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<RequestWithAuth>();

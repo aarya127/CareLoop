@@ -7,16 +7,20 @@ import { ROLE_SCOPES } from './types';
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 // Map backend DB roles to frontend UserRole
-function mapBackendRole(backendRole: string): UserRole {
-  switch (backendRole) {
-    case 'ADMIN':
+// Accepts the API's `roles` array or a single role name, case-insensitively.
+// Backend role names are canonically lowercase (admin, manager, staff,
+// service_account, provider, hygienist); older seed data may be uppercase.
+function mapBackendRole(backendRole: string | string[] | undefined): UserRole {
+  const name = (Array.isArray(backendRole) ? backendRole[0] : backendRole)?.toLowerCase();
+  switch (name) {
+    case 'admin':
+    case 'service_account':
       return 'admin';
-    case 'MANAGER':
-      return 'doctor';
-    case 'STAFF':
-      return 'doctor';
-    case 'SERVICE_ACCOUNT':
-      return 'admin';
+    case 'hygienist':
+      return 'hygienist';
+    case 'manager':
+    case 'provider':
+    case 'staff':
     default:
       return 'doctor';
   }
@@ -33,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await fetch('/api/auth/me', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          const frontendRole = mapBackendRole(data.role);
+          const frontendRole = mapBackendRole(data.roles ?? data.role);
           const authUser: AuthUser = {
             id: data.id,
             email: data.email,
@@ -98,10 +102,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
 
-    if (!res.ok) return false;
+    if (!res.ok) {
+      // Surface the API's reason instead of silently returning — the login page's
+      // catch block relies on a thrown error to render feedback to the user.
+      let message = `Login failed (${res.status})`;
+      try {
+        const errBody = await res.json();
+        if (errBody?.error) message = String(errBody.error);
+      } catch {
+        // non-JSON error body; keep the status-based message
+      }
+      throw new Error(message);
+    }
 
     const data = await res.json();
-    const frontendRole = mapBackendRole(data.user.role);
+    const frontendRole = mapBackendRole(data.user.roles ?? data.user.role);
     const authUser: AuthUser = {
       id: data.user.id,
       email: data.user.email,
