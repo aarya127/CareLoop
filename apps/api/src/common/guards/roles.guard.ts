@@ -31,11 +31,18 @@ export class RolesGuard implements CanActivate {
     }
 
     const req = context.switchToHttp().getRequest<RequestWithAuth>();
-    const userRoles = req.user?.roles ?? (req.user?.role ? [req.user.role] : []);
+    // Role names are not normalized across the system: register() stores lowercase
+    // (matching AUTH_ROLES), while the DB seed stores uppercase (ADMIN, STAFF, …).
+    // Compare case-insensitively so both provenances resolve consistently.
+    const userRoles = (req.user?.roles ?? (req.user?.role ? [req.user.role] : [])).map((r) =>
+      r.toLowerCase(),
+    );
 
-    if (userRoles.includes('ADMIN')) return true;
+    if (userRoles.includes('admin')) return true;
 
-    const authorized = requiredRoles.some((role: string) => userRoles.includes(role));
+    const authorized = requiredRoles.some((role: string) =>
+      userRoles.includes(role.toLowerCase()),
+    );
 
     if (!authorized) {
       throw new ForbiddenException('Insufficient role');

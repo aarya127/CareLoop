@@ -25,7 +25,7 @@ export async function GET(
 
   log.debug({ id, bytes: buffer.byteLength }, "serving audio");
 
-  return new Response(buffer, {
+  return new Response(new Uint8Array(buffer), {
     status: 200,
     headers: {
       "Content-Type": "audio/mpeg",

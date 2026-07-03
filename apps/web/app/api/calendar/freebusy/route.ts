@@ -12,7 +12,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const body = schema.parse(await req.json());
     const items = body.items.filter((item) => Boolean(item.id)) as Array<{ id: string }>;
     const data = await freebusy(user.id, body.timeMin, body.timeMax, items, body.timeZone);

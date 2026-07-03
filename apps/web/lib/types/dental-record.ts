@@ -184,6 +184,12 @@ export interface FamilyHealthHistory {
   conditions: string[]; // ["diabetes", "heart disease", "periodontal disease"]
 }
 
+// Aliases used by UI components
+export type AllergyRecord = Allergy;
+export type MedicationRecord = Medication;
+export type SurgeryRecord = Surgery;
+export type FamilyHistoryEntry = FamilyHealthHistory;
+
 export interface DentalHistory {
   last_cleaning_date?: string;
   last_exam_date?: string;

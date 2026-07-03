@@ -55,10 +55,26 @@ export async function upsertConnectionForUser(opts: {
   const calMeta = await cal.calendars.get({ calendarId: opts.calendarId });
   const timeZone = calMeta.data.timeZone || 'America/Toronto';
 
+  const user = await prisma.user.findUnique({
+    where: { id: opts.userId },
+    select: { practiceId: true },
+  });
+  if (!user) {
+    throw new Error(`User not found: ${opts.userId}`);
+  }
+
   const rec = await prisma.googleCalendarConnection.upsert({
-    where: { userId_provider_calendarId: { userId: opts.userId, provider: 'google', calendarId: opts.calendarId } },
+    where: {
+      practiceId_userId_provider_calendarId: {
+        practiceId: user.practiceId,
+        userId: opts.userId,
+        provider: 'google',
+        calendarId: opts.calendarId,
+      },
+    },
     update: { accessToken, refreshToken, tokenExpiry, timeZone },
     create: {
+      practiceId: user.practiceId,
       userId: opts.userId,
       provider: 'google',
       calendarId: opts.calendarId,

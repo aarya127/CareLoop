@@ -18,7 +18,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const body = schema.parse(await req.json());
 
     const created = await prisma.appointment.create({

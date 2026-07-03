@@ -70,7 +70,6 @@ export default function PatientDocumentsPage({ params }: Props) {
 
   useEffect(() => {
     refresh();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
 
   // ── Upload flow ────────────────────────────────────────────────────────────

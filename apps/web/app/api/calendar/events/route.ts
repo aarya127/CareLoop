@@ -12,7 +12,7 @@ const getSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const url = new URL(req.url);
     const parsed = getSchema.parse({
       calendarId: url.searchParams.get('calendarId') || 'primary',
@@ -42,7 +42,7 @@ const postSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const body = postSchema.parse(await req.json());
     const appt = {
       id: crypto.randomUUID(),

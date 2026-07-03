@@ -29,12 +29,13 @@ async function main() {
   const DEMO2_PASSWORD_HASH = '$2a$10$8gPwKxZ1Q6kH/RhruTNvxegHwzpRyVCQeRijJr6nuHbXblewDJbhW';
 
   const demoDefs = [
-    { id: 'user-admin',       email: 'admin@careloop.demo',       firstName: 'Admin',      lastName: 'User',    roleName: 'ADMIN',    hash: DEMO_PASSWORD_HASH },
-    { id: 'user-doctor',      email: 'doctor@careloop.demo',      firstName: 'Doctor',     lastName: 'Demo',    roleName: 'PROVIDER', hash: DEMO_PASSWORD_HASH },
-    { id: 'user-hygienist',   email: 'hygienist@careloop.demo',   firstName: 'Hygienist',  lastName: 'Demo',    roleName: 'HYGIENIST',hash: DEMO_PASSWORD_HASH },
-    { id: 'user-receptionist',email: 'receptionist@careloop.demo',firstName: 'Receptionist',lastName: 'Demo',   roleName: 'STAFF',    hash: DEMO_PASSWORD_HASH },
+    // Role names are stored lowercase to match register() and AUTH_ROLES.
+    { id: 'user-admin',       email: 'admin@careloop.demo',       firstName: 'Admin',      lastName: 'User',    roleName: 'admin',    hash: DEMO_PASSWORD_HASH },
+    { id: 'user-doctor',      email: 'doctor@careloop.demo',      firstName: 'Doctor',     lastName: 'Demo',    roleName: 'provider', hash: DEMO_PASSWORD_HASH },
+    { id: 'user-hygienist',   email: 'hygienist@careloop.demo',   firstName: 'Hygienist',  lastName: 'Demo',    roleName: 'hygienist',hash: DEMO_PASSWORD_HASH },
+    { id: 'user-receptionist',email: 'receptionist@careloop.demo',firstName: 'Receptionist',lastName: 'Demo',   roleName: 'staff',    hash: DEMO_PASSWORD_HASH },
     // Main login page dev hint credentials
-    { id: 'user-dev',         email: 'demo@careloop.dev',         firstName: 'Dev',        lastName: 'Admin',   roleName: 'ADMIN',    hash: DEMO2_PASSWORD_HASH },
+    { id: 'user-dev',         email: 'demo@careloop.dev',         firstName: 'Dev',        lastName: 'Admin',   roleName: 'admin',    hash: DEMO2_PASSWORD_HASH },
   ];
 
   const users = await Promise.all(

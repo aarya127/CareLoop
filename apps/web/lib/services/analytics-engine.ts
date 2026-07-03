@@ -3,10 +3,15 @@
  * Real implementation would use NLP / an AI model.
  */
 
+export interface TreatmentAcceptance {
+  accepted: boolean;
+  procedure?: string;
+}
+
 export interface TranscriptKpis {
   sentimentScore: number;
   satisfactionByProvider: Record<string, number>;
-  treatmentAcceptance: number;
+  treatmentAcceptance: TreatmentAcceptance;
   riskFlags: string[];
 }
 
@@ -14,7 +19,7 @@ export function extractKpisFromTranscript(transcript: string): TranscriptKpis {
   return {
     sentimentScore: 0,
     satisfactionByProvider: {},
-    treatmentAcceptance: 0,
+    treatmentAcceptance: { accepted: false },
     riskFlags: [],
   };
 }

@@ -41,17 +41,18 @@ account is locked, and whether a session is still live (idle + absolute expiry).
 ## 4. Inputs & Outputs
 ### Inputs
 - Login (required): `email: string`, `password: string`.
-- Register (required): `email`, `password (min 8)`, `firstName`, `lastName`, `practiceId`; optional `role ∈ {STAFF, MANAGER, ADMIN, SERVICE_ACCOUNT}` (default STAFF).
+- Register (required): `email`, `password (min 8)`, `firstName`, `lastName`, `practiceId`; optional `role` — the DTO accepts the uppercase set `{STAFF, MANAGER, ADMIN, SERVICE_ACCOUNT}` (default STAFF), but the service **lowercases and stores it**, so the persisted/returned role name is lowercase (`staff`, `manager`, `admin`, `service_account`).
 ### Outputs
 ```json
 // POST /auth/login → 200
-{ "user": { "id": "usr_…", "email": "a@b.com", "practiceId": "prac_…", "roles": ["STAFF"] } }
+{ "user": { "id": "usr_…", "email": "a@b.com", "practiceId": "prac_…", "roles": ["staff"] } }
 // + Set-Cookie: cl_session=…; HttpOnly
 ```
 ```json
 // GET /auth/me → 200
-{ "id": "usr_…", "email": "a@b.com", "practiceId": "prac_…", "roles": ["MANAGER"] }
+{ "id": "usr_…", "email": "a@b.com", "practiceId": "prac_…", "roles": ["manager"] }
 ```
+> **Role-name casing caveat:** `roles` are **not normalized** at rest. Users created via `POST /auth/register` get **lowercase** names (`staff`…); older seeded/demo data may still carry **uppercase** names and roles outside the register set (`ADMIN`, `PROVIDER`, `HYGIENIST`). The RBAC guard now compares **case-insensitively**, so both resolve correctly — but any client-side role check must also compare case-insensitively. See ARCHITECTURE-INSIGHTS for details.
 
 ## 5. Tools / APIs Used
 - `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `GET /auth/session`, `POST /auth/refresh`

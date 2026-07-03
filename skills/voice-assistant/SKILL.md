@@ -28,7 +28,7 @@ and **patient-intake** skills via dedicated voice tool routes.
 2. **Gather** → `POST /api/voice/telephony/gather` delivers recognized speech; the assistant decides intent.
 3. **Context** → `POST /api/voice/tools/patient-context` to look up the caller's patient record.
 4. **Availability** → `POST /api/voice/tools/calendar-availability` (delegates to the scheduling domain).
-5. **Book** → `POST /api/voice/tools/create-appointment` to commit a slot (`source='ai'`).
+5. **Book** → `POST /api/voice/tools/create-appointment` to commit a slot (`source='ai_voice'`).
 6. **Speak** → `POST /api/voice/elevenlabs/tts` to synthesize the response; stream audio back via the telephony audio route.
 7. **Transcript** → `POST /api/voice/tools/transcripts/segment` per utterance; `POST /api/voice/tools/transcripts/finalize` at hang-up (worker `finalize-transcript` post-processes).
 8. **Handoff** → if confidence is low or caller requests a human, `POST /api/voice/overtake/control`; set `handoffOccurred=true`.
@@ -45,7 +45,7 @@ and **patient-intake** skills via dedicated voice tool routes.
 ```
 ```json
 // POST /api/voice/tools/create-appointment → 201
-{ "appointmentId": "appt_…", "status": "confirmed", "source": "ai" }
+{ "appointmentId": "appt_…", "status": "confirmed", "source": "ai_voice" }
 ```
 
 ## 5. Tools / APIs Used
@@ -64,7 +64,7 @@ and **patient-intake** skills via dedicated voice tool routes.
 
 ## 7. Example Usage
 - **Request:** inbound call → "I'd like to book a cleaning next Tuesday" → patient-context → availability → create-appointment → TTS confirmation → finalize transcript.
-- **Output:** `appointmentId` booked with `source='ai'`, transcript stored.
+- **Output:** `appointmentId` booked with `source='ai_voice'`, transcript stored.
 - **Agent reasoning:** "I orchestrate existing scheduling tools over the phone channel; if I can't confidently parse intent I hand off to a human rather than mis-book."
 
 ## 8. Optional Resources Folder

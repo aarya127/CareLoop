@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { extractKpisFromTranscript } from "@/lib/services/analytics-engine";
 
@@ -30,14 +31,14 @@ export async function POST(req: NextRequest) {
       update: {
         sentimentScore: kpis.sentimentScore,
         satisfactionByProvider: kpis.satisfactionByProvider,
-        treatmentAcceptance: kpis.treatmentAcceptance,
+        treatmentAcceptance: kpis.treatmentAcceptance as unknown as Prisma.InputJsonValue,
         riskFlags: kpis.riskFlags,
       },
       create: {
         transcriptId: transcript.id,
         sentimentScore: kpis.sentimentScore,
         satisfactionByProvider: kpis.satisfactionByProvider,
-        treatmentAcceptance: kpis.treatmentAcceptance,
+        treatmentAcceptance: kpis.treatmentAcceptance as unknown as Prisma.InputJsonValue,
         riskFlags: kpis.riskFlags,
       },
     });

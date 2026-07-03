@@ -536,6 +536,9 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
         provider_name: patient.insuranceRecords[0].payerName,
         plan_id: patient.insuranceRecords[0].planName ?? 'Unknown Plan',
         policy_number: patient.insuranceRecords[0].memberIdEnc ?? 'N/A',
+        coverage_type: 'private' as const,
+        coverage_percent: 0,
+        effective_date: '',
       }
     : undefined;
 
@@ -544,6 +547,11 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
     first_name: patient.firstName,
     last_name: patient.lastName,
     date_of_birth: birthDate ? birthDate.toISOString().slice(0, 10) : '1990-01-01',
+    gender: 'prefer_not_to_say' as const,
+    preferences: {
+      appointment_reminder_method: 'email' as const,
+      communication_language: 'en',
+    },
     contact: {
       email: `${emailAlias || 'patient'}@careloop.local`,
       phone: patient.phoneE164 ?? 'N/A',
@@ -552,6 +560,7 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
         city: '',
         state: '',
         postal_code: '',
+        country: '',
       },
     },
     insurance,
@@ -559,6 +568,7 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
       outstanding_balance: 0,
       total_lifetime_spent: 0,
       average_visit_cost: 0,
+      payment_plan_active: false,
     },
   };
 }
@@ -836,6 +846,7 @@ function PatientRecordContent() {
       type: 'intraoral_photo',
       date_taken: new Date().toISOString().slice(0, 10),
       file_url: asDataUrl,
+      thumbnail_url: asDataUrl,
       dentist_notes: `Uploaded file: ${file.name}`,
     };
 

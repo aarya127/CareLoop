@@ -294,7 +294,7 @@ function composeAnswer(input: {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const body = schema.parse(await req.json());
 
     const intent = detectIntent(body.question);

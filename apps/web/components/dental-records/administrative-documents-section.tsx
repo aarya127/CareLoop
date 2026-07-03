@@ -91,7 +91,7 @@ export default function AdminDocumentsSection({
       document_type: documentForm.document_type as AdministrativeDocument['document_type'],
       status: documentForm.status as AdministrativeDocument['status'],
       date_issued: documentForm.date_issued,
-      file_format: documentForm.file_format,
+      file_format: documentForm.file_format as AdministrativeDocument['file_format'],
       file_url: '#',
       linked_procedure: documentForm.linked_procedure.trim() || undefined,
       notes: documentForm.notes.trim() || undefined,

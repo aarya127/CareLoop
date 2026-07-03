@@ -24,7 +24,7 @@ patient's documents, mint a time-limited download URL, and soft-delete. Decision
 ## 3. Step-by-Step Execution Logic
 **Upload (`POST /documents/upload-url` → S3 PUT → `POST /documents/:id/confirm`):**
 1. Receive `{ practiceId, patientId, category, fileName, mimeType, sizeBytes?, checksumSha256? }`.
-2. Validate `category` is an allowed `DocumentCategory` enum value (schema is migrating `category` to an enum — confirm the current allowed set before sending).
+2. Validate `category` is an allowed `DocumentCategory` enum value. The enum is live in `schema.prisma`; allowed values are `consent | insurance_card | lab_report | referral | other`. A value outside this set is rejected.
 3. POST `/documents/upload-url` → returns `{ documentId, uploadUrl, storageKey }`; a `Document` row is created with `status=uploading`.
 4. **PUT the raw bytes to `uploadUrl`** (direct to S3, not the API). Honor the `Content-Type`.
 5. POST `/documents/:id/confirm` → flips `status` to `active`.
@@ -57,7 +57,7 @@ Optional: `sizeBytes`, `checksumSha256` (hex, client-supplied), `uploadedBy`.
 - **Confirm never called** → document stuck in `uploading`; the worker `document-cleanup.processor` reaps stale rows. Always call confirm after a successful PUT.
 - **PUT fails / partial upload** → do not confirm; retry the PUT against a fresh upload URL (URLs expire).
 - **Checksum mismatch** → if `checksumSha256` was supplied, treat a mismatch as a failed upload; re-upload.
-- **Invalid category** → the enum migration means a plain string may be rejected; query the allowed values first.
+- **Invalid category** → `category` is a fixed `DocumentCategory` enum (`consent | insurance_card | lab_report | referral | other`); any other value is rejected.
 - **PHI:** download URLs are sensitive and time-limited — never log them or cache them beyond their TTL.
 
 ## 7. Example Usage

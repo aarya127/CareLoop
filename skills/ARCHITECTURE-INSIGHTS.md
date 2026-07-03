@@ -14,6 +14,16 @@ Observations surfaced while mapping CareLoop's code into agent skills.
 - **Reminders appear in two modules.** `messaging` (send + `reminders/schedule`) and a dedicated `reminders` controller overlap. They're unified into one `notifications-and-reminders` skill, but the API itself would benefit from collapsing these into one service to avoid divergent status handling.
 - **Email lives in `messaging` but is raw SMTP** while SMS is a first-class Twilio service — asymmetric maturity.
 
+## Correctness bug — RBAC role-name casing (✅ fixed)
+Role names were **not normalized** and the guard compared case-sensitively:
+- `POST /auth/register` **lowercases** the role before storing, and `AUTH_ROLES` values are lowercase (`staff`, `manager`, `admin`, `service_account`).
+- The DB **seed** previously stored **uppercase** names and roles outside the register set: `ADMIN`, `PROVIDER`, `HYGIENIST`, `STAFF`.
+- `roles.guard.ts` hard-coded the admin bypass as `userRoles.includes('ADMIN')` (uppercase) and matched `@RequireRole(AUTH_ROLES.X)` (lowercase) via exact `includes`.
+
+Net effect (before the fix): a **registered** admin (`admin`) missed the uppercase `'ADMIN'` bypass; a **seeded** admin (`ADMIN`) missed lowercase `@RequireRole('admin')` matches; seeded `PROVIDER`/`HYGIENIST` users failed every role-gated route.
+
+**Fix applied:** `roles.guard.ts` now lowercases both `userRoles` and the required roles before comparing (case-insensitive), and `seed.ts` stores lowercase role names to match `register()`/`AUTH_ROLES`. Already-seeded DBs with uppercase rows still resolve correctly thanks to the case-insensitive guard; re-seed to also normalize the stored `Role.name` values.
+
 ## Opportunities for skill merging / splitting
 - **Merge realized:** `billing` + `payments` + `treatments` → one `billing-and-payments` skill (shared invoice lifecycle). `intake` + `patients` → one `patient-intake` skill.
 - **Keep separate:** `voice-assistant` and `notifications-and-reminders` both use Twilio but serve distinct outcomes (inbound conversational vs. outbound transactional) — merging would create an over-broad skill.

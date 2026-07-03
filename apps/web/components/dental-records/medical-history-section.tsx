@@ -489,7 +489,11 @@ export default function MedicalHistorySection({
             quit_date: form.quit_date || undefined,
           },
           alcohol: {
-            frequency: form.alcohol_frequency || 'none',
+            frequency: (form.alcohol_frequency || 'never') as
+              | 'never'
+              | 'occasional'
+              | 'moderate'
+              | 'heavy',
             drinks_per_week: form.drinks_per_week ? Number(form.drinks_per_week) : undefined,
           },
           diet_notes: form.diet_notes?.trim() || undefined,

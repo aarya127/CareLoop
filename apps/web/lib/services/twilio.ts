@@ -10,13 +10,15 @@ function twimlResponse(body: string): string {
 export interface PlayAndGatherOptions {
   audioUrl: string;
   gatherUrl: string;
-  speechTimeout?: number;
+  speechTimeout?: number | "auto";
+  timeoutSeconds?: number;
 }
 
 export function buildPlayAndGatherTwiml(opts: PlayAndGatherOptions): string {
   const timeout = opts.speechTimeout ?? 3;
+  const gatherTimeout = opts.timeoutSeconds != null ? ` timeout="${opts.timeoutSeconds}"` : "";
   return twimlResponse(
-    `<Gather input="speech" action="${opts.gatherUrl}" speechTimeout="${timeout}" method="POST">` +
+    `<Gather input="speech" action="${opts.gatherUrl}" speechTimeout="${timeout}"${gatherTimeout} method="POST">` +
       `<Play>${opts.audioUrl}</Play>` +
       `</Gather>`,
   );
@@ -25,7 +27,7 @@ export function buildPlayAndGatherTwiml(opts: PlayAndGatherOptions): string {
 export interface SayAndGatherOptions {
   text: string;
   gatherUrl: string;
-  speechTimeout?: number;
+  speechTimeout?: number | "auto";
 }
 
 export function buildSayAndGatherTwiml(opts: SayAndGatherOptions): string {

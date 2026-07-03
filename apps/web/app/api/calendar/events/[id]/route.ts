@@ -22,7 +22,7 @@ const patchSchema = z.object({
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const body = patchSchema.parse(await req.json());
     const updated = await updateEvent(user.id, body.calendarId, id, body as any);
     // Best-effort local update
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const url = new URL(req.url);
     const calendarId = url.searchParams.get('calendarId') || 'primary';
     await deleteEvent(user.id, calendarId, id);

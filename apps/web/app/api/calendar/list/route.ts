@@ -4,7 +4,7 @@ import { listCalendars } from '@/lib/google/calendar';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const items = await listCalendars(user.id);
     const mapped = items.map((c) => ({
       id: c.id,

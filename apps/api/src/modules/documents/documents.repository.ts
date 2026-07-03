@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { DocumentCategory } from '@prisma/client';
 import { prisma } from '../../config/database';
 
 @Injectable()
@@ -15,7 +16,7 @@ export class DocumentsRepository {
         patientId,
         practiceId,
         status: 'active',
-        ...(category ? { category } : {}),
+        ...(category ? { category: category as DocumentCategory } : {}),
       },
       orderBy: { uploadedAt: 'desc' },
     });
@@ -37,7 +38,7 @@ export class DocumentsRepository {
     checksumSha256?: string;
   }): Promise<any> {
     return this.prisma.document.create({
-      data: { ...data, status: 'uploading' },
+      data: { ...data, category: data.category as DocumentCategory, status: 'uploading' },
     });
   }
 

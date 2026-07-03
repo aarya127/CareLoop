@@ -211,7 +211,9 @@ export interface SummaryFilter {
 
 export const billingSummaryApi = {
   get: (filter: SummaryFilter) =>
-    apiFetch<BillingSummary>(`/billing/summary${buildQs(filter as Record<string, string | undefined>)}`),
+    apiFetch<BillingSummary>(
+      `/billing/summary${buildQs(filter as unknown as Record<string, string | undefined>)}`,
+    ),
 };
 
 // ---------------------------------------------------------------------------
