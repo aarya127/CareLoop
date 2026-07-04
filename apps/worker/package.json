@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1045.0",
     "@careloop/db": "workspace:*",
     "@careloop/shared": "workspace:*",
     "bullmq": "^5.28.0",

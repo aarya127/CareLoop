@@ -1,3 +1,4 @@
+import './load-env';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import {
@@ -10,6 +11,12 @@ import { Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { LatencyInterceptor } from './common/interceptors';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+
+// Serialize BigInt values (e.g. AuditLog.id) as strings in JSON responses —
+// JSON.stringify throws on BigInt otherwise, 500-ing endpoints like /audit.
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+  return this.toString();
+};
 
 // fastify cookie parsing for http-only cookies
 // register dynamically to avoid build-time issues if plugin missing

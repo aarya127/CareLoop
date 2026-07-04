@@ -28,6 +28,7 @@ import PeriodontalRecordsSection from '@/components/dental-records/periodontal-r
 import AdminDocumentsSection from '@/components/dental-records/administrative-documents-section';
 import { getDentalRecordById } from '@/lib/data/mock-dental-records';
 import { treatmentsApi, STATUS_LABELS, STATUS_COLORS, type TreatmentRecord } from '@/lib/api/treatments';
+import { documentsApi, computeSha256Hex } from '@/lib/api/documents';
 import type { 
   PatientProfile, 
   MedicalHistory, 
@@ -834,19 +835,36 @@ function PatientRecordContent() {
   const handleUploadRadiograph = async (file: File) => {
     if (!patientRecord) return;
 
-    const asDataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('Unable to read uploaded file'));
-      reader.readAsDataURL(file);
+    // Route imaging through the presigned-S3 flow (upload-url → PUT → confirm)
+    // instead of embedding a base64 data URL in the record JSON.
+    const checksum = await computeSha256Hex(file);
+    const { uploadUrl, documentId } = await documentsApi.getUploadUrl({
+      patientId: patientRecord.patient_id,
+      category: 'radiograph',
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      sizeBytes: file.size,
+      checksumSha256: checksum,
     });
 
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error(`Upload to storage failed (${putRes.status})`);
+
+    await documentsApi.confirmUpload(documentId, checksum);
+    // Resolve a short-lived URL so the image renders immediately.
+    const { url } = await documentsApi.getDownloadUrl(documentId);
+
     const nextRecord: RadiographicRecord = {
-      id: `xray-${Date.now().toString(36)}`,
+      // Store the S3 documentId so the URL can be re-resolved on future loads.
+      id: documentId,
       type: 'intraoral_photo',
       date_taken: new Date().toISOString().slice(0, 10),
-      file_url: asDataUrl,
-      thumbnail_url: asDataUrl,
+      file_url: url,
+      thumbnail_url: url,
       dentist_notes: `Uploaded file: ${file.name}`,
     };
 

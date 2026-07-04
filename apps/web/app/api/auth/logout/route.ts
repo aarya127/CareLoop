@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE } from '../login/route';
+import { SESSION_COOKIE } from '@/lib/auth/cookies';
 
 const API_URL = process.env.API_URL ?? 'https://careloop-tf2l.onrender.com';
 

@@ -16,6 +16,10 @@ const ALLOWED_DOCUMENT_CATEGORIES = new Set([
   'lab_report',
   'referral',
   'other',
+  // EMR clinical imaging/document categories
+  'radiograph',
+  'clinical_photo',
+  'treatment_plan',
 ]);
 
 @Injectable()

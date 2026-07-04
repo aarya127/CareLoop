@@ -20,6 +20,7 @@ import { SearchModule } from './modules/search/search.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
+import { EmrModule } from './modules/emr/emr.module';
 import { JobsModule } from './jobs/jobs.module';
 import { SessionAuthGuard } from './common/guards/session-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -52,6 +53,7 @@ import { IdempotencyService } from './common/services/idempotency.service';
     WebhooksModule,
     AdminModule,
     RemindersModule,
+    EmrModule,
     JobsModule,
   ],
   providers: [

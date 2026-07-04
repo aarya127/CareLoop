@@ -46,6 +46,12 @@ model Practice {
   documents         Document[]
   reminders         Reminder[]
   sensitiveNotes    PatientSensitiveNote[]
+  encounters        Encounter[]
+  allergies         Allergy[]
+  medications       Medication[]
+  conditions        Condition[]
+  toothChartEntries ToothChartEntry[]
+  periodontalExams  PeriodontalExam[]
 
   @@index([name])
 }
@@ -221,6 +227,12 @@ model Patient {
   documents         Document[]
   reminders         Reminder[]
   sensitiveNotes    PatientSensitiveNote[]
+  encounters        Encounter[]
+  allergies         Allergy[]
+  medications       Medication[]
+  conditions        Condition[]
+  toothChartEntries ToothChartEntry[]
+  periodontalExams  PeriodontalExam[]
 
   @@index([practiceId, lastName, firstName])
   @@unique([practiceId, phoneE164])
@@ -734,6 +746,9 @@ enum DocumentCategory {
   lab_report
   referral
   other
+  radiograph
+  clinical_photo
+  treatment_plan
 }
 
 model Document {
@@ -850,4 +865,139 @@ model PatientSensitiveNote {
   author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([practiceId, patientId, createdAt])
+}
+
+// ============================================================================
+// EMR — Electronic Medical Record (first-class clinical models)
+// User references (authorId, recordedBy, ...) are plain String ids, following
+// the TreatmentRecord.createdBy convention, to avoid User back-relation sprawl.
+// ============================================================================
+
+model Encounter {
+  id             String   @id @default(cuid())
+  practiceId     String
+  patientId      String
+  appointmentId  String?
+  providerId     String?
+  authorId       String?  // clinician (User id) who wrote the note
+  encounterDate  DateTime @default(now())
+  type           String   @default("exam") // exam, cleaning, consult, procedure, followup
+  chiefComplaint String?
+  subjective     String?  // SOAP: S
+  objective      String?  // SOAP: O
+  assessment     String?  // SOAP: A
+  plan           String?  // SOAP: P
+  status         String   @default("draft") // draft, signed, amended
+  signedAt       DateTime?
+  signedBy       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, encounterDate])
+  @@index([practiceId, status, encounterDate])
+}
+
+model Allergy {
+  id         String   @id @default(cuid())
+  practiceId String
+  patientId  String
+  allergen   String
+  severity   String   @default("moderate") // mild, moderate, severe, life_threatening
+  reaction   String?
+  status     String   @default("active") // active, inactive
+  recordedBy String?
+  notedAt    DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, status])
+}
+
+model Medication {
+  id           String    @id @default(cuid())
+  practiceId   String
+  patientId    String
+  name         String
+  dosage       String?
+  frequency    String?
+  route        String?
+  status       String    @default("active") // active, discontinued
+  startDate    DateTime?
+  endDate      DateTime?
+  prescribedBy String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, status])
+}
+
+model Condition {
+  id           String    @id @default(cuid())
+  practiceId   String
+  patientId    String
+  name         String
+  code         String?   // optional ICD/SNOMED code
+  status       String    @default("active") // active, resolved, chronic
+  onsetDate    DateTime?
+  resolvedDate DateTime?
+  notes        String?
+  recordedBy   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, status])
+}
+
+model ToothChartEntry {
+  id          String   @id @default(cuid())
+  practiceId  String
+  patientId   String
+  toothNumber Int      // Universal numbering 1-32
+  surfaces    String[] // mesial, distal, occlusal, buccal, lingual
+  condition   String   // caries, filling, crown, missing, implant, ...
+  status      String   @default("active") // active, planned, resolved
+  notes       String?
+  chartedBy   String?
+  chartedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, patientId, toothNumber])
+  @@index([practiceId, patientId])
+}
+
+model PeriodontalExam {
+  id           String   @id @default(cuid())
+  practiceId   String
+  patientId    String
+  examDate     DateTime @default(now())
+  examinedBy   String?
+  // Per-tooth-site measurements (pocket depth, recession, bleeding, mobility).
+  // Stored as JSON to keep whole-chart load lightweight; promote to a child
+  // table if per-site querying/trending is later required.
+  measurements Json?
+  summary      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, examDate])
 }

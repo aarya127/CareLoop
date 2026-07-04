@@ -1,6 +1,7 @@
 import type { Job } from 'bullmq';
 import { prisma } from '@careloop/db';
 import type { DocumentCleanupJobData } from '@careloop/shared';
+import { deleteStorageObjects } from '../services/storage';
 
 async function cleanupForPractice(practiceId: string, olderThanDays: number): Promise<{ stale: number; deleted: number }> {
   const staleThreshold = new Date();
@@ -16,17 +17,24 @@ async function cleanupForPractice(practiceId: string, olderThanDays: number): Pr
     data: { status: 'deleted' },
   });
 
-  // Hard-delete from DB rows that have been soft-deleted for > 90 days
-  // (storage key deletion from S3 is a TODO once S3 is wired up)
+  // Hard-delete DB rows soft-deleted for > 90 days. Remove the S3 objects first
+  // (best-effort) so the bucket doesn't accumulate orphaned files.
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const deletedResult = await prisma.document.deleteMany({
+  const toDelete = await prisma.document.findMany({
     where: {
       practiceId,
       status: 'deleted',
       updatedAt: { lt: ninetyDaysAgo },
     },
+    select: { id: true, storageKey: true },
+  });
+
+  await deleteStorageObjects(toDelete.map((d) => d.storageKey));
+
+  const deletedResult = await prisma.document.deleteMany({
+    where: { id: { in: toDelete.map((d) => d.id) } },
   });
 
   return { stale: staleResult.count, deleted: deletedResult.count };

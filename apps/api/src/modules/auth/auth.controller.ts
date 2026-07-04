@@ -45,14 +45,16 @@ export class AuthController {
   ) {}
 
   private setSessionCookie(res: any, token: string): void {
-    // Use configured cookie options but ensure TTL/domain come from auth config
+    // Use configured cookie options but ensure TTL/domain come from auth config.
+    // Cookie NAME must be SESSION_COOKIE (cl_session) — the same name login/me/logout
+    // read and the web app expects — not authConfig.sessionCookieName.
     const opts = { ...COOKIE_OPTS, maxAge: authConfig.sessionTtlSeconds, domain: authConfig.cookieDomain };
-    res.setCookie(authConfig.sessionCookieName, token, opts);
+    res.setCookie(SESSION_COOKIE, token, opts);
   }
 
   private clearSessionCookie(res: any): void {
     const opts = { ...COOKIE_OPTS, domain: authConfig.cookieDomain, expires: new Date(0), maxAge: 0 } as any;
-    res.setCookie(authConfig.sessionCookieName, '', opts);
+    res.setCookie(SESSION_COOKIE, '', opts);
   }
 
   /** 10 attempts per minute per IP to prevent brute-force */

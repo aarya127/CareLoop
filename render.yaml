@@ -33,6 +33,18 @@ services:
         sync: false   # same as WEB_URL
       - key: SESSION_COOKIE
         value: "cl_session"
+      # ── AWS S3 (document + EMR imaging storage) ──
+      - key: STORAGE_BUCKET
+        value: "careloop-documents"   # adjust to your bucket
+      - key: STORAGE_REGION
+        value: "us-east-1"            # adjust to your bucket region
+      - key: STORAGE_ACCESS_KEY_ID
+        sync: false                   # IAM user key: s3:PutObject/GetObject/DeleteObject on the bucket
+      - key: STORAGE_SECRET_ACCESS_KEY
+        sync: false
+    # NOTE: after deploy, apply the new EMR migration once:
+    #   DATABASE_URL=<render-db-url> pnpm --filter @careloop/db exec prisma migrate deploy
+    # (run from a machine/CI with the repo; the pruned runtime image has no prisma CLI)
 
   # ── BullMQ Worker ────────────────────────────────────────────────────────────
   - type: worker
@@ -48,4 +60,13 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
+        sync: false
+      # S3 access for document-cleanup (hard-delete removes objects from the bucket)
+      - key: STORAGE_BUCKET
+        value: "careloop-documents"
+      - key: STORAGE_REGION
+        value: "us-east-1"
+      - key: STORAGE_ACCESS_KEY_ID
+        sync: false
+      - key: STORAGE_SECRET_ACCESS_KEY
         sync: false
