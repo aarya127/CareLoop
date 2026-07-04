@@ -260,6 +260,7 @@ export class AuthService {
           passwordHash: true,
           status: true,
           lockedUntil: true,
+          failedLoginCount: true,
         },
       });
 
@@ -285,11 +286,16 @@ export class AuthService {
         this.registerFailure(this.ipRateLimit, ipKey, AUTH_LIMITS.LOGIN_IP_WINDOW_MS);
         this.registerFailure(this.accountRateLimit, email, AUTH_LIMITS.LOGIN_ACCOUNT_WINDOW_MS);
 
+        // Only lock the account after N consecutive failures (not on a single
+        // typo). Locking-before-password-check means a lock would otherwise
+        // reject the correct password too, so keep the threshold meaningful.
+        const nextCount = (user.failedLoginCount ?? 0) + 1;
+        const shouldLock = nextCount >= AUTH_LIMITS.LOGIN_ACCOUNT_MAX_ATTEMPTS;
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            failedLoginCount: { increment: 1 },
-            lockedUntil: new Date(this.nowMs() + 60 * 1000),
+            failedLoginCount: shouldLock ? 0 : nextCount,
+            lockedUntil: shouldLock ? new Date(this.nowMs() + 60 * 1000) : null,
           },
         });
 

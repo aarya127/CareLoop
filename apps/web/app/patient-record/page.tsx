@@ -20,7 +20,10 @@ import {
   Clock,
   Plus,
   Stethoscope,
+  ClipboardList,
 } from 'lucide-react';
+import ChartHeader from '@/components/emr/chart-header';
+import EncountersPanel from '@/components/emr/encounters-panel';
 import PatientOverview from '@/components/dental-records/patient-overview-section';
 import MedicalHistorySection from '@/components/dental-records/medical-history-section';
 import ClinicalChartingSection from '@/components/dental-records/clinical-charting-section';
@@ -29,6 +32,7 @@ import AdminDocumentsSection from '@/components/dental-records/administrative-do
 import { getDentalRecordById } from '@/lib/data/mock-dental-records';
 import { treatmentsApi, STATUS_LABELS, STATUS_COLORS, type TreatmentRecord } from '@/lib/api/treatments';
 import { documentsApi, computeSha256Hex } from '@/lib/api/documents';
+import { loadEmrMedicalSlices, syncEmrMedicalSlices } from '@/lib/api/emr-mappers';
 import type { 
   PatientProfile, 
   MedicalHistory, 
@@ -493,7 +497,7 @@ const getMockAdminDocuments = (patientId: string): AdministrativeDocuments => {
   };
 };
 
-type TabType = 'overview' | 'history' | 'treatments' | 'charting' | 'periodontal' | 'documents';
+type TabType = 'overview' | 'history' | 'treatments' | 'charting' | 'periodontal' | 'encounters' | 'documents';
 
 type ApiPatient = {
   id: string;
@@ -613,19 +617,26 @@ function PatientRecordContent() {
       }
 
       const loadMedicalHistory = async (resolvedPatientId: string): Promise<MedicalHistory> => {
+        // Base record: surgeries / lifestyle / family / dental history still live
+        // in the legacy blob (no EMR model yet); fall back to mock if unavailable.
+        let base = getMockMedicalHistory(resolvedPatientId);
         try {
-          const historyRes = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/medical-history`);
+          const historyRes = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/medical-history`, { credentials: 'include' });
           if (historyRes.ok) {
             const history = (await historyRes.json()) as MedicalHistory | null;
-            if (history && typeof history === 'object') {
-              return history;
-            }
+            if (history && typeof history === 'object') base = history;
           }
         } catch {
-          // Fall back to mock medical history if API is unavailable.
+          // keep mock base
         }
 
-        return getMockMedicalHistory(resolvedPatientId);
+        // Overlay the EMR-backed slices (first-class allergies/meds/conditions).
+        try {
+          const slices = await loadEmrMedicalSlices(resolvedPatientId);
+          return { ...base, ...slices };
+        } catch {
+          return base;
+        }
       };
 
       const loadRecordSection = async <T,>(
@@ -634,7 +645,7 @@ function PatientRecordContent() {
         fallback: T
       ): Promise<T> => {
         try {
-          const res = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/record-section/${section}`);
+          const res = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/record-section/${section}`, { credentials: 'include' });
           if (res.ok) {
             const payload = (await res.json()) as T | null;
             if (payload && typeof payload === 'object') {
@@ -649,7 +660,7 @@ function PatientRecordContent() {
       };
 
       try {
-        const res = await fetch(`${apiBaseUrl}/patients/${patientId}`);
+        const res = await fetch(`${apiBaseUrl}/patients/${patientId}`, { credentials: 'include' });
         if (res.ok) {
           const apiPatient = (await res.json()) as ApiPatient | null;
           if (mounted && apiPatient?.id) {
@@ -757,6 +768,7 @@ function PatientRecordContent() {
     try {
       await fetch(`${apiBaseUrl}/patients/${patientRecord.patient_id}/record-section/profile`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nextProfile),
       });
@@ -768,16 +780,26 @@ function PatientRecordContent() {
   const handleUpdateMedicalHistory = async (updates: Partial<MedicalHistory>) => {
     if (!patientRecord) return;
 
-    const nextMedicalHistory = {
-      ...(medicalHistory ?? getMockMedicalHistory(patientRecord.patient_id)),
-      ...updates,
-    };
+    const prev = medicalHistory ?? getMockMedicalHistory(patientRecord.patient_id);
+    const nextMedicalHistory = { ...prev, ...updates };
 
-    setMedicalHistory(nextMedicalHistory);
+    setMedicalHistory(nextMedicalHistory); // optimistic
 
+    // Sync the EMR-backed slices (allergies/medications/conditions) to their
+    // first-class tables, then reconcile server-authoritative ids into state.
+    try {
+      const fresh = await syncEmrMedicalSlices(patientRecord.patient_id, prev, updates);
+      setMedicalHistory((cur) => ({ ...(cur ?? nextMedicalHistory), ...fresh }));
+    } catch {
+      // keep optimistic UI if the EMR sync fails
+    }
+
+    // Persist the full record to the legacy blob for the non-EMR fields
+    // (surgeries / lifestyle / family / dental history) and backward compat.
     try {
       await fetch(`${apiBaseUrl}/patients/${patientRecord.patient_id}/medical-history`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nextMedicalHistory),
       });
@@ -794,6 +816,7 @@ function PatientRecordContent() {
     try {
       await fetch(`${apiBaseUrl}/patients/${patientRecord.patient_id}/record-section/${section}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -919,6 +942,7 @@ function PatientRecordContent() {
     { id: 'treatments', label: 'Treatment History', icon: Stethoscope },
     { id: 'charting', label: 'Clinical Charting', icon: Activity },
     { id: 'periodontal', label: 'Periodontal Records', icon: Heart },
+    { id: 'encounters', label: 'Encounters', icon: ClipboardList },
     { id: 'documents', label: 'Administrative Docs', icon: Folder },
   ];
 
@@ -977,35 +1001,33 @@ function PatientRecordContent() {
               : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
           }
         >
-          <div className="flex items-center justify-between h-20">
-            {/* Back Button & Patient Info */}
-            <div className="flex items-center space-x-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-6 h-6 text-gray-600" />
-              </motion.button>
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#87CEEB] to-[#6BA8D9] flex items-center justify-center text-white font-semibold">
-                  {patientRecord.first_name[0]}
-                  {patientRecord.last_name[0]}
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">
-                    {patientRecord.first_name} {patientRecord.last_name}
-                  </h1>
-                  <p className="text-sm text-gray-500">
-                    Patient ID: {patientRecord.patient_id}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div />
+          {/* Clinical chart header: demographics + allergy banner + summary */}
+          <div className="py-4">
+            <ChartHeader
+              name={`${patientRecord.first_name} ${patientRecord.last_name}`}
+              patientId={patientRecord.patient_id}
+              dateOfBirth={patientRecord.date_of_birth}
+              gender={patientRecord.gender}
+              phone={patientRecord.contact?.phone}
+              allergies={(medicalHistory?.allergies ?? []).map((a) => ({
+                allergen: a.allergen,
+                severity: a.severity,
+              }))}
+              activeProblems={(medicalHistory?.systemic_conditions ?? [])
+                .filter((c) => c.status !== 'resolved')
+                .map((c) => c.condition)}
+              activeMedications={(medicalHistory?.current_medications ?? []).map((m) => m.name)}
+              nextAppointment={
+                patientRecord.next_appointment
+                  ? {
+                      date: patientRecord.next_appointment.date?.slice(0, 10),
+                      label: patientRecord.next_appointment.procedure_type,
+                    }
+                  : null
+              }
+              onBack={handleClose}
+              onQuickAdd={(kind) => setActiveTab(kind === 'note' ? 'encounters' : 'history')}
+            />
           </div>
 
           {/* Tab Navigation */}
@@ -1294,6 +1316,18 @@ function PatientRecordContent() {
                 }
                 onUpdate={handleUpdatePeriodontalRecords}
               />
+            </motion.div>
+          )}
+
+          {activeTab === 'encounters' && (
+            <motion.div
+              key="encounters"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <EncountersPanel patientId={patientRecord.patient_id} />
             </motion.div>
           )}
 
