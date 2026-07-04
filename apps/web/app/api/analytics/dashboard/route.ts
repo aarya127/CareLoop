@@ -24,9 +24,19 @@ export async function GET(req: NextRequest) {
     const rangeDays = getRangeDays(range);
     const apiBase = resolveApiBase();
 
+    // Forward the caller's session cookie to the API. This is a server-side
+    // fetch, so `credentials: 'include'` does nothing — we must pass the cookie
+    // explicitly. The API guards read `cl_session` from the Cookie header.
+    const sessionToken = req.cookies.get('cl_session')?.value;
+    const authHeaders: Record<string, string> = sessionToken
+      ? { Cookie: `cl_session=${sessionToken}` }
+      : {};
+
     const [dashboardRes, adminRes] = await Promise.all([
-      fetch(`${apiBase}/analytics/dashboard?practiceId=${practiceId}&rangeDays=${rangeDays}`),
-      fetch(`${apiBase}/auth/admin-overview?practiceId=${practiceId}`, { credentials: 'include' }),
+      fetch(`${apiBase}/analytics/dashboard?practiceId=${practiceId}&rangeDays=${rangeDays}`, {
+        headers: authHeaders,
+      }),
+      fetch(`${apiBase}/auth/admin-overview?practiceId=${practiceId}`, { headers: authHeaders }),
     ]);
 
     const dashboardJson = dashboardRes.ok ? await dashboardRes.json() : null;
