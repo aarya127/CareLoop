@@ -143,3 +143,49 @@ export const TOOTH_NUMBER_MAX = 32;
 export class ToothNumberParamDto {
   @IsInt() @Min(TOOTH_NUMBER_MIN) @Max(TOOTH_NUMBER_MAX) toothNumber!: number;
 }
+
+// ---------------------------------------------------------------------------
+// Treatment Plans
+// ---------------------------------------------------------------------------
+import { Type } from 'class-transformer';
+import { ValidateNested } from 'class-validator';
+
+const PLAN_ITEM_STATUS = ['planned', 'approved', 'completed', 'declined'];
+const PLAN_STATUS = ['draft', 'proposed', 'accepted', 'completed', 'cancelled'];
+
+export class TreatmentPlanItemInputDto {
+  @IsString() @MinLength(1) description!: string;
+  @IsOptional() @IsInt() @Min(TOOTH_NUMBER_MIN) @Max(TOOTH_NUMBER_MAX) toothNumber?: number;
+  @IsOptional() @IsString() surface?: string;
+  @IsOptional() @IsString() procedureCode?: string;
+  @IsOptional() @IsInt() @Min(0) feeCents?: number;
+  @IsOptional() @IsString() @IsIn(PLAN_ITEM_STATUS) status?: string;
+  @IsOptional() @IsInt() sortOrder?: number;
+}
+
+export class CreateTreatmentPlanDto {
+  @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() providerId?: string;
+  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsInt() @Min(0) insuranceEstimateCents?: number;
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => TreatmentPlanItemInputDto)
+  items?: TreatmentPlanItemInputDto[];
+}
+
+export class UpdateTreatmentPlanDto {
+  @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() @IsIn(PLAN_STATUS) status?: string;
+  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsString() providerId?: string;
+  @IsOptional() @IsInt() @Min(0) insuranceEstimateCents?: number;
+}
+
+export class UpdateTreatmentPlanItemDto {
+  @IsOptional() @IsString() @MinLength(1) description?: string;
+  @IsOptional() @IsInt() @Min(TOOTH_NUMBER_MIN) @Max(TOOTH_NUMBER_MAX) toothNumber?: number;
+  @IsOptional() @IsString() surface?: string;
+  @IsOptional() @IsString() procedureCode?: string;
+  @IsOptional() @IsInt() @Min(0) feeCents?: number;
+  @IsOptional() @IsString() @IsIn(PLAN_ITEM_STATUS) status?: string;
+  @IsOptional() @IsInt() sortOrder?: number;
+}

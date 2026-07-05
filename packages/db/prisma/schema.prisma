@@ -52,6 +52,7 @@ model Practice {
   conditions        Condition[]
   toothChartEntries ToothChartEntry[]
   periodontalExams  PeriodontalExam[]
+  treatmentPlans    TreatmentPlan[]
 
   @@index([name])
 }
@@ -212,6 +213,10 @@ model Patient {
   dateOfBirth DateTime?
   phoneE164   String?
   patientType String   @default("existing")
+  gender      String?
+  emergencyContactName         String?
+  emergencyContactRelationship String?
+  emergencyContactPhone        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -233,6 +238,7 @@ model Patient {
   conditions        Condition[]
   toothChartEntries ToothChartEntry[]
   periodontalExams  PeriodontalExam[]
+  treatmentPlans    TreatmentPlan[]
 
   @@index([practiceId, lastName, firstName])
   @@unique([practiceId, phoneE164])
@@ -1000,4 +1006,51 @@ model PeriodontalExam {
   patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([practiceId, patientId, examDate])
+}
+
+// ============================================================================
+// TREATMENT PLANS (grouped planned procedures with estimate + acceptance)
+// ============================================================================
+
+model TreatmentPlan {
+  id                     String    @id @default(cuid())
+  practiceId             String
+  patientId              String
+  providerId             String?
+  title                  String    @default("Treatment Plan")
+  status                 String    @default("draft") // draft, proposed, accepted, completed, cancelled
+  estimatedCostCents     Int       @default(0)
+  insuranceEstimateCents Int       @default(0)
+  notes                  String?
+  acceptedAt             DateTime?
+  acceptedBy             String?
+  createdBy              String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  practice Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  items    TreatmentPlanItem[]
+
+  @@index([practiceId, patientId, createdAt])
+  @@index([practiceId, status])
+}
+
+model TreatmentPlanItem {
+  id            String   @id @default(cuid())
+  planId        String
+  toothNumber   Int?
+  surface       String?
+  procedureCode String?
+  description   String
+  feeCents      Int      @default(0)
+  status        String   @default("planned") // planned, approved, completed, declined
+  sortOrder     Int      @default(0)
+  treatmentRecordId String?  // set when completed → linked TreatmentRecord
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  plan TreatmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
 }

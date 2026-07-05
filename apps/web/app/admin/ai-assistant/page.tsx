@@ -326,8 +326,11 @@ export default function AdminAIAssistantPage() {
   };
 
   const askVoiceAssistant = async (questionOverride?: string, opts?: { autoListenAfterResponse?: boolean }) => {
-    const questionText = (questionOverride ?? qaQuestion).trim();
-    const selectedPatientId = questionOverride ? qaPatientIdRef.current : qaPatientId;
+    // Guard: this is also used directly as an onClick handler, which would
+    // otherwise pass a React event object in as questionOverride.
+    const override = typeof questionOverride === 'string' ? questionOverride : undefined;
+    const questionText = (override ?? qaQuestion).trim();
+    const selectedPatientId = override ? qaPatientIdRef.current : qaPatientId;
     if (!questionText) return;
 
     setQaQuestion(questionText);
@@ -528,7 +531,7 @@ export default function AdminAIAssistantPage() {
             />
 
             <button
-              onClick={askVoiceAssistant}
+              onClick={() => askVoiceAssistant()}
               disabled={qaLoading}
               className="md:col-span-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
             >

@@ -96,6 +96,15 @@ export interface PeriodontalExam {
   summary?: string | null;
 }
 
+export interface TimelineEvent {
+  id: string;
+  type: 'encounter' | 'treatment' | 'document' | 'appointment';
+  date: string;
+  title: string;
+  detail?: string | null;
+  status?: string | null;
+}
+
 // ── Client ───────────────────────────────────────────────────────────────
 export const emrApi = {
   // Encounters
@@ -156,6 +165,9 @@ export const emrApi = {
       method: 'PUT',
       body: JSON.stringify(dto),
     }),
+
+  // Timeline (chronological clinical activity)
+  getTimeline: (patientId: string) => apiFetch<TimelineEvent[]>(`/patients/${patientId}/timeline`),
 
   // Periodontal exams
   listPeriodontalExams: (patientId: string) =>

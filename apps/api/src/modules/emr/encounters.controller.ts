@@ -29,6 +29,12 @@ export class EncountersController {
     return this.emr.listEncounters(actor, patientId);
   }
 
+  /** Chronological clinical activity feed (encounters + treatments + docs + appts). */
+  @Get('patients/:patientId/timeline')
+  timeline(@CurrentUser() actor: EmrActor, @Param('patientId') patientId: string) {
+    return this.emr.getTimeline(actor, patientId);
+  }
+
   @Post('patients/:patientId/encounters')
   @HttpCode(HttpStatus.CREATED)
   @RequireRole(...EMR_CLINICAL_ROLES)

@@ -8,11 +8,16 @@ import {
   type Allergy as EmrAllergy,
   type Condition as EmrCondition,
   type Medication as EmrMedication,
+  type PeriodontalExam as EmrPeriodontalExam,
+  type ToothChartEntry,
 } from './emr';
 import type {
   Allergy,
   Medication,
+  PeriodontalExam as UiPeriodontalExam,
   SystemicCondition,
+  ToothRecord,
+  ToothSurface,
 } from '@/lib/types/dental-record';
 
 const ALLERGY_SEVERITIES = ['mild', 'moderate', 'severe', 'life_threatening'];
@@ -169,4 +174,127 @@ export async function syncEmrMedicalSlices(
     });
   }
   return loadEmrMedicalSlices(patientId);
+}
+
+// ============================================================================
+// Tooth chart  (ToothChartEntry  <->  ClinicalChart.teeth / ToothRecord)
+// ============================================================================
+const TOOTH_STATUS_VALUES: ToothRecord['status'][] = [
+  'healthy', 'decayed', 'filled', 'crowned', 'missing', 'implant', 'bridge', 'root_canal',
+];
+// The EMR `condition` string stores the UI clinical status directly; map a few
+// synonyms back for resilience.
+const CONDITION_TO_STATUS: Record<string, ToothRecord['status']> = {
+  caries: 'decayed', cavity: 'decayed', decayed: 'decayed',
+  filling: 'filled', filled: 'filled',
+  crown: 'crowned', crowned: 'crowned',
+  missing: 'missing', implant: 'implant', bridge: 'bridge', root_canal: 'root_canal',
+  healthy: 'healthy',
+};
+const COLOR_BY_STATUS: Record<ToothRecord['status'], string> = {
+  healthy: '#22c55e', decayed: '#ef4444', filled: '#3b82f6', crowned: '#a855f7',
+  missing: '#9ca3af', implant: '#14b8a6', bridge: '#f59e0b', root_canal: '#ec4899',
+};
+
+function emrToothToUi(e: ToothChartEntry): ToothRecord {
+  const status = CONDITION_TO_STATUS[e.condition] ?? 'healthy';
+  return {
+    tooth_number: e.toothNumber,
+    status,
+    surfaces_affected: (e.surfaces ?? []) as ToothSurface[],
+    notes: e.notes ?? undefined,
+    color_code: COLOR_BY_STATUS[status] ?? '#e5e7eb',
+    last_treated_date: e.chartedAt ? day(e.chartedAt) : undefined,
+  };
+}
+
+const uiToothToEmr = (t: ToothRecord) => ({
+  condition: TOOTH_STATUS_VALUES.includes(t.status) ? t.status : 'healthy',
+  surfaces: (t.surfaces_affected ?? []).map(String),
+  status: 'active',
+  notes: t.notes || undefined,
+});
+
+const toothIsCharted = (t: ToothRecord) =>
+  t.status !== 'healthy' || (t.surfaces_affected?.length ?? 0) > 0 || Boolean(t.notes);
+
+/** Load charted teeth from the EMR, keyed by tooth number, to overlay a chart. */
+export async function loadToothChartByNumber(patientId: string): Promise<Map<number, ToothRecord>> {
+  const entries = await emrApi.getToothChart(patientId);
+  return new Map(entries.map((e) => [e.toothNumber, emrToothToUi(e)]));
+}
+
+/** Merge EMR-charted teeth onto a base set (which supplies the full 1-32 arch). */
+export function mergeToothChart(
+  baseTeeth: ToothRecord[],
+  emrByNumber: Map<number, ToothRecord>,
+): ToothRecord[] {
+  return baseTeeth.map((t) => emrByNumber.get(t.tooth_number) ?? t);
+}
+
+/** Upsert only teeth whose charted state actually changed. */
+export async function syncToothChart(
+  patientId: string,
+  prevTeeth: ToothRecord[],
+  nextTeeth: ToothRecord[],
+): Promise<void> {
+  const prevByNum = new Map(prevTeeth.map((t) => [t.tooth_number, t]));
+  for (const t of nextTeeth) {
+    const old = prevByNum.get(t.tooth_number);
+    const changed = !old || JSON.stringify(uiToothToEmr(old)) !== JSON.stringify(uiToothToEmr(t));
+    if (changed && toothIsCharted(t)) {
+      await emrApi.upsertToothEntry(patientId, t.tooth_number, uiToothToEmr(t));
+    }
+  }
+}
+
+// ============================================================================
+// Periodontal exams  (PeriodontalExam EMR  <->  PeriodontalRecords.exams UI)
+// The full UI exam is stored losslessly in the EMR row's `measurements` JSON.
+// ============================================================================
+function emrPerioToUi(e: EmrPeriodontalExam): UiPeriodontalExam {
+  const m = (e.measurements ?? {}) as Partial<UiPeriodontalExam>;
+  return {
+    exam_id: e.id,
+    exam_date: day(e.examDate),
+    examiner_name: m.examiner_name ?? '',
+    tooth_measurements: m.tooth_measurements ?? [],
+    overall_diagnosis: e.summary ?? m.overall_diagnosis ?? '',
+    treatment_recommendations: m.treatment_recommendations,
+    notes: m.notes,
+  };
+}
+
+/** Load periodontal exams (most recent first) as UI exams. */
+export async function loadEmrPerioExams(patientId: string): Promise<UiPeriodontalExam[]> {
+  const exams = await emrApi.listPeriodontalExams(patientId);
+  return exams.map(emrPerioToUi);
+}
+
+/**
+ * Create any exams that don't yet exist server-side (perio exams are point-in-time
+ * records — the API is create + read only). Returns the fresh server list.
+ */
+export async function syncEmrPerioExams(
+  patientId: string,
+  prevExams: UiPeriodontalExam[],
+  nextExams: UiPeriodontalExam[],
+): Promise<UiPeriodontalExam[]> {
+  const prevIds = new Set(prevExams.map((e) => e.exam_id));
+  for (const exam of nextExams) {
+    if (!prevIds.has(exam.exam_id)) {
+      await emrApi.createPeriodontalExam(patientId, {
+        examDate: exam.exam_date || undefined,
+        summary: exam.overall_diagnosis || undefined,
+        measurements: {
+          examiner_name: exam.examiner_name,
+          tooth_measurements: exam.tooth_measurements,
+          overall_diagnosis: exam.overall_diagnosis,
+          treatment_recommendations: exam.treatment_recommendations,
+          notes: exam.notes,
+        } as Record<string, unknown>,
+      });
+    }
+  }
+  return loadEmrPerioExams(patientId);
 }

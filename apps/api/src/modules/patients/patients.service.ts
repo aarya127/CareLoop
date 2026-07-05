@@ -82,6 +82,19 @@ export class PatientsService {
     return age;
   }
 
+  /** Extract emergency-contact fields from either flat or nested dto shapes. */
+  private emergencyContactData(dto: any) {
+    const ec = dto?.emergency_contact ?? dto?.contact?.emergency_contact ?? {};
+    const name = dto?.emergencyContactName ?? ec?.name;
+    const relationship = dto?.emergencyContactRelationship ?? ec?.relationship;
+    const phone = dto?.emergencyContactPhone ?? ec?.phone;
+    return {
+      ...(name !== undefined ? { emergencyContactName: name || null } : {}),
+      ...(relationship !== undefined ? { emergencyContactRelationship: relationship || null } : {}),
+      ...(phone !== undefined ? { emergencyContactPhone: phone || null } : {}),
+    };
+  }
+
   async findAll(query: any): Promise<any[]> {
     try {
       const practiceId = String(query?.practiceId ?? 'demo-practice');
@@ -247,6 +260,8 @@ export class PatientsService {
           dateOfBirth: this.normalizeDateInput(dto?.dateOfBirth ?? dto?.date_of_birth) ?? null,
           phoneE164: dto?.phoneE164 ?? dto?.phone ?? null,
           patientType: String(dto?.patientType ?? dto?.patient_type ?? 'existing'),
+          gender: dto?.gender ?? null,
+          ...this.emergencyContactData(dto),
         },
       });
 
@@ -273,6 +288,8 @@ export class PatientsService {
           dateOfBirth: this.normalizeDateInput(dto?.dateOfBirth ?? dto?.date_of_birth),
           phoneE164: dto?.phoneE164 ?? dto?.phone,
           patientType: dto?.patientType ?? dto?.patient_type,
+          gender: dto?.gender ?? undefined,
+          ...this.emergencyContactData(dto),
         },
       });
 

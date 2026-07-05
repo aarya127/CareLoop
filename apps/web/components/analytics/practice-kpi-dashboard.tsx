@@ -14,6 +14,8 @@ import {
   Bar,
 } from 'recharts';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001';
+
 type KpiRow = {
   id: number;
   kpiDate: string;
@@ -152,8 +154,9 @@ export function PracticeKpiDashboard() {
     setRunningActionKey(actionKey);
     setActionFeedback((prev) => ({ ...prev, [actionKey]: '' }));
     try {
-      const res = await fetch('http://localhost:3001/analytics/automation/trigger', {
+      const res = await fetch(`${API_BASE}/analytics/automation/trigger`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ actionKey, practiceId: 'demo-practice' }),
       });
@@ -176,8 +179,9 @@ export function PracticeKpiDashboard() {
     setSeedLoading(true);
     setSeedFeedback('');
     try {
-      const res = await fetch('http://localhost:3001/analytics/seed-phase1', {
+      const res = await fetch(`${API_BASE}/analytics/seed-phase1`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ practiceId: 'demo-practice' }),
       });

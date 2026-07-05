@@ -14,11 +14,15 @@ import type {
   CreateEncounterDto,
   CreateMedicationDto,
   CreatePeriodontalExamDto,
+  CreateTreatmentPlanDto,
   EmrActor,
+  TreatmentPlanItemInputDto,
   UpdateAllergyDto,
   UpdateConditionDto,
   UpdateEncounterDto,
   UpdateMedicationDto,
+  UpdateTreatmentPlanDto,
+  UpdateTreatmentPlanItemDto,
   UpsertToothChartEntryDto,
 } from './dto';
 
@@ -365,5 +369,234 @@ export class EmrService {
     const exam = await prisma.periodontalExam.findUnique({ where: { id } });
     this.assertSamePractice(actor, exam, 'PeriodontalExam');
     return exam;
+  }
+
+  // ── Patient timeline (chronological clinical activity feed) ────────────────
+  async getTimeline(actor: EmrActor, patientId: string) {
+    await this.assertPatientInPractice(actor, patientId);
+    const where = { practiceId: actor.practiceId, patientId };
+    const [encounters, treatments, documents, appointments] = await Promise.all([
+      prisma.encounter.findMany({ where, orderBy: { encounterDate: 'desc' }, take: 100 }),
+      prisma.treatmentRecord.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100 }),
+      prisma.document.findMany({
+        where: { ...where, status: 'active' },
+        orderBy: { uploadedAt: 'desc' },
+        take: 100,
+      }),
+      prisma.appointment.findMany({ where, orderBy: { start: 'desc' }, take: 100 }),
+    ]);
+
+    const events = [
+      ...encounters.map((e) => ({
+        id: e.id,
+        type: 'encounter' as const,
+        date: e.encounterDate,
+        title: `${e.type} note`,
+        detail: e.chiefComplaint ?? e.assessment ?? undefined,
+        status: e.status,
+      })),
+      ...treatments.map((t) => ({
+        id: t.id,
+        type: 'treatment' as const,
+        date: t.createdAt,
+        title: t.procedureCode ? `Procedure ${t.procedureCode}` : 'Treatment',
+        detail: t.notes ?? undefined,
+        status: t.status,
+      })),
+      ...documents.map((d) => ({
+        id: d.id,
+        type: 'document' as const,
+        date: d.uploadedAt,
+        title: d.fileName,
+        detail: d.category,
+        status: undefined as string | undefined,
+      })),
+      ...appointments.map((a) => ({
+        id: a.id,
+        type: 'appointment' as const,
+        date: a.start,
+        title: a.title,
+        detail: a.notes ?? undefined,
+        status: a.status,
+      })),
+    ];
+
+    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return events;
+  }
+
+  // ── Treatment Plans ────────────────────────────────────────────────────────
+  private planEstimate(items: { feeCents?: number | null }[]): number {
+    return items.reduce((sum, i) => sum + (i.feeCents ?? 0), 0);
+  }
+
+  private async recomputePlanEstimate(planId: string): Promise<void> {
+    const items = await prisma.treatmentPlanItem.findMany({
+      where: { planId },
+      select: { feeCents: true },
+    });
+    await prisma.treatmentPlan.update({
+      where: { id: planId },
+      data: { estimatedCostCents: this.planEstimate(items) },
+    });
+  }
+
+  async listTreatmentPlans(actor: EmrActor, patientId: string) {
+    await this.assertPatientInPractice(actor, patientId);
+    return prisma.treatmentPlan.findMany({
+      where: { practiceId: actor.practiceId, patientId },
+      include: { items: { orderBy: { sortOrder: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createTreatmentPlan(actor: EmrActor, patientId: string, dto: CreateTreatmentPlanDto) {
+    await this.assertPatientInPractice(actor, patientId);
+    const items = dto.items ?? [];
+    const plan = await prisma.treatmentPlan.create({
+      data: {
+        practiceId: actor.practiceId,
+        patientId,
+        providerId: dto.providerId,
+        title: dto.title ?? 'Treatment Plan',
+        notes: dto.notes,
+        insuranceEstimateCents: dto.insuranceEstimateCents ?? 0,
+        estimatedCostCents: this.planEstimate(items),
+        createdBy: actor.id,
+        status: 'draft',
+        items: {
+          create: items.map((it: TreatmentPlanItemInputDto, idx: number) => ({
+            description: it.description,
+            toothNumber: it.toothNumber,
+            surface: it.surface,
+            procedureCode: it.procedureCode,
+            feeCents: it.feeCents ?? 0,
+            status: it.status ?? 'planned',
+            sortOrder: it.sortOrder ?? idx,
+          })),
+        },
+      },
+      include: { items: { orderBy: { sortOrder: 'asc' } } },
+    });
+    this.audify('treatment_plan_created', actor, { planId: plan.id, patientId });
+    return plan;
+  }
+
+  async getTreatmentPlan(actor: EmrActor, id: string) {
+    const plan = await prisma.treatmentPlan.findUnique({
+      where: { id },
+      include: { items: { orderBy: { sortOrder: 'asc' } } },
+    });
+    this.assertSamePractice(actor, plan, 'TreatmentPlan');
+    return plan;
+  }
+
+  async updateTreatmentPlan(actor: EmrActor, id: string, dto: UpdateTreatmentPlanDto) {
+    const existing = await prisma.treatmentPlan.findUnique({ where: { id } });
+    this.assertSamePractice(actor, existing, 'TreatmentPlan');
+    const plan = await prisma.treatmentPlan.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        status: dto.status,
+        notes: dto.notes,
+        providerId: dto.providerId,
+        insuranceEstimateCents: dto.insuranceEstimateCents,
+      },
+      include: { items: { orderBy: { sortOrder: 'asc' } } },
+    });
+    this.audify('treatment_plan_updated', actor, { planId: id });
+    return plan;
+  }
+
+  async acceptTreatmentPlan(actor: EmrActor, id: string) {
+    const existing = await prisma.treatmentPlan.findUnique({ where: { id } });
+    this.assertSamePractice(actor, existing, 'TreatmentPlan');
+    const plan = await prisma.treatmentPlan.update({
+      where: { id },
+      data: { status: 'accepted', acceptedAt: new Date(), acceptedBy: actor.id },
+      include: { items: { orderBy: { sortOrder: 'asc' } } },
+    });
+    this.audify('treatment_plan_accepted', actor, { planId: id });
+    return plan;
+  }
+
+  async addPlanItem(actor: EmrActor, planId: string, dto: TreatmentPlanItemInputDto) {
+    const plan = await prisma.treatmentPlan.findUnique({ where: { id: planId } });
+    this.assertSamePractice(actor, plan, 'TreatmentPlan');
+    const count = await prisma.treatmentPlanItem.count({ where: { planId } });
+    const item = await prisma.treatmentPlanItem.create({
+      data: {
+        planId,
+        description: dto.description,
+        toothNumber: dto.toothNumber,
+        surface: dto.surface,
+        procedureCode: dto.procedureCode,
+        feeCents: dto.feeCents ?? 0,
+        status: dto.status ?? 'planned',
+        sortOrder: dto.sortOrder ?? count,
+      },
+    });
+    await this.recomputePlanEstimate(planId);
+    this.audify('treatment_plan_item_added', actor, { planId, itemId: item.id });
+    return item;
+  }
+
+  async updatePlanItem(actor: EmrActor, itemId: string, dto: UpdateTreatmentPlanItemDto) {
+    const item = await prisma.treatmentPlanItem.findUnique({
+      where: { id: itemId },
+      include: { plan: true },
+    });
+    if (!item) throw new NotFoundException('TreatmentPlanItem not found');
+    this.assertSamePractice(actor, item.plan, 'TreatmentPlan');
+
+    // Completing an item creates a linked TreatmentRecord (once).
+    let treatmentRecordId = item.treatmentRecordId;
+    if (dto.status === 'completed' && !item.treatmentRecordId) {
+      const tr = await prisma.treatmentRecord.create({
+        data: {
+          practiceId: item.plan.practiceId,
+          patientId: item.plan.patientId,
+          providerId: item.plan.providerId ?? undefined,
+          procedureCode: item.procedureCode ?? undefined,
+          toothNumber: item.toothNumber ?? undefined,
+          surface: item.surface ?? undefined,
+          notes: item.description,
+          status: 'completed',
+          completedAt: new Date(),
+          ...({ createdBy: actor.id } as object),
+        },
+      });
+      treatmentRecordId = tr.id;
+    }
+
+    const updated = await prisma.treatmentPlanItem.update({
+      where: { id: itemId },
+      data: {
+        description: dto.description,
+        toothNumber: dto.toothNumber,
+        surface: dto.surface,
+        procedureCode: dto.procedureCode,
+        feeCents: dto.feeCents,
+        status: dto.status,
+        sortOrder: dto.sortOrder,
+        treatmentRecordId,
+      },
+    });
+    await this.recomputePlanEstimate(item.planId);
+    this.audify('treatment_plan_item_updated', actor, { itemId, status: dto.status });
+    return updated;
+  }
+
+  async deletePlanItem(actor: EmrActor, itemId: string) {
+    const item = await prisma.treatmentPlanItem.findUnique({
+      where: { id: itemId },
+      include: { plan: true },
+    });
+    if (!item) throw new NotFoundException('TreatmentPlanItem not found');
+    this.assertSamePractice(actor, item.plan, 'TreatmentPlan');
+    await prisma.treatmentPlanItem.delete({ where: { id: itemId } });
+    await this.recomputePlanEstimate(item.planId);
+    this.audify('treatment_plan_item_deleted', actor, { itemId });
   }
 }

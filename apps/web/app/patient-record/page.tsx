@@ -24,15 +24,26 @@ import {
 } from 'lucide-react';
 import ChartHeader from '@/components/emr/chart-header';
 import EncountersPanel from '@/components/emr/encounters-panel';
+import TimelinePanel from '@/components/emr/timeline-panel';
+import TreatmentPlansPanel from '@/components/emr/treatment-plans-panel';
 import PatientOverview from '@/components/dental-records/patient-overview-section';
 import MedicalHistorySection from '@/components/dental-records/medical-history-section';
 import ClinicalChartingSection from '@/components/dental-records/clinical-charting-section';
 import PeriodontalRecordsSection from '@/components/dental-records/periodontal-records-section';
 import AdminDocumentsSection from '@/components/dental-records/administrative-documents-section';
+import RadiographicFilesSection from '@/components/dental-records/radiographic-files-section';
 import { getDentalRecordById } from '@/lib/data/mock-dental-records';
 import { treatmentsApi, STATUS_LABELS, STATUS_COLORS, type TreatmentRecord } from '@/lib/api/treatments';
 import { documentsApi, computeSha256Hex } from '@/lib/api/documents';
-import { loadEmrMedicalSlices, syncEmrMedicalSlices } from '@/lib/api/emr-mappers';
+import {
+  loadEmrMedicalSlices,
+  syncEmrMedicalSlices,
+  loadToothChartByNumber,
+  mergeToothChart,
+  syncToothChart,
+  loadEmrPerioExams,
+  syncEmrPerioExams,
+} from '@/lib/api/emr-mappers';
 import type { 
   PatientProfile, 
   MedicalHistory, 
@@ -497,7 +508,7 @@ const getMockAdminDocuments = (patientId: string): AdministrativeDocuments => {
   };
 };
 
-type TabType = 'overview' | 'history' | 'treatments' | 'charting' | 'periodontal' | 'encounters' | 'documents';
+type TabType = 'overview' | 'timeline' | 'history' | 'treatments' | 'plans' | 'charting' | 'periodontal' | 'imaging' | 'encounters' | 'documents';
 
 type ApiPatient = {
   id: string;
@@ -505,12 +516,18 @@ type ApiPatient = {
   lastName: string;
   dateOfBirth?: string | null;
   phoneE164?: string | null;
+  gender?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactRelationship?: string | null;
+  emergencyContactPhone?: string | null;
   insuranceRecords?: Array<{
     payerName: string;
     planName?: string | null;
     memberIdEnc?: string | null;
   }>;
 };
+
+const GENDER_VALUES = ['male', 'female', 'other', 'prefer_not_to_say'] as const;
 
 function resolveApiBase(): string {
   const configured = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
@@ -552,7 +569,9 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
     first_name: patient.firstName,
     last_name: patient.lastName,
     date_of_birth: birthDate ? birthDate.toISOString().slice(0, 10) : '1990-01-01',
-    gender: 'prefer_not_to_say' as const,
+    gender: (GENDER_VALUES as readonly string[]).includes(patient.gender ?? '')
+      ? (patient.gender as PatientProfile['gender'])
+      : ('prefer_not_to_say' as const),
     preferences: {
       appointment_reminder_method: 'email' as const,
       communication_language: 'en',
@@ -567,6 +586,15 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
         postal_code: '',
         country: '',
       },
+      ...(patient.emergencyContactName || patient.emergencyContactPhone
+        ? {
+            emergency_contact: {
+              name: patient.emergencyContactName ?? '',
+              relationship: patient.emergencyContactRelationship ?? '',
+              phone: patient.emergencyContactPhone ?? '',
+            },
+          }
+        : {}),
     },
     insurance,
     financial: {
@@ -659,6 +687,62 @@ function PatientRecordContent() {
         return fallback;
       };
 
+      // Overlay the EMR-backed tooth chart onto a base ClinicalChart.
+      const withEmrTeeth = async (chart: ClinicalChart, pid: string): Promise<ClinicalChart> => {
+        try {
+          const emr = await loadToothChartByNumber(pid);
+          return emr.size ? { ...chart, teeth: mergeToothChart(chart.teeth, emr) } : chart;
+        } catch {
+          return chart;
+        }
+      };
+      // Overlay EMR periodontal exams onto base PeriodontalRecords.
+      const withEmrPerio = async (
+        records: PeriodontalRecords,
+        pid: string
+      ): Promise<PeriodontalRecords> => {
+        try {
+          const exams = await loadEmrPerioExams(pid);
+          return exams.length ? { ...records, exams } : records;
+        } catch {
+          return records;
+        }
+      };
+      // Load imaging (radiograph / clinical_photo) from the Documents (S3) API,
+      // resolving fresh download URLs. Falls back to the base list on failure.
+      const withImagingDocs = async (
+        base: RadiographicRecord[],
+        pid: string
+      ): Promise<RadiographicRecord[]> => {
+        try {
+          const docs = await documentsApi.listByPatient(pid);
+          const imaging = docs.filter(
+            (d) => d.category === 'radiograph' || d.category === 'clinical_photo'
+          );
+          if (!imaging.length) return base;
+          return await Promise.all(
+            imaging.map(async (d) => {
+              let url = '#';
+              try {
+                url = (await documentsApi.getDownloadUrl(d.id)).url;
+              } catch {
+                // leave placeholder if the URL can't be resolved
+              }
+              return {
+                id: d.id,
+                type: d.category === 'clinical_photo' ? 'intraoral_photo' : 'periapical',
+                file_url: url,
+                thumbnail_url: url,
+                date_taken: (d.uploadedAt ?? '').slice(0, 10),
+                dentist_notes: d.fileName,
+              } as RadiographicRecord;
+            })
+          );
+        } catch {
+          return base;
+        }
+      };
+
       try {
         const res = await fetch(`${apiBaseUrl}/patients/${patientId}`, { credentials: 'include' });
         if (res.ok) {
@@ -669,17 +753,23 @@ function PatientRecordContent() {
             setPatientRecord({ ...mappedProfile, ...persistedProfile });
             setMedicalHistory(await loadMedicalHistory(apiPatient.id));
             setClinicalChart(
-              await loadRecordSection(
-                apiPatient.id,
-                'clinicalChart',
-                getMockClinicalChart(apiPatient.id)
+              await withEmrTeeth(
+                await loadRecordSection(
+                  apiPatient.id,
+                  'clinicalChart',
+                  getMockClinicalChart(apiPatient.id)
+                ),
+                apiPatient.id
               )
             );
             setPeriodontalRecords(
-              await loadRecordSection(
-                apiPatient.id,
-                'periodontalRecords',
-                getMockPeriodontalRecords(apiPatient.id)
+              await withEmrPerio(
+                await loadRecordSection(
+                  apiPatient.id,
+                  'periodontalRecords',
+                  getMockPeriodontalRecords(apiPatient.id)
+                ),
+                apiPatient.id
               )
             );
             setAdminDocuments(
@@ -690,10 +780,13 @@ function PatientRecordContent() {
               )
             );
             setRadiographicRecords(
-              await loadRecordSection(
-                apiPatient.id,
-                'radiographicRecords',
-                mappedProfile.radiographic_records || []
+              await withImagingDocs(
+                await loadRecordSection(
+                  apiPatient.id,
+                  'radiographicRecords',
+                  mappedProfile.radiographic_records || []
+                ),
+                apiPatient.id
               )
             );
             setIsLoading(false);
@@ -709,20 +802,29 @@ function PatientRecordContent() {
         setPatientRecord(record || null);
         setMedicalHistory(await loadMedicalHistory(patientId));
         setClinicalChart(
-          await loadRecordSection(patientId, 'clinicalChart', getMockClinicalChart(patientId))
+          await withEmrTeeth(
+            await loadRecordSection(patientId, 'clinicalChart', getMockClinicalChart(patientId)),
+            patientId
+          )
         );
         setPeriodontalRecords(
-          await loadRecordSection(
-            patientId,
-            'periodontalRecords',
-            getMockPeriodontalRecords(patientId)
+          await withEmrPerio(
+            await loadRecordSection(
+              patientId,
+              'periodontalRecords',
+              getMockPeriodontalRecords(patientId)
+            ),
+            patientId
           )
         );
         setAdminDocuments(
           await loadRecordSection(patientId, 'adminDocuments', getMockAdminDocuments(patientId))
         );
         setRadiographicRecords(
-          await loadRecordSection(patientId, 'radiographicRecords', record?.radiographic_records || [])
+          await withImagingDocs(
+            await loadRecordSection(patientId, 'radiographicRecords', record?.radiographic_records || []),
+            patientId
+          )
         );
         setIsLoading(false);
       }
@@ -827,21 +929,38 @@ function PatientRecordContent() {
 
   const handleUpdateClinicalChart = async (updates: Partial<ClinicalChart>) => {
     if (!patientRecord) return;
-    const next = {
-      ...(clinicalChart ?? getMockClinicalChart(patientRecord.patient_id)),
-      ...updates,
-    };
-    setClinicalChart(next);
+    const prev = clinicalChart ?? getMockClinicalChart(patientRecord.patient_id);
+    const next = { ...prev, ...updates };
+    setClinicalChart(next); // optimistic
+
+    // Persist charted teeth to the first-class ToothChartEntry table.
+    if (updates.teeth) {
+      try {
+        await syncToothChart(patientRecord.patient_id, prev.teeth, next.teeth);
+      } catch {
+        // keep optimistic UI if the EMR sync fails
+      }
+    }
+    // Legacy blob keeps gum summary / treatment_plans / ai_suggestions.
     await persistRecordSection('clinicalChart', next);
   };
 
   const handleUpdatePeriodontalRecords = async (updates: Partial<PeriodontalRecords>) => {
     if (!patientRecord) return;
-    const next = {
-      ...(periodontalRecords ?? getMockPeriodontalRecords(patientRecord.patient_id)),
-      ...updates,
-    };
-    setPeriodontalRecords(next);
+    const prev = periodontalRecords ?? getMockPeriodontalRecords(patientRecord.patient_id);
+    const next = { ...prev, ...updates };
+    setPeriodontalRecords(next); // optimistic
+
+    // Persist new perio exams to the first-class PeriodontalExam table, reconcile ids.
+    if (updates.exams) {
+      try {
+        const fresh = await syncEmrPerioExams(patientRecord.patient_id, prev.exams, next.exams);
+        setPeriodontalRecords((cur) => ({ ...(cur ?? next), exams: fresh }));
+      } catch {
+        // keep optimistic UI if the EMR sync fails
+      }
+    }
+    // Legacy blob keeps summary / treatment_history.
     await persistRecordSection('periodontalRecords', next);
   };
 
@@ -938,10 +1057,13 @@ function PatientRecordContent() {
 
   const tabs = [
     { id: 'overview', label: 'Patient Overview', icon: User },
+    { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'history', label: 'Medical & Dental History', icon: FileText },
     { id: 'treatments', label: 'Treatment History', icon: Stethoscope },
+    { id: 'plans', label: 'Treatment Plans', icon: ClipboardList },
     { id: 'charting', label: 'Clinical Charting', icon: Activity },
     { id: 'periodontal', label: 'Periodontal Records', icon: Heart },
+    { id: 'imaging', label: 'Imaging', icon: ImageIcon },
     { id: 'encounters', label: 'Encounters', icon: ClipboardList },
     { id: 'documents', label: 'Administrative Docs', icon: Folder },
   ];
@@ -1087,6 +1209,18 @@ function PatientRecordContent() {
                   console.log('Message patient:', patientId);
                 }}
               />
+            </motion.div>
+          )}
+
+          {activeTab === 'timeline' && (
+            <motion.div
+              key="timeline"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <TimelinePanel patientId={patientRecord.patient_id} />
             </motion.div>
           )}
 
@@ -1283,6 +1417,18 @@ function PatientRecordContent() {
             </motion.div>
           )}
 
+          {activeTab === 'plans' && (
+            <motion.div
+              key="plans"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <TreatmentPlansPanel patientId={patientRecord.patient_id} />
+            </motion.div>
+          )}
+
           {activeTab === 'charting' && (
             <motion.div
               key="charting"
@@ -1315,6 +1461,22 @@ function PatientRecordContent() {
                   periodontalRecords ?? getMockPeriodontalRecords(patientRecord.patient_id)
                 }
                 onUpdate={handleUpdatePeriodontalRecords}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'imaging' && (
+            <motion.div
+              key="imaging"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <RadiographicFilesSection
+                patientId={patientRecord.patient_id}
+                radiographicRecords={radiographicRecords ?? patientRecord.radiographic_records ?? []}
+                onUpload={handleUploadRadiograph}
               />
             </motion.div>
           )}
