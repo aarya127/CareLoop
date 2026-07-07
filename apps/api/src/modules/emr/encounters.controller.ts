@@ -11,7 +11,12 @@ import {
   Put,
 } from '@nestjs/common';
 import { EmrService } from './emr.service';
-import { CreateEncounterDto, UpdateEncounterDto, type EmrActor } from './dto';
+import {
+  CreateEncounterDto,
+  DraftFromTranscriptDto,
+  UpdateEncounterDto,
+  type EmrActor,
+} from './dto';
 import { CurrentUser } from '../../common/decorators';
 import { RequireRole } from '../../common/guards';
 import { EMR_CLINICAL_ROLES } from '../auth/auth.constants';

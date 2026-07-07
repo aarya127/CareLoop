@@ -14,13 +14,13 @@
     "@careloop/shared": "workspace:*",
     "bullmq": "^5.28.0",
     "ioredis": "^5.4.1",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^9.0.3",
     "twilio": "^6.0.2"
   },
   "devDependencies": {
     "@careloop/shared": "workspace:*",
     "@types/node": "^22.0.0",
-    "@types/nodemailer": "^8.0.0",
+    "@types/nodemailer": "^8.0.1",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2"
   }

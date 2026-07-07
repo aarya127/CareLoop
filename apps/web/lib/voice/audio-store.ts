@@ -3,12 +3,15 @@
  * Stores synthesized TTS audio blobs keyed by a short ID.
  */
 
-let counter = 0;
+import { randomBytes } from "node:crypto";
+
 const store = new Map<string, Buffer>();
 
-/** Store a buffer, auto-generate an ID, return the ID. */
+/** Store a buffer, auto-generate an unguessable ID, return the ID. */
 export function storeAudioBuffer(buffer: Buffer | Uint8Array | ArrayBuffer): string {
-  const id = `audio-${Date.now()}-${++counter}`;
+  // The serving route is unauthenticated (Twilio <Play> fetches it), so the id
+  // is the only access control — it must be crypto-random, not sequential.
+  const id = `audio-${randomBytes(16).toString("hex")}`;
   store.set(id, Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as ArrayBuffer));
   // Auto-expire after 5 minutes
   setTimeout(() => store.delete(id), 5 * 60 * 1000);

@@ -189,3 +189,11 @@ export class UpdateTreatmentPlanItemDto {
   @IsOptional() @IsString() @IsIn(PLAN_ITEM_STATUS) status?: string;
   @IsOptional() @IsInt() sortOrder?: number;
 }
+
+// ---------------------------------------------------------------------------
+// AI Scribe: draft an encounter from a visit transcript
+// ---------------------------------------------------------------------------
+export class DraftFromTranscriptDto {
+  @IsOptional() @IsString() callSid?: string;
+  @IsOptional() @IsString() transcript?: string;
+}

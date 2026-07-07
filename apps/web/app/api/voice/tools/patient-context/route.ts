@@ -54,7 +54,12 @@ export async function POST(req: NextRequest) {
       insurance,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    // requireUser throws a NextResponse — return it as-is (401) instead of a 500.
+    if (error instanceof Response) return error;
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ ok: false, error: "invalid_request" }, { status: 400 });
+    }
+    console.error("[voice/patient-context] failed:", error);
+    return NextResponse.json({ ok: false, error: "failed" }, { status: 500 });
   }
 }

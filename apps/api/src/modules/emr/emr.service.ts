@@ -8,6 +8,9 @@ import {
 import { Prisma, prisma } from '@careloop/db';
 import { AuditService } from '../audit/audit.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
+import { LlmService } from '../ai/llm.service';
+import { redactPhi } from '../ai/phi-redact';
+import { ENCOUNTER_TYPES, type DraftFromTranscriptDto } from './dto';
 import type {
   CreateAllergyDto,
   CreateConditionDto,
@@ -38,6 +41,7 @@ export class EmrService {
   constructor(
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(IdempotencyService) private readonly idempotency: IdempotencyService,
+    @Inject(LlmService) private readonly llm: LlmService,
   ) {}
 
   // ── tenancy helpers ──────────────────────────────────────────────────────
@@ -148,6 +152,105 @@ export class EmrService {
     });
     this.audify('encounter_signed', actor, { encounterId: id });
     return encounter;
+  }
+
+  /**
+   * AI Scribe: turn a visit transcript into a DRAFT SOAP encounter for the
+   * clinician to review, edit, and sign. PHI is redacted before it leaves the
+   * server. Gated behind AI_ENABLED (LlmService throws 503 when disabled).
+   */
+  async draftEncounterFromTranscript(
+    actor: EmrActor,
+    patientId: string,
+    dto: DraftFromTranscriptDto,
+  ) {
+    await this.assertPatientInPractice(actor, patientId);
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { firstName: true, lastName: true, phoneE164: true },
+    });
+
+    // Source transcript: explicit text, a specific call, or the latest call.
+    let transcript = dto.transcript?.trim();
+    if (!transcript) {
+      // callSid lookups are still scoped to the caller's practice — a bare
+      // findUnique would let any authenticated user pull another tenant's
+      // transcript by knowing its callSid.
+      const t = dto.callSid
+        ? await prisma.callTranscript.findFirst({
+            where: { callSid: dto.callSid, practiceId: actor.practiceId },
+          })
+        : await prisma.callTranscript.findFirst({
+            where: { practiceId: actor.practiceId, patientId, fullTranscript: { not: null } },
+            orderBy: { createdAt: 'desc' },
+          });
+      transcript = t?.fullTranscript ?? undefined;
+    }
+    if (!transcript) {
+      throw new BadRequestException('No transcript available for this patient');
+    }
+
+    const redacted = redactPhi(transcript, {
+      firstName: patient?.firstName,
+      lastName: patient?.lastName,
+      phone: patient?.phoneE164,
+    });
+
+    const system =
+      'You are a dental clinical scribe. Convert the visit transcript into a concise SOAP note. ' +
+      'Do not invent facts not present in the transcript. Respond with ONLY a JSON object with keys: ' +
+      '"type" (one of exam, cleaning, consult, procedure, followup), "chiefComplaint", ' +
+      '"subjective", "objective", "assessment", "plan". Use empty strings for unknown fields.';
+    const raw = await this.llm.completeJson(system, `Visit transcript:\n${redacted}`);
+    const soap = this.parseSoap(raw);
+
+    const encounter = await prisma.encounter.create({
+      data: {
+        practiceId: actor.practiceId,
+        patientId,
+        authorId: actor.id,
+        type: ENCOUNTER_TYPES.includes(soap.type) ? soap.type : 'exam',
+        encounterDate: new Date(),
+        chiefComplaint: soap.chiefComplaint,
+        subjective: soap.subjective,
+        objective: soap.objective,
+        assessment: soap.assessment,
+        plan: soap.plan,
+        status: 'draft',
+      },
+    });
+
+    this.audify('encounter_ai_drafted', actor, { encounterId: encounter.id, patientId });
+    return encounter;
+  }
+
+  private parseSoap(raw: string): {
+    type: string;
+    chiefComplaint?: string;
+    subjective?: string;
+    objective?: string;
+    assessment?: string;
+    plan?: string;
+  } {
+    // Tolerate code fences / prose around the JSON.
+    const match = raw.match(/\{[\s\S]*\}/);
+    let obj: Record<string, unknown> = {};
+    try {
+      obj = JSON.parse(match ? match[0] : raw);
+    } catch {
+      // Fall back to putting the whole reply in the assessment field.
+      return { type: 'exam', assessment: raw.slice(0, 2000) };
+    }
+    const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
+    return {
+      type: str(obj.type) ?? 'exam',
+      chiefComplaint: str(obj.chiefComplaint),
+      subjective: str(obj.subjective),
+      objective: str(obj.objective),
+      assessment: str(obj.assessment),
+      plan: str(obj.plan),
+    };
   }
 
   // ── Allergies ────────────────────────────────────────────────────────────

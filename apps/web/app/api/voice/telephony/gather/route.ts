@@ -21,6 +21,7 @@ import {
   buildPlayAndGatherTwiml,
   buildSayAndGatherTwiml,
   buildSayAndHangupTwiml,
+  requireTwilioRequest,
 } from "@/lib/services/twilio";
 import { storeAudioBuffer, getAudioUrl } from "@/lib/voice/audio-store";
 
@@ -36,6 +37,12 @@ const MAX_TURNS = 20; // Safety limit — hang up after 20 turns to prevent infi
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData().catch(() => new FormData());
+
+  const rejected = requireTwilioRequest(req.nextUrl, formData, req.headers.get("x-twilio-signature"));
+  if (rejected) {
+    log.warn("rejected gather webhook: invalid Twilio signature");
+    return rejected;
+  }
 
   const callSid = formData.get("CallSid")?.toString() ?? "unknown";
   const speechResult = formData.get("SpeechResult")?.toString()?.trim() ?? "";

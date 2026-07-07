@@ -18,6 +18,7 @@ import { synthesizeWithElevenLabs } from "@/lib/services/elevenlabs";
 import {
   buildPlayAndGatherTwiml,
   buildSayAndGatherTwiml,
+  requireTwilioRequest,
 } from "@/lib/services/twilio";
 import { storeAudioBuffer, getAudioUrl } from "@/lib/voice/audio-store";
 
@@ -30,6 +31,13 @@ const GREETING =
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData().catch(() => new FormData());
+
+  const rejected = requireTwilioRequest(req.nextUrl, formData, req.headers.get("x-twilio-signature"));
+  if (rejected) {
+    log.warn("rejected inbound call webhook: invalid Twilio signature");
+    return rejected;
+  }
+
   const callSid = formData.get("CallSid")?.toString() ?? "unknown";
   const from = formData.get("From")?.toString() ?? "";
   const to = formData.get("To")?.toString() ?? "";
