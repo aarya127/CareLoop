@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 
 interface AnalyticsQuery {
@@ -15,51 +15,57 @@ export class AnalyticsController {
     this.analyticsService = analyticsService ?? new AnalyticsService();
   }
 
+  // practiceId is always taken from the authenticated session, never client input,
+  // so one practice's staff can never read another practice's analytics.
+  private scoped(query: AnalyticsQuery, req: any): AnalyticsQuery {
+    return { ...query, practiceId: req.user.practiceId };
+  }
+
   @Get('overview')
-  getOverview(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getOverview(query);
+  getOverview(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getOverview(this.scoped(query, req));
   }
 
   @Get('dashboard')
-  getDashboard(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getDashboard(query);
+  getDashboard(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getDashboard(this.scoped(query, req));
   }
 
   @Get('kpis')
-  getKpis(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getKpis(query);
+  getKpis(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getKpis(this.scoped(query, req));
   }
 
   @Get('revenue')
-  getRevenue(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getRevenue(query);
+  getRevenue(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getRevenue(this.scoped(query, req));
   }
 
   /** Real invoice + payment data, broken down by status and daily trend. */
   @Get('payments')
-  getPayments(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getPayments(query);
+  getPayments(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getPayments(this.scoped(query, req));
   }
 
   @Get('patients')
-  getPatientStats(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getPatientStats(query);
+  getPatientStats(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getPatientStats(this.scoped(query, req));
   }
 
   @Get('appointments')
-  getAppointmentStats(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getAppointmentStats(query);
+  getAppointmentStats(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getAppointmentStats(this.scoped(query, req));
   }
 
   /** Daily no-show counts and rate trend for charting. */
   @Get('no-show')
-  getNoShowTrend(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getNoShowTrend(query);
+  getNoShowTrend(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getNoShowTrend(this.scoped(query, req));
   }
 
   @Get('decision-actions')
-  getDecisionActions(@Query() query: AnalyticsQuery) {
-    return this.analyticsService.getDecisionActions(query);
+  getDecisionActions(@Query() query: AnalyticsQuery, @Req() req: any) {
+    return this.analyticsService.getDecisionActions(this.scoped(query, req));
   }
 
   @Get('phases')
@@ -68,13 +74,12 @@ export class AnalyticsController {
   }
 
   @Post('automation/trigger')
-  triggerAutomation(@Body() body: Record<string, unknown>) {
-    return this.analyticsService.triggerAutomation(body);
+  triggerAutomation(@Body() body: Record<string, unknown>, @Req() req: any) {
+    return this.analyticsService.triggerAutomation({ ...body, practiceId: req.user.practiceId });
   }
 
   @Post('seed-phase1')
-  seedPhase1(@Body() body: Record<string, unknown>) {
-    return this.analyticsService.seedPhase1TestData(body);
+  seedPhase1(@Body() body: Record<string, unknown>, @Req() req: any) {
+    return this.analyticsService.seedPhase1TestData({ ...body, practiceId: req.user.practiceId });
   }
 }
-

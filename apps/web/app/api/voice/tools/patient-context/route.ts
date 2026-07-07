@@ -10,11 +10,11 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    requireUser(req);
+    const user = await requireUser(req);
     const body = schema.parse(await req.json());
 
-    const patient = await prisma.patient.findUnique({
-      where: { id: body.patientId },
+    const patient = await prisma.patient.findFirst({
+      where: { id: body.patientId, practiceId: user.practiceId },
       include: {
         insuranceRecords: {
           where: { active: true },

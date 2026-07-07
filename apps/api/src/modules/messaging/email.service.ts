@@ -43,11 +43,19 @@ export class EmailService {
   validateSendgridSignature(rawBody: string, signature: string): boolean {
     const secret = process.env.SENDGRID_WEBHOOK_SECRET;
     if (!secret) {
-      this.logger.warn('SENDGRID_WEBHOOK_SECRET not set — skipping signature validation');
+      // Fail closed in production; allow only in non-production for local testing.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error('SENDGRID_WEBHOOK_SECRET not set — rejecting webhook');
+        return false;
+      }
+      this.logger.warn('SENDGRID_WEBHOOK_SECRET not set — skipping signature validation (non-production only)');
       return true;
     }
     const crypto = require('crypto') as typeof import('crypto');
     const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+    const expectedBuf = Buffer.from(expected);
+    const sigBuf = Buffer.from(signature);
+    // timingSafeEqual throws on length mismatch — guard first.
+    return sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf);
   }
 }

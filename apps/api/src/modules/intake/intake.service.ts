@@ -101,9 +101,9 @@ export class IntakeService {
 
       const { demographics, insurance } = data;
 
-      // 3. Create the patient record
-      const patient = await this.patientsService.create({
-        practiceId: draft.practiceId,
+      // 3. Create the patient record. Tenancy comes from the draft's practiceId
+      // (intake is a public, session-less flow), not from client input at submit.
+      const patient = await this.patientsService.create(draft.practiceId, {
         firstName: demographics!.firstName,
         lastName: demographics!.lastName,
         dateOfBirth: demographics!.dateOfBirth,

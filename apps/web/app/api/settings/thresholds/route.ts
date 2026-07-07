@@ -15,9 +15,8 @@ const schema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    requireUser(req);
-    const practiceId = new URL(req.url).searchParams.get("practiceId") ?? "default-practice";
-    const config = await prisma.alertThreshold.findUnique({ where: { practiceId } });
+    const user = await requireUser(req);
+    const config = await prisma.alertThreshold.findUnique({ where: { practiceId: user.practiceId } });
     return NextResponse.json({ ok: true, config });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "failed";
@@ -27,17 +26,19 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    requireUser(req);
+    const user = await requireUser(req);
     const body = schema.parse(await req.json());
+    // Tenancy from the session, never the request body.
+    const practiceId = user.practiceId;
     const config = await prisma.alertThreshold.upsert({
-      where: { practiceId: body.practiceId },
+      where: { practiceId },
       update: {
         sentimentMin: body.sentimentMin,
         escalateOnTreatmentDecline: body.escalateOnTreatmentDecline,
         notifyChannel: body.notifyChannel,
       },
       create: {
-        practiceId: body.practiceId,
+        practiceId,
         sentimentMin: body.sentimentMin,
         escalateOnTreatmentDecline: body.escalateOnTreatmentDecline,
         notifyChannel: body.notifyChannel,

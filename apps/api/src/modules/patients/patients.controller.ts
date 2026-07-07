@@ -1,24 +1,23 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, BadRequestException } from '@nestjs/common';
 import { PatientsService } from './patients.service';
-import { PatientsRepository } from './patients.repository';
 
 @Controller('patients')
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
   @Get()
-  findAll(@Query() query: any) {
-    return this.patientsService.findAll(query);
+  findAll(@Query() query: any, @Req() req: any) {
+    return this.patientsService.findAll(req.user.practiceId, query);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: any) {
-    return this.patientsService.findById(id, (req as any).user?.id);
+    return this.patientsService.findById(req.user.practiceId, id, req.user.id);
   }
 
   @Get(':id/medical-history')
-  async getMedicalHistory(@Param('id') id: string) {
-    const history = await this.patientsService.findMedicalHistory(id);
+  async getMedicalHistory(@Param('id') id: string, @Req() req: any) {
+    const history = await this.patientsService.findMedicalHistory(req.user.practiceId, id);
     if (!history) {
       return null;
     }
@@ -26,8 +25,8 @@ export class PatientsController {
   }
 
   @Put(':id/medical-history')
-  async updateMedicalHistory(@Param('id') id: string, @Body() dto: any) {
-    const updated = await this.patientsService.upsertMedicalHistory(id, dto);
+  async updateMedicalHistory(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+    const updated = await this.patientsService.upsertMedicalHistory(req.user.practiceId, id, dto);
     if (!updated) {
       throw new BadRequestException('Unable to update patient medical history');
     }
@@ -35,17 +34,18 @@ export class PatientsController {
   }
 
   @Get(':id/record-section/:section')
-  async getRecordSection(@Param('id') id: string, @Param('section') section: string) {
-    return this.patientsService.findRecordSection(id, section);
+  async getRecordSection(@Param('id') id: string, @Param('section') section: string, @Req() req: any) {
+    return this.patientsService.findRecordSection(req.user.practiceId, id, section);
   }
 
   @Put(':id/record-section/:section')
   async updateRecordSection(
     @Param('id') id: string,
     @Param('section') section: string,
-    @Body() dto: any
+    @Body() dto: any,
+    @Req() req: any,
   ) {
-    const updated = await this.patientsService.upsertRecordSection(id, section, dto);
+    const updated = await this.patientsService.upsertRecordSection(req.user.practiceId, id, section, dto);
     if (!updated) {
       throw new BadRequestException(`Unable to update patient record section: ${section}`);
     }
@@ -54,7 +54,7 @@ export class PatientsController {
 
   @Post()
   async create(@Body() dto: any, @Req() req: any) {
-    const created = await this.patientsService.create(dto, (req as any).user?.id);
+    const created = await this.patientsService.create(req.user.practiceId, dto, req.user.id);
     if (!created) {
       throw new BadRequestException('Unable to create patient');
     }
@@ -63,7 +63,7 @@ export class PatientsController {
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
-    const updated = await this.patientsService.update(id, dto, (req as any).user?.id);
+    const updated = await this.patientsService.update(req.user.practiceId, id, dto, req.user.id);
     if (!updated) {
       throw new BadRequestException('Unable to update patient');
     }
@@ -72,6 +72,6 @@ export class PatientsController {
 
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: any) {
-    return this.patientsService.remove(id, (req as any).user?.id);
+    return this.patientsService.remove(req.user.practiceId, id, req.user.id);
   }
 }

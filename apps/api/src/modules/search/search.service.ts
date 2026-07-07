@@ -5,8 +5,8 @@ import { getRedisClient } from '../../config/redis';
 const SEARCH_CACHE_TTL_SECONDS = 30;
 const SEARCH_CACHE_VERSION = 'v1';
 
-function searchCacheKey(type: string, practiceId: string | undefined, query: string): string {
-  return `search:${SEARCH_CACHE_VERSION}:${type}:${practiceId ?? '_'}:${query.toLowerCase()}`;
+function searchCacheKey(type: string, practiceId: string, query: string): string {
+  return `search:${SEARCH_CACHE_VERSION}:${type}:${practiceId}:${query.toLowerCase()}`;
 }
 
 type SearchType = 'patients' | 'appointments' | 'treatments' | 'documents' | 'all';
@@ -14,7 +14,7 @@ type SearchType = 'patients' | 'appointments' | 'treatments' | 'documents' | 'al
 interface SearchParams {
   query: string;
   type?: string;
-  practiceId?: string;
+  practiceId: string;
   limit?: number;
 }
 
@@ -32,6 +32,9 @@ export class SearchService {
     const { query, practiceId, limit = 20 } = params;
     const type = (params.type ?? 'all') as SearchType;
 
+    if (!practiceId) {
+      throw new BadRequestException('practiceId is required');
+    }
     if (!query || query.trim().length < 2) {
       throw new BadRequestException('Search query must be at least 2 characters');
     }
@@ -61,7 +64,7 @@ export class SearchService {
   private async _runSearch(
     type: SearchType,
     q: string,
-    practiceId: string | undefined,
+    practiceId: string,
     limit: number,
   ): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
@@ -84,7 +87,7 @@ export class SearchService {
 
   private async searchPatients(
     query: string,
-    practiceId: string | undefined,
+    practiceId: string,
     limit: number
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
@@ -95,12 +98,12 @@ export class SearchService {
               ts_rank(search_vector, to_tsquery('english', $1)) AS rank
        FROM "Patient"
        WHERE search_vector @@ to_tsquery('english', $1)
-         ${practiceId ? 'AND "practiceId" = $3' : ''}
+         AND "practiceId" = $3
        ORDER BY rank DESC
        LIMIT $2`,
       tsQuery,
       limit,
-      ...(practiceId ? [practiceId] : [])
+      practiceId,
     );
 
     return rows.map((r) => ({
@@ -114,7 +117,7 @@ export class SearchService {
 
   private async searchAppointments(
     query: string,
-    practiceId: string | undefined,
+    practiceId: string,
     limit: number
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
@@ -125,12 +128,12 @@ export class SearchService {
               ts_rank(search_vector, to_tsquery('english', $1)) AS rank
        FROM "Appointment"
        WHERE search_vector @@ to_tsquery('english', $1)
-         ${practiceId ? 'AND "practiceId" = $3' : ''}
+         AND "practiceId" = $3
        ORDER BY rank DESC
        LIMIT $2`,
       tsQuery,
       limit,
-      ...(practiceId ? [practiceId] : [])
+      practiceId,
     );
 
     return rows.map((r) => ({
@@ -144,7 +147,7 @@ export class SearchService {
 
   private async searchTreatments(
     query: string,
-    practiceId: string | undefined,
+    practiceId: string,
     limit: number
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
@@ -155,12 +158,12 @@ export class SearchService {
               ts_rank(search_vector, to_tsquery('simple', $1)) AS rank
        FROM "TreatmentRecord"
        WHERE search_vector @@ to_tsquery('simple', $1)
-         ${practiceId ? 'AND "practiceId" = $3' : ''}
+         AND "practiceId" = $3
        ORDER BY rank DESC
        LIMIT $2`,
       tsQuery,
       limit,
-      ...(practiceId ? [practiceId] : [])
+      practiceId,
     );
 
     return rows.map((r) => ({
@@ -174,7 +177,7 @@ export class SearchService {
 
   private async searchDocuments(
     query: string,
-    practiceId: string | undefined,
+    practiceId: string,
     limit: number
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
@@ -185,12 +188,12 @@ export class SearchService {
               ts_rank(search_vector, to_tsquery('simple', $1)) AS rank
        FROM "Document"
        WHERE search_vector @@ to_tsquery('simple', $1)
-         ${practiceId ? 'AND "practiceId" = $3' : ''}
+         AND "practiceId" = $3
        ORDER BY rank DESC
        LIMIT $2`,
       tsQuery,
       limit,
-      ...(practiceId ? [practiceId] : [])
+      practiceId,
     );
 
     return rows.map((r) => ({

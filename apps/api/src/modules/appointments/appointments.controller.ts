@@ -27,16 +27,16 @@ import type {
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
-  /** GET /appointments?practiceId=&providerId=&patientId=&from=&to=&status= */
+  /** GET /appointments?providerId=&patientId=&from=&to=&status= (practice from session) */
   @Get()
-  findAll(@Query() query: any) {
-    return this.appointmentsService.findAll(query);
+  findAll(@Query() query: any, @Req() req: any) {
+    return this.appointmentsService.findAll(req.user.practiceId, query);
   }
 
-  /** GET /appointments/availability?practiceId=&providerId=&date=YYYY-MM-DD&duration=30 */
+  /** GET /appointments/availability?providerId=&date=YYYY-MM-DD&duration=30 (practice from session) */
   @Get('availability')
-  getAvailability(@Query() query: GetSlotsDto) {
-    return this.appointmentsService.getAvailability(query);
+  getAvailability(@Query() query: GetSlotsDto, @Req() req: any) {
+    return this.appointmentsService.getAvailability({ ...query, practiceId: req.user.practiceId });
   }
 
   /**
@@ -54,8 +54,10 @@ export class AppointmentsController {
   async streamEvents(
     @Req() req: any,
     @Res() reply: any,
-    @Query('practiceId') practiceId: string,
   ): Promise<void> {
+    // Tenancy from the authenticated session — never a client-supplied query param,
+    // otherwise any user could subscribe to another practice's live stream.
+    const practiceId: string = req.user.practiceId;
     const res: import('http').ServerResponse = reply.raw;
 
     res.writeHead(200, {
@@ -69,7 +71,7 @@ export class AppointmentsController {
 
     // Dedicated subscriber connection (Redis subscriber mode is exclusive)
     const subscriber = getRedisClient().duplicate();
-    await subscriber.subscribe(APPT_EVENTS_CHANNEL(practiceId ?? ''));
+    await subscriber.subscribe(APPT_EVENTS_CHANNEL(practiceId));
 
     const onMessage = (_channel: string, message: string) => {
       res.write(`data: ${message}\n\n`);
@@ -90,8 +92,8 @@ export class AppointmentsController {
 
   /** GET /appointments/:id */
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.appointmentsService.findById(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.appointmentsService.findById(req.user.practiceId, id);
   }
 
   /** POST /appointments  (supports Idempotency-Key header) */
@@ -99,28 +101,29 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.CREATED)
   create(
     @Body() dto: CreateAppointmentDto,
+    @Req() req: any,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return this.appointmentsService.create(dto, idempotencyKey);
+    return this.appointmentsService.create(req.user.practiceId, dto, idempotencyKey, req.user.id);
   }
 
   /** PATCH /appointments/:id/reschedule */
   @Patch(':id/reschedule')
-  reschedule(@Param('id') id: string, @Body() dto: RescheduleDto) {
-    return this.appointmentsService.reschedule(id, dto);
+  reschedule(@Param('id') id: string, @Body() dto: RescheduleDto, @Req() req: any) {
+    return this.appointmentsService.reschedule(req.user.practiceId, id, dto, req.user.id);
   }
 
   /** PATCH /appointments/:id/cancel */
   @Patch(':id/cancel')
   @HttpCode(HttpStatus.OK)
-  cancel(@Param('id') id: string, @Body() dto: CancelDto) {
-    return this.appointmentsService.cancel(id, dto);
+  cancel(@Param('id') id: string, @Body() dto: CancelDto, @Req() req: any) {
+    return this.appointmentsService.cancel(req.user.practiceId, id, dto, req.user.id);
   }
 
   /** DELETE /appointments/:id  (alias for cancel) */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    await this.appointmentsService.cancel(id, {});
+  async remove(@Param('id') id: string, @Req() req: any) {
+    await this.appointmentsService.cancel(req.user.practiceId, id, {}, req.user.id);
   }
 }

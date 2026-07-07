@@ -29,8 +29,13 @@ export class TwilioService {
   validateSignature(url: string, params: Record<string, string>, signature: string): boolean {
     const { authToken } = integrations.twilio;
     if (!authToken) {
-      this.logger.warn('Twilio authToken not set — skipping signature validation');
-      return true; // fail-open in dev; tighten in prod via env guard
+      // Fail closed in production; allow only in non-production for local testing.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error('Twilio authToken not set — rejecting webhook');
+        return false;
+      }
+      this.logger.warn('Twilio authToken not set — skipping signature validation (non-production only)');
+      return true;
     }
     return Twilio.validateRequest(authToken, signature, url, params);
   }

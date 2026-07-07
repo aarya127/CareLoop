@@ -36,21 +36,37 @@ export class AppointmentsService {
     private readonly idempotency: IdempotencyService,
   ) {}
 
+  // ── Tenancy helper ────────────────────────────────────────────────────────
+
+  /**
+   * Load an appointment and confirm it belongs to the caller's practice. Cross-
+   * tenant (or missing) ids raise 404 so existence isn't disclosed. practiceId
+   * always comes from the authenticated session, never client input.
+   */
+  private async getOwnedAppt(practiceId: string, id: string) {
+    const appt = await this.repo.findById(id);
+    if (!appt || appt.practiceId !== practiceId) {
+      throw new NotFoundException('Appointment not found');
+    }
+    return appt;
+  }
+
   // ── Queries ───────────────────────────────────────────────────────────────
 
-  async findAll(query: {
-    practiceId?: string;
-    providerId?: string;
-    patientId?: string;
-    from?: string;
-    to?: string;
-    status?: string;
-    limit?: string;
-    offset?: string;
-  }) {
-    if (!query.practiceId) throw new BadRequestException('practiceId is required');
+  async findAll(
+    practiceId: string,
+    query: {
+      providerId?: string;
+      patientId?: string;
+      from?: string;
+      to?: string;
+      status?: string;
+      limit?: string;
+      offset?: string;
+    },
+  ) {
     return this.repo.findAll({
-      practiceId: query.practiceId,
+      practiceId,
       providerId: query.providerId,
       patientId: query.patientId,
       from: query.from ? new Date(query.from) : undefined,
@@ -61,10 +77,8 @@ export class AppointmentsService {
     });
   }
 
-  async findById(id: string) {
-    const appt = await this.repo.findById(id);
-    if (!appt) throw new NotFoundException('Appointment not found');
-    return appt;
+  async findById(practiceId: string, id: string) {
+    return this.getOwnedAppt(practiceId, id);
   }
 
   async getAvailability(query: GetSlotsDto) {
@@ -82,12 +96,13 @@ export class AppointmentsService {
   // ── Mutations ─────────────────────────────────────────────────────────────
 
   async create(
+    practiceId: string,
     dto: CreateAppointmentDto,
     idempotencyKey?: string,
     actorUserId?: string,
   ) {
-    if (!dto.practiceId || !dto.providerId || !dto.start || !dto.end) {
-      throw new BadRequestException('practiceId, providerId, start, and end are required');
+    if (!dto.providerId || !dto.start || !dto.end) {
+      throw new BadRequestException('providerId, start, and end are required');
     }
     if (!dto.userId) {
       throw new BadRequestException('userId (the booking staff member) is required');
@@ -120,7 +135,7 @@ export class AppointmentsService {
     }
 
     const appointment = await this.repo.create({
-      practiceId: dto.practiceId,
+      practiceId,
       userId: dto.userId,
       providerId: dto.providerId,
       patientId: dto.patientId,
@@ -174,12 +189,12 @@ export class AppointmentsService {
   }
 
   async reschedule(
+    practiceId: string,
     id: string,
     dto: RescheduleDto,
     actorUserId?: string,
   ) {
-    const appt = await this.repo.findById(id);
-    if (!appt) throw new NotFoundException('Appointment not found');
+    const appt = await this.getOwnedAppt(practiceId, id);
     if (appt.status === 'cancelled') {
       throw new BadRequestException('Cannot reschedule a cancelled appointment');
     }
@@ -258,9 +273,8 @@ export class AppointmentsService {
     return updated;
   }
 
-  async cancel(id: string, dto: CancelDto, actorUserId?: string) {
-    const appt = await this.repo.findById(id);
-    if (!appt) throw new NotFoundException('Appointment not found');
+  async cancel(practiceId: string, id: string, dto: CancelDto, actorUserId?: string) {
+    const appt = await this.getOwnedAppt(practiceId, id);
     if (appt.status === 'cancelled') {
       throw new BadRequestException('Appointment is already cancelled');
     }
@@ -316,15 +330,5 @@ export class AppointmentsService {
     getRedisClient()
       .publish(APPT_EVENTS_CHANNEL(payload.practiceId), JSON.stringify(payload))
       .catch(() => {});
-  }
-
-  // ── Legacy stubs (used by older calendar components) ─────────────────────
-
-  async update(id: string, dto: any) {
-    return this.repo.update(id, dto);
-  }
-
-  async remove(id: string) {
-    return this.cancel(id, {});
   }
 }

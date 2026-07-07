@@ -14,11 +14,20 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    requireUser(req);
+    const user = await requireUser(req);
     const body = schema.parse(await req.json());
 
+    // Only finalize a transcript that belongs to the caller's practice.
+    const existing = await prisma.callTranscript.findFirst({
+      where: { callSid: body.callSid, practiceId: user.practiceId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ ok: false, error: "transcript_not_found" }, { status: 404 });
+    }
+
     const transcript = await prisma.callTranscript.update({
-      where: { callSid: body.callSid },
+      where: { id: existing.id },
       data: {
         endedAt: new Date(body.endedAt),
         fullTranscript: body.fullTranscript,

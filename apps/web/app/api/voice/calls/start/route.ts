@@ -12,9 +12,10 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    requireUser(req);
+    const user = await requireUser(req);
     const body = schema.parse(await req.json());
-    const started = await startVoiceCall(body as any);
+    // Tenancy from the session, not the request body.
+    const started = await startVoiceCall({ ...body, practiceId: user.practiceId } as any);
     return NextResponse.json({ ok: true, call: started });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "failed";

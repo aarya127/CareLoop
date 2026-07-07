@@ -202,7 +202,7 @@ export class AnalyticsService {
   }
 
   async getDashboard(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
     const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
 
@@ -341,7 +341,7 @@ export class AnalyticsService {
   }
 
   async getKpis(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
     const metrics = await this.computeCoreMetrics(practiceId, rangeDays);
 
@@ -390,7 +390,7 @@ export class AnalyticsService {
   }
 
   async getRevenue(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
 
     const completedCount = await this.safe(
@@ -416,7 +416,7 @@ export class AnalyticsService {
   }
 
   async getPatientStats(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const total = await this.safe(() => prisma.patient.count({ where: { practiceId } }), 0);
     const newPatients30d = await this.safe(
       () =>
@@ -438,7 +438,7 @@ export class AnalyticsService {
   }
 
   async getAppointmentStats(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
     const metrics = await this.computeCoreMetrics(practiceId, rangeDays);
 
@@ -459,7 +459,7 @@ export class AnalyticsService {
    * Cached for 5 minutes in Redis (key: analytics:payments:<practiceId>:<rangeDays>).
    */
   async getPayments(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
     const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
 
@@ -562,7 +562,7 @@ export class AnalyticsService {
    * Cached for 5 minutes.
    */
   async getNoShowTrend(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
     const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
 
@@ -639,7 +639,7 @@ export class AnalyticsService {
   }
 
   async getOverview(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
     const metrics = await this.computeCoreMetrics(practiceId, rangeDays);
 
@@ -652,7 +652,7 @@ export class AnalyticsService {
   }
 
   async getDecisionActions(query: any): Promise<any> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+    const practiceId = String(query?.practiceId ?? '');
     const rangeDays = asInt(query?.rangeDays, 30);
     const metrics = await this.computeCoreMetrics(practiceId, rangeDays);
 
@@ -665,7 +665,7 @@ export class AnalyticsService {
 
   async triggerAutomation(body: any): Promise<any> {
     const actionKey = String(body?.actionKey ?? '') as ActionKey;
-    const practiceId = String(body?.practiceId ?? 'demo-practice');
+    const practiceId = String(body?.practiceId ?? '');
 
     if (!actionKey) {
       return { ok: false, message: 'actionKey is required' };
@@ -815,7 +815,7 @@ export class AnalyticsService {
   }
 
   async seedPhase1TestData(body: any): Promise<any> {
-    const practiceId = String(body?.practiceId ?? 'demo-practice');
+    const practiceId = String(body?.practiceId ?? '');
     const now = new Date();
 
     try {

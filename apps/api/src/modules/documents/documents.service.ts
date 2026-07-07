@@ -30,8 +30,20 @@ export class DocumentsService {
     private readonly audit: AuditService,
   ) {}
 
-  async findByPatientId(patientId: string, query: any): Promise<any[]> {
-    const practiceId = String(query?.practiceId ?? 'demo-practice');
+  /**
+   * Load a document and confirm it belongs to the caller's practice. Cross-tenant
+   * (or missing) ids are surfaced as 404 so an attacker cannot distinguish
+   * "exists in another practice" from "does not exist".
+   */
+  private async getOwnedDoc(practiceId: string, documentId: string): Promise<any> {
+    const doc = await this.repo.findById(documentId);
+    if (!doc || doc.practiceId !== practiceId) {
+      throw new NotFoundException(`Document ${documentId} not found`);
+    }
+    return doc;
+  }
+
+  async findByPatientId(practiceId: string, patientId: string, query: any): Promise<any[]> {
     const category = query?.category;
     if (category && !ALLOWED_DOCUMENT_CATEGORIES.has(category)) {
       throw new BadRequestException(`Invalid document category: ${category}`);
@@ -43,16 +55,18 @@ export class DocumentsService {
    * Step 1 of upload flow: validate, create a pending DB record, return a
    * pre-signed PUT URL the client can use to upload directly to storage.
    */
-  async getUploadUrl(dto: {
-    practiceId?: string;
-    patientId?: string;
-    uploadedBy?: string;
-    category: string;
-    fileName: string;
-    mimeType: string;
-    sizeBytes?: number;
-    checksumSha256?: string;
-  }): Promise<{ uploadUrl: string; documentId: string; storageKey: string }> {
+  async getUploadUrl(
+    practiceId: string,
+    dto: {
+      patientId?: string;
+      uploadedBy?: string;
+      category: string;
+      fileName: string;
+      mimeType: string;
+      sizeBytes?: number;
+      checksumSha256?: string;
+    },
+  ): Promise<{ uploadUrl: string; documentId: string; storageKey: string }> {
     // ── MIME validation ─────────────────────────────────────────────────────
     if (!dto.mimeType || !ALLOWED_MIME_TYPES.has(dto.mimeType)) {
       throw new BadRequestException(
@@ -75,7 +89,6 @@ export class DocumentsService {
       throw new BadRequestException(`Invalid document category: ${dto.category}`);
     }
 
-    const practiceId = String(dto.practiceId ?? 'demo-practice');
     const storageKey = `${practiceId}/${dto.patientId ?? 'unassigned'}/${randomUUID()}/${safeName}`;
 
     // ── Create pending DB record ─────────────────────────────────────────────
@@ -109,11 +122,11 @@ export class DocumentsService {
    * document active and optionally record the final checksum.
    */
   async confirmUpload(
+    practiceId: string,
     documentId: string,
     dto: { checksumSha256?: string; actorUserId?: string },
   ): Promise<any> {
-    const doc = await this.repo.findById(documentId);
-    if (!doc) throw new NotFoundException(`Document ${documentId} not found`);
+    const doc = await this.getOwnedDoc(practiceId, documentId);
     if (doc.status === 'deleted') throw new ForbiddenException('Document has been deleted');
 
     const active = await this.repo.activate(documentId, dto.checksumSha256);
@@ -135,18 +148,10 @@ export class DocumentsService {
   }
 
   /**
-   * Legacy: kept for backward compat. Acts as getUploadUrl.
-   */
-  async create(dto: any): Promise<any> {
-    return this.getUploadUrl(dto);
-  }
-
-  /**
    * Generate a pre-signed GET URL (15 min) for secure download/view.
    */
-  async getDownloadUrl(documentId: string): Promise<{ url: string; fileName: string }> {
-    const doc = await this.repo.findById(documentId);
-    if (!doc) throw new NotFoundException(`Document ${documentId} not found`);
+  async getDownloadUrl(practiceId: string, documentId: string): Promise<{ url: string; fileName: string }> {
+    const doc = await this.getOwnedDoc(practiceId, documentId);
     if (doc.status !== 'active') throw new ForbiddenException('Document is not available');
 
     const url = await this.storage.getPresignedDownloadUrl(doc.storageKey, doc.fileName);
@@ -157,9 +162,8 @@ export class DocumentsService {
    * Soft-delete the DB record then remove the object from storage.
    * Audit log is written regardless of storage delete outcome.
    */
-  async remove(documentId: string, actorUserId?: string): Promise<void> {
-    const doc = await this.repo.findById(documentId);
-    if (!doc) throw new NotFoundException(`Document ${documentId} not found`);
+  async remove(practiceId: string, documentId: string, actorUserId?: string): Promise<void> {
+    const doc = await this.getOwnedDoc(practiceId, documentId);
     if (doc.status === 'deleted') return; // idempotent
 
     await this.repo.softDelete(documentId);

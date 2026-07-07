@@ -60,7 +60,10 @@ type RateLimitRecord = {
 export interface AuthUser {
   id: string;
   email: string;
+  /** Primary role, kept for display/back-compat. Authorization uses `roles`. */
   role: string;
+  /** All roles assigned to the user — the full set used for RBAC checks. */
+  roles: string[];
   firstName: string;
   lastName: string;
   practiceId: string;
@@ -423,7 +426,7 @@ export class AuthService {
     return { userId: user.id };
   }
 
-  async getAdminOverview(practiceId = 'demo-practice'): Promise<AdminOverview> {
+  async getAdminOverview(practiceId: string): Promise<AdminOverview> {
     const now = new Date();
     const currentMonthStart = this.monthStartFor(now);
     const nextMonthStart = this.monthEndExclusive(currentMonthStart);
@@ -549,6 +552,7 @@ export class AuthService {
           id: user.id,
           email: user.email,
           role: session.roles[0] ?? 'STAFF',
+          roles: session.roles.length > 0 ? session.roles : ['STAFF'],
           firstName: user.firstName ?? '',
           lastName: user.lastName ?? '',
           practiceId: user.practiceId,

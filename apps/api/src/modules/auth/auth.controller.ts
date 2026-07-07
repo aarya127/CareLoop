@@ -8,7 +8,6 @@ import {
   Inject,
   Param,
   Post,
-  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -196,8 +195,9 @@ export class AuthController {
   @Get('admin-overview')
   @UseGuards(AuthGuard, RolesGuard)
   @RequireRole(AUTH_ROLES.ADMIN)
-  async adminOverview(@Query('practiceId') practiceId?: string) {
-    return this.authService.getAdminOverview(practiceId ?? 'demo-practice');
+  async adminOverview(@Req() req: any) {
+    // Scope to the admin's own practice — never a client-supplied practiceId.
+    return this.authService.getAdminOverview(req.user.practiceId);
   }
 }
 

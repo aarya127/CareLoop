@@ -13,10 +13,9 @@ const policySchema = z.array(
 
 export async function GET(req: NextRequest) {
   try {
-    requireUser(req);
-    const practiceId = new URL(req.url).searchParams.get("practiceId") ?? "default-practice";
+    const user = await requireUser(req);
     const policies = await prisma.routingPolicy.findMany({
-      where: { practiceId },
+      where: { practiceId: user.practiceId },
       orderBy: { patientType: "asc" },
     });
     return NextResponse.json({ ok: true, policies });
@@ -28,20 +27,22 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    requireUser(req);
+    const user = await requireUser(req);
     const body = policySchema.parse(await req.json());
+    // Force every policy to the caller's practice — ignore any practiceId in the body.
+    const practiceId = user.practiceId;
 
     const upserts = body.map((entry) =>
       prisma.routingPolicy.upsert({
         where: {
           practiceId_patientType: {
-            practiceId: entry.practiceId,
+            practiceId,
             patientType: entry.patientType,
           },
         },
         update: { mode: entry.mode },
         create: {
-          practiceId: entry.practiceId,
+          practiceId,
           patientType: entry.patientType,
           mode: entry.mode,
         },

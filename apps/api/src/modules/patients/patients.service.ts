@@ -95,9 +95,22 @@ export class PatientsService {
     };
   }
 
-  async findAll(query: any): Promise<any[]> {
+  /**
+   * Confirm a patient exists within the caller's practice. Tenancy is always
+   * derived from the authenticated session (never client input); returns the
+   * patient id when owned, otherwise null so callers can 404/no-op without
+   * leaking cross-tenant existence.
+   */
+  private async assertPatientInPractice(practiceId: string, patientId: string): Promise<boolean> {
+    const patient = await this.patientsRepository.prisma.patient.findFirst({
+      where: { id: patientId, practiceId },
+      select: { id: true },
+    });
+    return Boolean(patient);
+  }
+
+  async findAll(practiceId: string, query: any): Promise<any[]> {
     try {
-      const practiceId = String(query?.practiceId ?? 'demo-practice');
       const search = String(query?.search ?? '').trim();
 
       const where: any = { practiceId };
@@ -214,10 +227,10 @@ export class PatientsService {
     }
   }
 
-  async findById(id: string, actorUserId?: string): Promise<any> {
+  async findById(practiceId: string, id: string, actorUserId?: string): Promise<any> {
     try {
-      const patient = await this.patientsRepository.prisma.patient.findUnique({
-        where: { id },
+      const patient = await this.patientsRepository.prisma.patient.findFirst({
+        where: { id, practiceId },
         include: {
           insuranceRecords: {
             where: { active: true },
@@ -238,20 +251,8 @@ export class PatientsService {
     }
   }
 
-  async create(dto: any, actorUserId?: string): Promise<any> {
+  async create(practiceId: string, dto: any, actorUserId?: string): Promise<any> {
     try {
-      const practiceId = String(dto?.practiceId ?? 'demo-practice');
-
-      await this.patientsRepository.prisma.practice.upsert({
-        where: { id: practiceId },
-        update: {},
-        create: {
-          id: practiceId,
-          name: 'Demo Practice',
-          timeZone: 'America/New_York',
-        },
-      });
-
       const patient = await this.patientsRepository.prisma.patient.create({
         data: {
           practiceId,
@@ -278,8 +279,13 @@ export class PatientsService {
     }
   }
 
-  async update(id: string, dto: any, actorUserId?: string): Promise<any> {
+  async update(practiceId: string, id: string, dto: any, actorUserId?: string): Promise<any> {
     try {
+      // Tenant guard: refuse to update a record outside the caller's practice.
+      if (!(await this.assertPatientInPractice(practiceId, id))) {
+        return null;
+      }
+
       const patient = await this.patientsRepository.prisma.patient.update({
         where: { id },
         data: {
@@ -306,8 +312,12 @@ export class PatientsService {
     }
   }
 
-  async remove(id: string, actorUserId?: string): Promise<void> {
+  async remove(practiceId: string, id: string, actorUserId?: string): Promise<void> {
     try {
+      // Tenant guard: only delete records within the caller's practice.
+      if (!(await this.assertPatientInPractice(practiceId, id))) {
+        return;
+      }
       await this.patientsRepository.prisma.patient.delete({ where: { id } });
       void this.audit.record({
         eventType: 'patient_deleted',
@@ -320,16 +330,11 @@ export class PatientsService {
     }
   }
 
-  async findMedicalHistory(patientId: string): Promise<any> {
+  async findMedicalHistory(practiceId: string, patientId: string): Promise<any> {
     try {
       await this.ensureMedicalHistoryTable();
 
-      const patient = await this.patientsRepository.prisma.patient.findUnique({
-        where: { id: patientId },
-        select: { id: true },
-      });
-
-      if (!patient) {
+      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
         return null;
       }
 
@@ -344,7 +349,7 @@ export class PatientsService {
     }
   }
 
-  async upsertMedicalHistory(patientId: string, history: unknown): Promise<any> {
+  async upsertMedicalHistory(practiceId: string, patientId: string, history: unknown): Promise<any> {
     try {
       if (!history || typeof history !== 'object') {
         return null;
@@ -352,12 +357,7 @@ export class PatientsService {
 
       await this.ensureMedicalHistoryTable();
 
-      const patient = await this.patientsRepository.prisma.patient.findUnique({
-        where: { id: patientId },
-        select: { id: true },
-      });
-
-      if (!patient) {
+      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
         return null;
       }
 
@@ -374,7 +374,7 @@ export class PatientsService {
         JSON.stringify(history)
       );
 
-      return this.findMedicalHistory(patientId);
+      return this.findMedicalHistory(practiceId, patientId);
     } catch {
       return null;
     }
@@ -384,7 +384,7 @@ export class PatientsService {
     return ['profile', 'clinicalChart', 'periodontalRecords', 'radiographicRecords', 'adminDocuments'].includes(section);
   }
 
-  async findRecordSection(patientId: string, section: string): Promise<any> {
+  async findRecordSection(practiceId: string, patientId: string, section: string): Promise<any> {
     try {
       if (!this.isValidRecordSection(section)) {
         return null;
@@ -392,11 +392,7 @@ export class PatientsService {
 
       await this.ensureRecordSectionsTable();
 
-      const patient = await this.patientsRepository.prisma.patient.findUnique({
-        where: { id: patientId },
-        select: { id: true },
-      });
-      if (!patient) {
+      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
         return null;
       }
 
@@ -412,7 +408,7 @@ export class PatientsService {
     }
   }
 
-  async upsertRecordSection(patientId: string, section: string, payload: unknown): Promise<any> {
+  async upsertRecordSection(practiceId: string, patientId: string, section: string, payload: unknown): Promise<any> {
     try {
       if (!this.isValidRecordSection(section) || payload === undefined) {
         return null;
@@ -420,11 +416,7 @@ export class PatientsService {
 
       await this.ensureRecordSectionsTable();
 
-      const patient = await this.patientsRepository.prisma.patient.findUnique({
-        where: { id: patientId },
-        select: { id: true },
-      });
-      if (!patient) {
+      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
         return null;
       }
 
@@ -442,7 +434,7 @@ export class PatientsService {
         JSON.stringify(payload)
       );
 
-      return this.findRecordSection(patientId, section);
+      return this.findRecordSection(practiceId, patientId, section);
     } catch {
       return null;
     }

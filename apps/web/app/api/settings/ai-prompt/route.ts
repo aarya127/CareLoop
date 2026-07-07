@@ -16,8 +16,8 @@ const activateSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    requireUser(req);
-    const practiceId = new URL(req.url).searchParams.get("practiceId") ?? "default-practice";
+    const user = await requireUser(req);
+    const practiceId = user.practiceId;
 
     const activePrompt = await prisma.aIPromptVersion.findFirst({
       where: { practiceId, isActive: true },
@@ -43,15 +43,16 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
     const body = createSchema.parse(await req.json());
+    const practiceId = user.practiceId;
 
     const latest = await prisma.aIPromptVersion.findFirst({
-      where: { practiceId: body.practiceId },
+      where: { practiceId },
       orderBy: { version: "desc" },
     });
 
     const created = await prisma.aIPromptVersion.create({
       data: {
-        practiceId: body.practiceId,
+        practiceId,
         version: (latest?.version ?? 0) + 1,
         systemPrompt: body.systemPrompt,
         createdBy: user.id,
@@ -67,22 +68,23 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    requireUser(req);
+    const user = await requireUser(req);
     const body = activateSchema.parse(await req.json());
+    const practiceId = user.practiceId;
 
     await prisma.$transaction([
       prisma.aIPromptVersion.updateMany({
-        where: { practiceId: body.practiceId, isActive: true },
+        where: { practiceId, isActive: true },
         data: { isActive: false },
       }),
       prisma.aIPromptVersion.updateMany({
-        where: { practiceId: body.practiceId, version: body.version },
+        where: { practiceId, version: body.version },
         data: { isActive: true },
       }),
     ]);
 
     const active = await prisma.aIPromptVersion.findFirst({
-      where: { practiceId: body.practiceId, isActive: true },
+      where: { practiceId, isActive: true },
       orderBy: { version: "desc" },
     });
 
