@@ -5,10 +5,11 @@ import { MedicalHistoryController } from './medical-history.controller';
 import { ChartingController } from './charting.controller';
 import { TreatmentPlansController } from './treatment-plans.controller';
 import { AuditModule } from '../audit/audit.module';
+import { AiModule } from '../ai/ai.module';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 
 @Module({
-  imports: [AuditModule],
+  imports: [AuditModule, AiModule],
   controllers: [
     EncountersController,
     MedicalHistoryController,

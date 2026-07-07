@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     log.info({ callSid }, "empty speech — prompting again");
     try {
       const audio = await synthesizeWithElevenLabs({ text: SILENCE_RESPONSE });
-      const audioId = storeAudioBuffer(audio);
+      const audioId = await storeAudioBuffer(audio);
       const twiml = buildPlayAndGatherTwiml({
         audioUrl: getAudioUrl(baseUrl, audioId),
         gatherUrl: appendTurn(gatherUrl, turnCount + 1),
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     });
 
     const audio = await synthesizeWithElevenLabs({ text: answer });
-    const audioId = storeAudioBuffer(audio);
+    const audioId = await storeAudioBuffer(audio);
 
     const twiml = buildPlayAndGatherTwiml({
       audioUrl: getAudioUrl(baseUrl, audioId),

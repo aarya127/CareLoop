@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   try {
     // Synthesize greeting audio
     const audio = await synthesizeWithElevenLabs({ text: GREETING });
-    const audioId = storeAudioBuffer(audio);
+    const audioId = await storeAudioBuffer(audio);
     const audioUrl = getAudioUrl(baseUrl, audioId);
 
     const twiml = buildPlayAndGatherTwiml({

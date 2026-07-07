@@ -151,6 +151,24 @@ export class PatientsService {
         orderBy: { start: 'desc' },
       });
 
+      // Real clinical/billing flags — previously hardcoded, which is dangerous
+      // in a patient list (an allergy flag that is always "no" invites harm).
+      const [allergyRows, balanceRows] = await Promise.all([
+        this.patientsRepository.prisma.allergy.groupBy({
+          by: ['patientId'],
+          where: { practiceId, patientId: { in: patientIds }, status: 'active' },
+        }),
+        this.patientsRepository.prisma.invoice.groupBy({
+          by: ['patientId'],
+          where: { practiceId, patientId: { in: patientIds }, status: { in: ['sent', 'overdue'] } },
+          _sum: { totalAmountCents: true },
+        }),
+      ]);
+      const patientsWithAllergies = new Set(allergyRows.map((r) => r.patientId));
+      const outstandingCentsByPatient = new Map(
+        balanceRows.map((r) => [r.patientId, r._sum.totalAmountCents ?? 0]),
+      );
+
       const providerIds = Array.from(new Set(appointments.map((a) => a.providerId)));
       const providers = providerIds.length
         ? await this.patientsRepository.prisma.provider.findMany({
@@ -200,24 +218,23 @@ export class PatientsService {
       return patients.map((patient) => {
         const appointmentMeta = appointmentMap.get(patient.id);
         const primaryPayer = patient.insuranceRecords[0]?.payerName;
-        const emailAlias = `${patient.firstName}.${patient.lastName}`
-          .toLowerCase()
-          .replace(/[^a-z0-9.]/g, '');
 
         return {
           id: patient.id,
           first_name: patient.firstName,
           last_name: patient.lastName,
-          email: `${emailAlias || 'patient'}@careloop.local`,
+          // Patient has no email column yet; empty string beats a fabricated
+          // "@careloop.local" address that looks real in the UI.
+          email: '',
           phone: patient.phoneE164 ?? 'N/A',
           age: this.toAge(patient.dateOfBirth),
           date_of_birth: patient.dateOfBirth,
           primary_doctor_name: appointmentMeta?.providerName ?? 'Unassigned',
           next_appointment_date: appointmentMeta?.nextDate ?? null,
           last_visit_date: appointmentMeta?.lastDate ?? null,
-          has_allergies: false,
+          has_allergies: patientsWithAllergies.has(patient.id),
           requires_pre_medication: false,
-          has_outstanding_balance: 0,
+          has_outstanding_balance: outstandingCentsByPatient.get(patient.id) ?? 0,
           patient_type: patient.patientType,
           primary_insurance: primaryPayer ?? null,
         };

@@ -17,7 +17,7 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const buffer = getAudioBuffer(id);
+  const buffer = await getAudioBuffer(id);
   if (!buffer) {
     log.warn({ id }, "audio not found or expired");
     return NextResponse.json({ error: "not_found" }, { status: 404 });

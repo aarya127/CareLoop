@@ -1,5 +1,8 @@
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+// Native bcrypt (C++ binding) — ~10-20x faster than the pure-JS bcryptjs on
+// weak CPUs (e.g. Render free tier). Verifies the same $2a/$2b hashes, so
+// existing stored password hashes keep working without migration.
+import bcrypt from 'bcrypt';
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS ?? 12);
 
