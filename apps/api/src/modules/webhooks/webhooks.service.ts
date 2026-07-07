@@ -126,7 +126,14 @@ export class WebhooksService {
     channelId: string,
   ): Promise<void> {
     const expectedToken = integrations.google.calendarWebhookToken;
-    if (expectedToken && channelToken !== expectedToken) {
+    if (!expectedToken) {
+      // Fail closed in production — without a configured token the channel is unauthenticated.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error('GOOGLE_CALENDAR_WEBHOOK_TOKEN not set — rejecting calendar webhook');
+        throw new BadRequestException('Calendar webhook not configured');
+      }
+      this.logger.warn('GOOGLE_CALENDAR_WEBHOOK_TOKEN not set — skipping token check (non-production only)');
+    } else if (channelToken !== expectedToken) {
       this.logger.warn(`Invalid Google Calendar channel token for channel ${channelId}`);
       throw new BadRequestException('Invalid calendar webhook token');
     }
@@ -148,10 +155,25 @@ export class WebhooksService {
 
   // ── Stripe webhook ───────────────────────────────────────────────────────
 
-  async handleStripe(payload: Record<string, unknown>, signature: string): Promise<void> {
-    // Stripe signature verification requires stripe SDK + STRIPE_WEBHOOK_SECRET
-    // For now: log + enqueue; add stripe.webhooks.constructEvent() when Stripe is fully integrated
+  async handleStripe(
+    payload: Record<string, unknown>,
+    signature: string,
+    rawBody: string,
+  ): Promise<void> {
     if (!signature) throw new BadRequestException('Missing Stripe-Signature');
+
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!secret) {
+      // Fail closed in production — an unverified payment webhook is forgeable.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error('STRIPE_WEBHOOK_SECRET not set — rejecting Stripe webhook');
+        throw new BadRequestException('Stripe webhook not configured');
+      }
+      this.logger.warn('STRIPE_WEBHOOK_SECRET not set — skipping signature validation (non-production only)');
+    } else if (!this.verifyStripeSignature(rawBody, signature, secret)) {
+      this.logger.warn('Invalid Stripe webhook signature');
+      throw new BadRequestException('Invalid Stripe signature');
+    }
 
     const event = (payload as any).type ?? 'unknown';
     const stripeEventId = (payload as any).id ?? `stripe_${Date.now()}`;
@@ -166,6 +188,43 @@ export class WebhooksService {
       payload,
       webhookLogId: logId,
       idempotencyKey,
+    });
+  }
+
+  /**
+   * Verify a Stripe webhook signature per Stripe's documented scheme:
+   * header is `t=<timestamp>,v1=<hmac>` and the signed payload is
+   * `<timestamp>.<rawBody>` HMAC-SHA256'd with the endpoint secret. Includes a
+   * 5-minute timestamp tolerance for replay protection. This mirrors
+   * stripe.webhooks.constructEvent without pulling in the SDK.
+   */
+  private verifyStripeSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
+    const crypto = require('crypto') as typeof import('crypto');
+
+    let timestamp = '';
+    const v1: string[] = [];
+    for (const part of signatureHeader.split(',')) {
+      const [key, value] = part.trim().split('=');
+      if (key === 't') timestamp = value;
+      else if (key === 'v1' && value) v1.push(value);
+    }
+    if (!timestamp || v1.length === 0) return false;
+
+    const tsNum = Number(timestamp);
+    const toleranceSeconds = 300;
+    if (!Number.isFinite(tsNum) || Math.abs(Date.now() / 1000 - tsNum) > toleranceSeconds) {
+      return false;
+    }
+
+    const expected = crypto
+      .createHmac('sha256', secret)
+      .update(`${timestamp}.${rawBody}`, 'utf8')
+      .digest('hex');
+    const expectedBuf = Buffer.from(expected);
+
+    return v1.some((sig) => {
+      const sigBuf = Buffer.from(sig);
+      return sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf);
     });
   }
 }

@@ -43,9 +43,11 @@ export class WebhooksController {
   async handleEmail(
     @Body() payload: Record<string, unknown>,
     @Headers('x-twilio-email-event-webhook-signature') signature: string,
-    @Req() req: FastifyRequest,
+    @Req() req: RawBodyRequest<FastifyRequest>,
   ) {
-    const rawBody = JSON.stringify((req as any).body);
+    // Verify over the exact received bytes — a re-serialized JSON.stringify() of
+    // the parsed body will not byte-match the signed payload.
+    const rawBody = req.rawBody?.toString('utf8') ?? JSON.stringify((req as any).body);
     await this.webhooksService.handleEmail(payload, rawBody, signature ?? '');
     return { received: true };
   }
@@ -75,8 +77,10 @@ export class WebhooksController {
   async handleStripe(
     @Body() payload: Record<string, unknown>,
     @Headers('stripe-signature') signature: string,
+    @Req() req: RawBodyRequest<FastifyRequest>,
   ) {
-    await this.webhooksService.handleStripe(payload, signature ?? '');
+    const rawBody = req.rawBody?.toString('utf8') ?? '';
+    await this.webhooksService.handleStripe(payload, signature ?? '', rawBody);
     return { received: true };
   }
 }

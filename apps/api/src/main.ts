@@ -71,7 +71,10 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ logger: process.env.NODE_ENV !== 'production' }),
-    { bufferLogs: true }
+    // rawBody: expose the unparsed request body (req.rawBody) so webhook handlers
+    // can verify provider signatures over the exact bytes that were signed
+    // (Stripe/SendGrid HMAC breaks if computed over re-serialized JSON).
+    { bufferLogs: true, rawBody: true }
   );
 
   // Register cookie plugin — required before any route handling
