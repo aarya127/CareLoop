@@ -34,10 +34,12 @@ services:
       - key: SESSION_COOKIE
         value: "cl_session"
       # ── AWS S3 (document + EMR imaging storage) ──
+      # Region MUST match where the bucket lives — a mismatch makes every
+      # presigned URL fail with 301 PermanentRedirect.
       - key: STORAGE_BUCKET
-        value: "careloop-documents"   # adjust to your bucket
+        value: "careloop-383418748732-ca-central-1-documents"
       - key: STORAGE_REGION
-        value: "us-east-1"            # adjust to your bucket region
+        value: "ca-central-1"
       - key: STORAGE_ACCESS_KEY_ID
         sync: false                   # IAM user key: s3:PutObject/GetObject/DeleteObject on the bucket
       - key: STORAGE_SECRET_ACCESS_KEY
@@ -63,9 +65,9 @@ services:
         sync: false
       # S3 access for document-cleanup (hard-delete removes objects from the bucket)
       - key: STORAGE_BUCKET
-        value: "careloop-documents"
+        value: "careloop-383418748732-ca-central-1-documents"
       - key: STORAGE_REGION
-        value: "us-east-1"
+        value: "ca-central-1"
       - key: STORAGE_ACCESS_KEY_ID
         sync: false
       - key: STORAGE_SECRET_ACCESS_KEY
