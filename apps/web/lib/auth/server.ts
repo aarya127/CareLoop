@@ -20,7 +20,10 @@ export async function requireUser(req: NextRequest): Promise<SessionUser> {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   if (!token) throw NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const res = await fetch(`${API_URL}/api/v1/auth/me`, {
+  // The NestJS API has no global prefix — the route is /auth/me (matching the
+  // login/me BFF proxies). The previous /api/v1/auth/me 404'd, so requireUser
+  // always threw; callers that didn't await it silently ran unauthenticated.
+  const res = await fetch(`${API_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

@@ -43,6 +43,8 @@ export class SessionAuthGuard implements CanActivate {
       id: session.user.id,
       email: session.user.email,
       role: session.user.role,
+      // Full role set so RolesGuard evaluates every assigned role, not just the first.
+      roles: session.user.roles,
       firstName: session.user.firstName,
       lastName: session.user.lastName,
       practiceId: session.user.practiceId,

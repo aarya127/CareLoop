@@ -160,6 +160,14 @@ export class SessionService {
   }
 
   async revokeAllUserSessions(userId: string, reason = 'security_event'): Promise<void> {
+    // Capture token hashes first so we can evict the Redis cache after revoking —
+    // otherwise a "sign out everywhere" would leave sessions valid for up to the
+    // cache TTL (60s).
+    const sessions = await prisma.session.findMany({
+      where: { userId, revokedAt: null },
+      select: { sessionTokenHash: true },
+    });
+
     await prisma.session.updateMany({
       where: {
         userId,
@@ -170,6 +178,8 @@ export class SessionService {
         revokeReason: reason,
       },
     });
+
+    await this.evictCachedSessions(sessions.map((s) => s.sessionTokenHash));
   }
 
   /**
@@ -177,17 +187,33 @@ export class SessionService {
    * Only revokes if the session belongs to the given userId (prevents IDOR).
    */
   async revokeSessionById(sessionId: string, userId: string, reason = 'user_revoked'): Promise<void> {
-    await prisma.session.updateMany({
-      where: {
-        id: sessionId,
-        userId,      // ownership check — prevents users from revoking others' sessions
-        revokedAt: null,
-      },
+    // Ownership check (id + userId) prevents users from revoking others' sessions.
+    const session = await prisma.session.findFirst({
+      where: { id: sessionId, userId, revokedAt: null },
+      select: { sessionTokenHash: true },
+    });
+    if (!session) return;
+
+    await prisma.session.update({
+      where: { id: sessionId },
       data: {
         revokedAt: new Date(),
         revokeReason: reason,
       },
     });
+
+    await this.evictCachedSessions([session.sessionTokenHash]);
+  }
+
+  /** Delete cached session contexts by token hash so revocation takes effect immediately. */
+  private async evictCachedSessions(tokenHashes: string[]): Promise<void> {
+    if (tokenHashes.length === 0) return;
+    try {
+      const redis = getRedisClient();
+      await Promise.all(tokenHashes.map((h) => redis.del(sessionCacheKey(h))));
+    } catch {
+      /* non-fatal — DB revocation stands; cache entries expire within the TTL */
+    }
   }
 
   /**
