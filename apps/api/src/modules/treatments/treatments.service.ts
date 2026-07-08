@@ -10,26 +10,26 @@ export class TreatmentsService {
     private readonly audit: AuditService,
   ) {}
 
-  findAll(filter: TreatmentFilter) {
-    if (!filter.practiceId && !filter.patientId) {
-      throw new BadRequestException('practiceId or patientId is required');
-    }
-    return this.repo.findAll(filter);
+  findAll(practiceId: string, filter: TreatmentFilter) {
+    // Tenancy always from the session — override any client-supplied practiceId.
+    return this.repo.findAll({ ...filter, practiceId });
   }
 
-  async findById(id: string) {
+  async findById(practiceId: string, id: string) {
     const record = await this.repo.findById(id);
-    if (!record) throw new NotFoundException(`Treatment ${id} not found`);
+    if (!record || record.practiceId !== practiceId) {
+      throw new NotFoundException(`Treatment ${id} not found`);
+    }
     return record;
   }
 
-  async create(dto: CreateTreatmentDto, actorUserId?: string) {
-    if (!dto.practiceId || !dto.patientId) {
-      throw new BadRequestException('practiceId and patientId are required');
+  async create(practiceId: string, dto: CreateTreatmentDto, actorUserId?: string) {
+    if (!dto.patientId) {
+      throw new BadRequestException('patientId is required');
     }
 
     const record = await this.repo.create({
-      practiceId: dto.practiceId,
+      practiceId,
       patientId: dto.patientId,
       appointmentId: dto.appointmentId,
       providerId: dto.providerId,
@@ -48,7 +48,7 @@ export class TreatmentsService {
       actorUserId,
       metadata: {
         treatmentId: record.id,
-        practiceId: dto.practiceId,
+        practiceId,
         patientId: dto.patientId,
         procedureCode: dto.procedureCode,
         status: record.status,
@@ -58,8 +58,8 @@ export class TreatmentsService {
     return record;
   }
 
-  async update(id: string, dto: UpdateTreatmentDto, actorUserId?: string) {
-    await this.findById(id); // throws 404 if not found
+  async update(practiceId: string, id: string, dto: UpdateTreatmentDto, actorUserId?: string) {
+    await this.findById(practiceId, id); // throws 404 if not found or cross-tenant
 
     const completedAt =
       dto.status === 'completed' && dto.completedAt
@@ -93,8 +93,8 @@ export class TreatmentsService {
     return record;
   }
 
-  async remove(id: string, actorUserId?: string) {
-    await this.findById(id);
+  async remove(practiceId: string, id: string, actorUserId?: string) {
+    await this.findById(practiceId, id);
     await this.repo.remove(id);
 
     void this.audit.record({

@@ -6,63 +6,51 @@ import {
   Param,
   Body,
   Query,
-  Headers,
+  Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { BillingService } from './billing.service';
-import type { CreateInvoiceDto, UpdateInvoiceDto, BillingSummaryQuery, InvoiceFilter } from './dto';
+import { CreateInvoiceDto, UpdateInvoiceDto } from './dto';
+import type { BillingSummaryQuery, InvoiceFilter } from './dto';
 
 @Controller('billing')
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
   @Get('summary')
-  getBillingSummary(@Query() query: BillingSummaryQuery) {
-    return this.billingService.getBillingSummary(query);
+  getBillingSummary(@Query() query: BillingSummaryQuery, @Req() req: any) {
+    return this.billingService.getBillingSummary(req.user.practiceId, query);
   }
 
   @Get('invoices')
-  listInvoices(@Query() query: InvoiceFilter) {
-    return this.billingService.listInvoices(query);
+  listInvoices(@Query() query: InvoiceFilter, @Req() req: any) {
+    return this.billingService.listInvoices(req.user.practiceId, query);
   }
 
   @Get('invoices/:id')
-  getInvoice(@Param('id') id: string) {
-    return this.billingService.getInvoice(id);
+  getInvoice(@Param('id') id: string, @Req() req: any) {
+    return this.billingService.getInvoice(req.user.practiceId, id);
   }
 
   @Post('invoices')
   @HttpCode(HttpStatus.CREATED)
-  createInvoice(
-    @Body() dto: CreateInvoiceDto,
-    @Headers('x-actor-user-id') actorUserId?: string,
-  ) {
-    return this.billingService.createInvoice(dto, actorUserId);
+  createInvoice(@Body() dto: CreateInvoiceDto, @Req() req: any) {
+    return this.billingService.createInvoice(req.user.practiceId, dto, req.user.id);
   }
 
   @Patch('invoices/:id')
-  updateInvoice(
-    @Param('id') id: string,
-    @Body() dto: UpdateInvoiceDto,
-    @Headers('x-actor-user-id') actorUserId?: string,
-  ) {
-    return this.billingService.updateInvoice(id, dto, actorUserId);
+  updateInvoice(@Param('id') id: string, @Body() dto: UpdateInvoiceDto, @Req() req: any) {
+    return this.billingService.updateInvoice(req.user.practiceId, id, dto, req.user.id);
   }
 
   @Post('invoices/:id/send')
-  sendInvoice(
-    @Param('id') id: string,
-    @Headers('x-actor-user-id') actorUserId?: string,
-  ) {
-    return this.billingService.sendInvoice(id, actorUserId);
+  sendInvoice(@Param('id') id: string, @Req() req: any) {
+    return this.billingService.sendInvoice(req.user.practiceId, id, req.user.id);
   }
 
   @Post('invoices/:id/void')
-  voidInvoice(
-    @Param('id') id: string,
-    @Headers('x-actor-user-id') actorUserId?: string,
-  ) {
-    return this.billingService.voidInvoice(id, actorUserId);
+  voidInvoice(@Param('id') id: string, @Req() req: any) {
+    return this.billingService.voidInvoice(req.user.practiceId, id, req.user.id);
   }
 }

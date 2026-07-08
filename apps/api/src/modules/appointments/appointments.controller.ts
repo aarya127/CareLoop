@@ -36,7 +36,7 @@ export class AppointmentsController {
   /** GET /appointments/availability?providerId=&date=YYYY-MM-DD&duration=30 (practice from session) */
   @Get('availability')
   getAvailability(@Query() query: GetSlotsDto, @Req() req: any) {
-    return this.appointmentsService.getAvailability({ ...query, practiceId: req.user.practiceId });
+    return this.appointmentsService.getAvailability(req.user.practiceId, query);
   }
 
   /**

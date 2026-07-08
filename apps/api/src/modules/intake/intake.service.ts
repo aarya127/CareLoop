@@ -118,7 +118,7 @@ export class IntakeService {
       // 4. Create insurance policy (when insurance section is complete)
       let insuranceRecord: any = null;
       if (insurance?.payerName && insurance?.memberId) {
-        insuranceRecord = await this.insuranceService.create({
+        insuranceRecord = await this.insuranceService.create(draft.practiceId, {
           patientId: patient.id,
           payerName: insurance.payerName,
           planName: insurance.planName,

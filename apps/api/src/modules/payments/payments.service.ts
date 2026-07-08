@@ -13,28 +13,36 @@ export class PaymentsService {
     private readonly idempotencyService: IdempotencyService,
   ) {}
 
-  listPayments(filter: PaymentFilter) {
-    if (!filter.practiceId && !filter.patientId && !filter.invoiceId) {
-      throw new BadRequestException('At least one of practiceId, patientId, or invoiceId is required');
-    }
-    return this.paymentsRepo.findAll(filter);
+  listPayments(practiceId: string, filter: PaymentFilter) {
+    // Tenancy always from the session — override any client-supplied practiceId.
+    return this.paymentsRepo.findAll({ ...filter, practiceId });
   }
 
-  async getPayment(id: string) {
+  async getPayment(practiceId: string, id: string) {
     const payment = await this.paymentsRepo.findById(id);
-    if (!payment) throw new NotFoundException(`Payment ${id} not found`);
+    if (!payment || payment.practiceId !== practiceId) {
+      throw new NotFoundException(`Payment ${id} not found`);
+    }
     return payment;
   }
 
-  async createPayment(dto: CreatePaymentDto, idempotencyKey?: string, actorUserId?: string) {
+  async createPayment(
+    practiceId: string,
+    dto: CreatePaymentDto,
+    idempotencyKey?: string,
+    actorUserId?: string,
+  ) {
     // --- Idempotency check ---
     if (idempotencyKey) {
       const cached = await this.idempotencyService.claim(idempotencyKey);
       if (cached) return cached.body;
     }
 
-    // Validate invoice exists
-    const invoice = await prisma.invoice.findUnique({ where: { id: dto.invoiceId } });
+    // Validate the invoice exists AND belongs to the caller's practice — a
+    // payment must never attach to another clinic's invoice.
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: dto.invoiceId, practiceId },
+    });
     if (!invoice) {
       throw new NotFoundException(`Invoice ${dto.invoiceId} not found`);
     }
@@ -46,7 +54,7 @@ export class PaymentsService {
     const payment = await prisma.$transaction(async (tx) => {
       const newPayment = await tx.paymentRecord.create({
         data: {
-          practiceId: dto.practiceId,
+          practiceId,
           invoiceId: dto.invoiceId,
           patientId: dto.patientId,
           payerType: dto.payerType ?? 'patient',
@@ -97,8 +105,9 @@ export class PaymentsService {
     return payment;
   }
 
-  async updatePayment(id: string, dto: UpdatePaymentDto, actorUserId?: string) {
-    await this.getPayment(id);
+  async updatePayment(practiceId: string, id: string, dto: UpdatePaymentDto, actorUserId?: string) {
+    // Scoped lookup — 404s if the payment belongs to another practice.
+    await this.getPayment(practiceId, id);
 
     const payment = await this.paymentsRepo.update(id, {
       ...(dto.status !== undefined && { status: dto.status }),

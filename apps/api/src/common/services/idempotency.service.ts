@@ -30,26 +30,35 @@ export class IdempotencyService {
    */
   async claim(idempotencyKey: string): Promise<StoredResult | null> {
     const redisKey = this.key(idempotencyKey);
-    const existing = await this.redis.get(redisKey);
+    const processingValue = JSON.stringify({
+      status: 'processing',
+      statusCode: 202,
+      body: null,
+    } satisfies StoredResult);
 
-    if (existing) {
-      const stored: StoredResult = JSON.parse(existing);
-      if (stored.status === 'processing') {
-        throw new ConflictException('A request with this idempotency key is already being processed');
-      }
-      // Return the cached completed result
-      return stored;
+    // Atomic claim: SET ... NX only succeeds if the key is absent. This closes
+    // the race where two concurrent requests both read "no key" and both proceed
+    // (a GET-then-SET would double-charge payments / double-book appointments).
+    const claimed = await this.redis.set(redisKey, processingValue, 'EX', 60, 'NX');
+    if (claimed === 'OK') {
+      return null; // we won the claim — caller proceeds
     }
 
-    // Claim the key atomically; set short TTL while processing
-    await this.redis.set(
-      redisKey,
-      JSON.stringify({ status: 'processing', statusCode: 202, body: null } satisfies StoredResult),
-      'EX',
-      60 // 60s processing window — replaced by complete() when done
-    );
+    // Key already exists — inspect its state.
+    const existing = await this.redis.get(redisKey);
+    if (!existing) {
+      // Rare: the key expired between the SET NX and this GET. Try once more.
+      const retry = await this.redis.set(redisKey, processingValue, 'EX', 60, 'NX');
+      if (retry === 'OK') return null;
+      throw new ConflictException('A request with this idempotency key is already being processed');
+    }
 
-    return null;
+    const stored: StoredResult = JSON.parse(existing);
+    if (stored.status === 'processing') {
+      throw new ConflictException('A request with this idempotency key is already being processed');
+    }
+    // Completed — return the cached response for replay.
+    return stored;
   }
 
   /**

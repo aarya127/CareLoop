@@ -291,8 +291,17 @@ export class PatientsService {
       });
 
       return patient;
-    } catch {
-      return null;
+    } catch (err) {
+      // Don't silently swallow write failures — a failed create must not look
+      // like success. Audit the failure and rethrow (the exception filter
+      // returns a sanitized 500; the real error is logged server-side).
+      void this.audit.record({
+        eventType: 'patient_created',
+        outcome: 'failure',
+        actorUserId,
+        metadata: { practiceId, error: err instanceof Error ? err.message : 'unknown' },
+      });
+      throw err;
     }
   }
 
@@ -324,8 +333,14 @@ export class PatientsService {
       });
 
       return patient;
-    } catch {
-      return null;
+    } catch (err) {
+      void this.audit.record({
+        eventType: 'patient_updated',
+        outcome: 'failure',
+        actorUserId,
+        metadata: { patientId: id, error: err instanceof Error ? err.message : 'unknown' },
+      });
+      throw err;
     }
   }
 
@@ -342,8 +357,14 @@ export class PatientsService {
         actorUserId,
         metadata: { patientId: id },
       });
-    } catch {
-      return;
+    } catch (err) {
+      void this.audit.record({
+        eventType: 'patient_deleted',
+        outcome: 'failure',
+        actorUserId,
+        metadata: { patientId: id, error: err instanceof Error ? err.message : 'unknown' },
+      });
+      throw err;
     }
   }
 

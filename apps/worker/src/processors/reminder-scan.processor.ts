@@ -1,10 +1,23 @@
 import type { Job } from 'bullmq';
 import { Queue } from 'bullmq';
+import Redis from 'ioredis';
 import { prisma } from '@careloop/db';
 import { QUEUE_NAMES } from '@careloop/shared';
 import type { ReminderScanJobData, AppointmentReminderJobData } from '@careloop/shared';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
+
+// Reuse a single connection + Queue across scans. The scan runs every 60s, so
+// creating and tearing down a Redis connection each time (the previous behavior)
+// churned connections needlessly.
+let remindersQueue: Queue<AppointmentReminderJobData> | null = null;
+function getRemindersQueue(): Queue<AppointmentReminderJobData> {
+  if (!remindersQueue) {
+    const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
+    remindersQueue = new Queue<AppointmentReminderJobData>(QUEUE_NAMES.REMINDERS, { connection });
+  }
+  return remindersQueue;
+}
 
 /**
  * Scans the Reminder table for rows that are due (scheduledAt <= scanUpTo)
@@ -52,10 +65,7 @@ export async function reminderScanProcessor(
 
   job.log(`[reminder-scan] found ${pending.length} pending reminders`);
 
-  // Lazy-create connection to the reminders queue (not injected — worker is standalone)
-  const { default: Redis } = await import('ioredis');
-  const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
-  const remindersQueue = new Queue(QUEUE_NAMES.REMINDERS, { connection });
+  const queue = getRemindersQueue();
 
   const results = await Promise.allSettled(
     pending.map(async (reminder) => {
@@ -74,7 +84,7 @@ export async function reminderScanProcessor(
         content,
       };
 
-      return remindersQueue.add('send-reminder', data, {
+      return queue.add('send-reminder', data, {
         jobId: `reminder:${reminder.id}`, // idempotent — duplicate is silently ignored
         attempts: 5,
         backoff: { type: 'exponential', delay: 5000 },
@@ -86,8 +96,6 @@ export async function reminderScanProcessor(
 
   const enqueued = results.filter((r) => r.status === 'fulfilled').length;
   const skipped = results.filter((r) => r.status === 'rejected').length;
-
-  await connection.quit();
 
   job.log(`[reminder-scan] enqueued=${enqueued} skipped/duplicate=${skipped}`);
 }

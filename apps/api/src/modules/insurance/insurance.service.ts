@@ -6,29 +6,44 @@ function hashMemberId(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+/**
+ * Insurance records have no practiceId column — tenancy is reached through the
+ * owning Patient (`patient.practiceId`). Every query is scoped through that
+ * relation so no practice can read or mutate another's insurance/PHI by id.
+ */
 @Injectable()
 export class InsuranceService {
-  async findByPatientId(patientId: string) {
+  async findByPatientId(practiceId: string, patientId: string) {
     return prisma.patientInsurance.findMany({
-      where: { patientId },
+      where: { patientId, patient: { practiceId } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findByMemberId(rawMemberId: string) {
+  async findByMemberId(practiceId: string, rawMemberId: string) {
     return prisma.patientInsurance.findMany({
-      where: { memberIdHash: hashMemberId(rawMemberId) },
+      where: { memberIdHash: hashMemberId(rawMemberId), patient: { practiceId } },
     });
   }
 
-  async create(dto: {
-    patientId: string;
-    payerName: string;
-    planName?: string;
-    memberIdEnc: string;
-    groupNumberEnc?: string;
-    coverageSummary?: object;
-  }) {
+  async create(
+    practiceId: string,
+    dto: {
+      patientId: string;
+      payerName: string;
+      planName?: string;
+      memberIdEnc: string;
+      groupNumberEnc?: string;
+      coverageSummary?: object;
+    },
+  ) {
+    // Confirm the target patient belongs to the caller's practice.
+    const patient = await prisma.patient.findFirst({
+      where: { id: dto.patientId, practiceId },
+      select: { id: true },
+    });
+    if (!patient) throw new NotFoundException(`Patient ${dto.patientId} not found`);
+
     return prisma.patientInsurance.create({
       data: {
         patientId: dto.patientId,
@@ -42,15 +57,22 @@ export class InsuranceService {
     });
   }
 
-  async update(id: string, dto: {
-    payerName?: string;
-    planName?: string;
-    memberIdEnc?: string;
-    groupNumberEnc?: string;
-    coverageSummary?: object;
-    active?: boolean;
-  }) {
-    const existing = await prisma.patientInsurance.findUnique({ where: { id } });
+  async update(
+    practiceId: string,
+    id: string,
+    dto: {
+      payerName?: string;
+      planName?: string;
+      memberIdEnc?: string;
+      groupNumberEnc?: string;
+      coverageSummary?: object;
+      active?: boolean;
+    },
+  ) {
+    const existing = await prisma.patientInsurance.findFirst({
+      where: { id, patient: { practiceId } },
+      select: { id: true },
+    });
     if (!existing) throw new NotFoundException(`Insurance record ${id} not found`);
 
     return prisma.patientInsurance.update({
@@ -63,10 +85,12 @@ export class InsuranceService {
     });
   }
 
-  async remove(id: string) {
-    const existing = await prisma.patientInsurance.findUnique({ where: { id } });
+  async remove(practiceId: string, id: string) {
+    const existing = await prisma.patientInsurance.findFirst({
+      where: { id, patient: { practiceId } },
+      select: { id: true },
+    });
     if (!existing) throw new NotFoundException(`Insurance record ${id} not found`);
     await prisma.patientInsurance.delete({ where: { id } });
   }
 }
-

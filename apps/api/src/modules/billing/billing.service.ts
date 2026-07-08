@@ -10,22 +10,22 @@ export class BillingService {
     private readonly auditService: AuditService,
   ) {}
 
-  listInvoices(filter: InvoiceFilter) {
-    if (!filter.practiceId && !filter.patientId) {
-      throw new BadRequestException('Either practiceId or patientId is required');
-    }
-    return this.invoicesRepo.findAll(filter);
+  listInvoices(practiceId: string, filter: InvoiceFilter) {
+    // Tenancy always from the session — override any client-supplied practiceId.
+    return this.invoicesRepo.findAll({ ...filter, practiceId });
   }
 
-  async getInvoice(id: string) {
+  async getInvoice(practiceId: string, id: string) {
     const invoice = await this.invoicesRepo.findById(id);
-    if (!invoice) throw new NotFoundException(`Invoice ${id} not found`);
+    if (!invoice || invoice.practiceId !== practiceId) {
+      throw new NotFoundException(`Invoice ${id} not found`);
+    }
     return invoice;
   }
 
-  async createInvoice(dto: CreateInvoiceDto, actorUserId?: string) {
+  async createInvoice(practiceId: string, dto: CreateInvoiceDto, actorUserId?: string) {
     const invoice = await this.invoicesRepo.create({
-      practiceId: dto.practiceId,
+      practiceId,
       patientId: dto.patientId,
       treatmentId: dto.treatmentId,
       payerType: dto.payerType ?? 'patient',
@@ -42,14 +42,14 @@ export class BillingService {
       eventType: 'invoice_created',
       outcome: 'success',
       actorUserId,
-      metadata: { invoiceId: invoice.id, practiceId: dto.practiceId, patientId: dto.patientId },
+      metadata: { invoiceId: invoice.id, practiceId, patientId: dto.patientId },
     });
 
     return invoice;
   }
 
-  async updateInvoice(id: string, dto: UpdateInvoiceDto, actorUserId?: string) {
-    await this.getInvoice(id);
+  async updateInvoice(practiceId: string, id: string, dto: UpdateInvoiceDto, actorUserId?: string) {
+    await this.getInvoice(practiceId, id);
 
     const invoice = await this.invoicesRepo.update(id, {
       ...(dto.status !== undefined && { status: dto.status }),
@@ -72,8 +72,8 @@ export class BillingService {
     return invoice;
   }
 
-  async sendInvoice(id: string, actorUserId?: string) {
-    const existing = await this.getInvoice(id);
+  async sendInvoice(practiceId: string, id: string, actorUserId?: string) {
+    const existing = await this.getInvoice(practiceId, id);
     if (existing.status === 'void') {
       throw new BadRequestException('Cannot send a voided invoice');
     }
@@ -94,8 +94,8 @@ export class BillingService {
     return invoice;
   }
 
-  async voidInvoice(id: string, actorUserId?: string) {
-    await this.getInvoice(id);
+  async voidInvoice(practiceId: string, id: string, actorUserId?: string) {
+    await this.getInvoice(practiceId, id);
 
     const invoice = await this.invoicesRepo.update(id, {
       status: 'void',
@@ -112,10 +112,7 @@ export class BillingService {
     return invoice;
   }
 
-  async getBillingSummary(query: BillingSummaryQuery) {
-    if (!query.practiceId) {
-      throw new BadRequestException('practiceId is required for billing summary');
-    }
-    return this.invoicesRepo.summary(query.practiceId, query.patientId, query.from, query.to);
+  async getBillingSummary(practiceId: string, query: BillingSummaryQuery) {
+    return this.invoicesRepo.summary(practiceId, query.patientId, query.from, query.to);
   }
 }

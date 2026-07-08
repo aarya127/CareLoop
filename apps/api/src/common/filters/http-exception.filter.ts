@@ -34,6 +34,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let message: string | string[] = 'Internal server error';
 
     if (exception instanceof HttpException) {
+      // HttpException messages are intentional and safe to surface to clients.
       const response = exception.getResponse();
       if (typeof response === 'string') {
         message = response;
@@ -41,14 +42,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const r = response as Record<string, unknown>;
         message = (r['message'] as string | string[]) ?? exception.message;
       }
-    } else if (exception instanceof Error) {
-      message = exception.message;
     }
+    // For non-HttpException errors (e.g. raw Prisma/DB errors) we deliberately do
+    // NOT surface exception.message — it can leak schema/internal details. The
+    // real error is logged server-side below; the client gets a generic message.
+
+    const requestId =
+      (request.headers?.['x-request-id'] as string | undefined) ??
+      (request.id as string | undefined);
 
     // Don't log 401/403/404 as errors — they're expected
     if (status >= 500) {
       this.logger.error(
-        `${request.method} ${request.url} → ${status}`,
+        `${request.method} ${request.url} → ${status}${requestId ? ` [${requestId}]` : ''}`,
         exception instanceof Error ? exception.stack : String(exception)
       );
     }
@@ -57,6 +63,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode: status,
       error: HttpStatus[status] ?? 'Error',
       message,
+      ...(requestId ? { requestId } : {}),
       timestamp: new Date().toISOString(),
     };
 

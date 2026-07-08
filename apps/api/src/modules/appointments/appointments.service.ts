@@ -81,12 +81,12 @@ export class AppointmentsService {
     return this.getOwnedAppt(practiceId, id);
   }
 
-  async getAvailability(query: GetSlotsDto) {
+  async getAvailability(practiceId: string, query: GetSlotsDto) {
     if (!query.providerId || !query.date || !query.duration) {
       throw new BadRequestException('providerId, date, and duration are required');
     }
     return this.availability.getSlots({
-      practiceId: query.practiceId,
+      practiceId,
       providerId: query.providerId,
       date: query.date,
       duration: Number(query.duration),

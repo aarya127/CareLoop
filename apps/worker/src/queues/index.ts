@@ -1,42 +1,34 @@
 import { Queue } from 'bullmq';
 import type Redis from 'ioredis';
-import { JobNames } from '@careloop/shared';
-import type {
-  FinalizeTranscriptJobData,
-  SyncGoogleCalendarJobData,
-  AppointmentReminderJobData,
-  ComputeKpisJobData,
-} from '@careloop/shared';
+import { QUEUE_NAMES } from '@careloop/shared';
+import type { AnalyticsRefreshJobData, ReminderScanJobData } from '@careloop/shared';
 
-export type QueueMap = {
-  [JobNames.FINALIZE_TRANSCRIPT]: Queue<FinalizeTranscriptJobData>;
-  [JobNames.SYNC_GOOGLE_CALENDAR]: Queue<SyncGoogleCalendarJobData>;
-  [JobNames.APPOINTMENT_REMINDER]: Queue<AppointmentReminderJobData>;
-  [JobNames.COMPUTE_KPIS]: Queue<ComputeKpisJobData>;
-};
-
-export function createQueues(connection: Redis): QueueMap {
-  const kpisQueue = new Queue<ComputeKpisJobData>(JobNames.COMPUTE_KPIS, { connection });
-  // Schedule nightly KPI computation at 02:00 UTC (BullMQ v5 API)
-  kpisQueue.upsertJobScheduler(
-    'nightly-kpis',
-    { pattern: '0 2 * * *' },
-    { name: JobNames.COMPUTE_KPIS, data: { practiceId: 'all', date: '' } }
+/**
+ * Registers the repeatable (interval/cron) jobs that drive the time-based
+ * workers. Without this, nothing ever enqueues onto the SCHEDULER or nightly
+ * ANALYTICS queues, so the reminder scan and KPI rollup never run. Called once
+ * at worker startup; upsertJobScheduler is idempotent across restarts/replicas.
+ *
+ * Returns the Queue handles so the caller can close them on shutdown.
+ */
+export async function registerSchedulers(connection: Redis): Promise<Queue[]> {
+  // Every minute: scan for reminders due within the look-ahead window and enqueue
+  // sends. The scan is idempotent per reminder id, so overlapping runs are safe.
+  const schedulerQueue = new Queue<ReminderScanJobData>(QUEUE_NAMES.SCHEDULER, { connection });
+  await schedulerQueue.upsertJobScheduler(
+    'reminder-scan',
+    { every: 60_000 },
+    { name: 'reminder-scan', data: {} },
   );
 
-  return {
-    [JobNames.FINALIZE_TRANSCRIPT]: new Queue<FinalizeTranscriptJobData>(
-      JobNames.FINALIZE_TRANSCRIPT,
-      { connection }
-    ),
-    [JobNames.SYNC_GOOGLE_CALENDAR]: new Queue<SyncGoogleCalendarJobData>(
-      JobNames.SYNC_GOOGLE_CALENDAR,
-      { connection }
-    ),
-    [JobNames.APPOINTMENT_REMINDER]: new Queue<AppointmentReminderJobData>(
-      JobNames.APPOINTMENT_REMINDER,
-      { connection }
-    ),
-    [JobNames.COMPUTE_KPIS]: kpisQueue,
-  };
+  // Nightly at 02:00: recompute KPIs for every practice. analyticsRefreshProcessor
+  // fans out over all practices when practiceId === 'all'.
+  const analyticsQueue = new Queue<AnalyticsRefreshJobData>(QUEUE_NAMES.ANALYTICS, { connection });
+  await analyticsQueue.upsertJobScheduler(
+    'nightly-analytics-refresh',
+    { pattern: '0 2 * * *' },
+    { name: 'analytics-refresh', data: { practiceId: 'all' } },
+  );
+
+  return [schedulerQueue, analyticsQueue];
 }
