@@ -13,8 +13,12 @@ import {
 import { BillingService } from './billing.service';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './dto';
 import type { BillingSummaryQuery, InvoiceFilter } from './dto';
+import { RequireRole } from '../../common/guards';
+import { FRONT_OFFICE_ROLES, MANAGEMENT_ROLES } from '../auth/auth.constants';
 
+// Billing is a money function — front office only (clinical roles excluded).
 @Controller('billing')
+@RequireRole(...FRONT_OFFICE_ROLES)
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
@@ -50,6 +54,7 @@ export class BillingController {
   }
 
   @Post('invoices/:id/void')
+  @RequireRole(...MANAGEMENT_ROLES) // voiding a record is destructive — admin/manager only
   voidInvoice(@Param('id') id: string, @Req() req: any) {
     return this.billingService.voidInvoice(req.user.practiceId, id, req.user.id);
   }

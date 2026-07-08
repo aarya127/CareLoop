@@ -13,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { TreatmentsService } from './treatments.service';
 import { CreateTreatmentDto, UpdateTreatmentDto } from './dto';
+import { RequireRole } from '../../common/guards';
+import { EMR_CLINICAL_ROLES, MANAGEMENT_ROLES } from '../auth/auth.constants';
 
 @Controller('treatments')
 export class TreatmentsController {
@@ -42,6 +44,7 @@ export class TreatmentsController {
 
   /** POST /treatments */
   @Post()
+  @RequireRole(...EMR_CLINICAL_ROLES) // clinical record — clinical roles only
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateTreatmentDto, @Req() req: any) {
     return this.treatmentsService.create(req.user.practiceId, dto, req.user.id);
@@ -49,12 +52,14 @@ export class TreatmentsController {
 
   /** PUT /treatments/:id */
   @Put(':id')
+  @RequireRole(...EMR_CLINICAL_ROLES) // clinical record — clinical roles only
   update(@Param('id') id: string, @Body() dto: UpdateTreatmentDto, @Req() req: any) {
     return this.treatmentsService.update(req.user.practiceId, id, dto, req.user.id);
   }
 
   /** DELETE /treatments/:id */
   @Delete(':id')
+  @RequireRole(...MANAGEMENT_ROLES) // destructive — admin/manager only
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @Req() req: any) {
     return this.treatmentsService.remove(req.user.practiceId, id, req.user.id);

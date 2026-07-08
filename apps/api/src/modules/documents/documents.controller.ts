@@ -11,6 +11,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { DocumentsService } from './documents.service';
+import { RequireRole } from '../../common/guards';
+import { MANAGEMENT_ROLES } from '../auth/auth.constants';
 
 @Controller('documents')
 export class DocumentsController {
@@ -61,6 +63,7 @@ export class DocumentsController {
 
   /** DELETE /documents/:id */
   @Delete(':id')
+  @RequireRole(...MANAGEMENT_ROLES) // destructive — admin/manager only
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @Req() req: any) {
     return this.documentsService.remove(req.user.practiceId, id, req.user.id);

@@ -1,12 +1,16 @@
 import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
+import { RequireRole } from '../../common/guards';
+import { MANAGEMENT_ROLES, AUTH_ROLES } from '../auth/auth.constants';
 
 interface AnalyticsQuery {
   practiceId?: string;
   rangeDays?: string;
 }
 
+// Business metrics — management only.
 @Controller('analytics')
+@RequireRole(...MANAGEMENT_ROLES)
 export class AnalyticsController {
   private readonly analyticsService: AnalyticsService;
 
@@ -79,6 +83,7 @@ export class AnalyticsController {
   }
 
   @Post('seed-phase1')
+  @RequireRole(AUTH_ROLES.ADMIN) // destructive test-data seeder — admin only
   seedPhase1(@Body() body: Record<string, unknown>, @Req() req: any) {
     return this.analyticsService.seedPhase1TestData({ ...body, practiceId: req.user.practiceId });
   }

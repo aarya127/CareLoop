@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, BadRequestException } from '@nestjs/common';
 import { PatientsService } from './patients.service';
+import { RequireRole } from '../../common/guards';
+import { MANAGEMENT_ROLES } from '../auth/auth.constants';
 
 @Controller('patients')
 export class PatientsController {
@@ -71,6 +73,7 @@ export class PatientsController {
   }
 
   @Delete(':id')
+  @RequireRole(...MANAGEMENT_ROLES) // destructive — admin/manager only
   remove(@Param('id') id: string, @Req() req: any) {
     return this.patientsService.remove(req.user.practiceId, id, req.user.id);
   }

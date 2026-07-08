@@ -1,7 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AuditService, type AuditLogQuery } from './audit.service';
+import { RequireRole } from '../../common/guards';
+import { MANAGEMENT_ROLES } from '../auth/auth.constants';
 
+// Compliance audit trail — management only.
 @Controller('audit')
+@RequireRole(...MANAGEMENT_ROLES)
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 

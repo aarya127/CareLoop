@@ -11,9 +11,19 @@ export const AUTH_ROLES = {
   SERVICE_ACCOUNT: 'service_account',
 } as const;
 
-// Roles permitted to write clinical/EMR data. `admin` is included explicitly for
-// clarity though RolesGuard already grants admin a blanket bypass.
+// ── Role groups for RBAC (used with @RequireRole) ───────────────────────────
+// RolesGuard grants `admin` a blanket bypass, but admin is listed explicitly in
+// each group for readability. Roles are compared case-insensitively.
+
+// Roles permitted to write clinical/EMR data.
 export const EMR_CLINICAL_ROLES = ['admin', 'manager', 'provider', 'hygienist'] as const;
+
+// Management — analytics, audit log, and destructive actions (delete/void).
+export const MANAGEMENT_ROLES = ['admin', 'manager'] as const;
+
+// Front office — money handling (billing + payments) and insurance verification.
+// Clinical roles (provider/hygienist) are intentionally excluded from money ops.
+export const FRONT_OFFICE_ROLES = ['admin', 'manager', 'staff'] as const;
 
 export const AUTH_LIMITS = {
   LOGIN_IP_WINDOW_MS: 5 * 60 * 1000,

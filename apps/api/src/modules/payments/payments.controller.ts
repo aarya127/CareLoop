@@ -14,8 +14,12 @@ import {
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto, UpdatePaymentDto } from './dto';
 import type { PaymentFilter } from './dto';
+import { RequireRole } from '../../common/guards';
+import { FRONT_OFFICE_ROLES } from '../auth/auth.constants';
 
+// Payments is a money function — front office only (clinical roles excluded).
 @Controller('payments')
+@RequireRole(...FRONT_OFFICE_ROLES)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
