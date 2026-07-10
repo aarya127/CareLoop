@@ -21,6 +21,7 @@ import { AuthService } from './auth.service';
 import { AUTH_ROLES } from './auth.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { SignupDto } from './dto/signup.dto';
 import { Public, CurrentUser } from '../../common/decorators';
 import { SESSION_COOKIE, SessionService } from './session.service';
 
@@ -73,6 +74,27 @@ export class AuthController {
 
     res.setCookie(SESSION_COOKIE, data.sessionToken, COOKIE_OPTS);
 
+    return { user: data.user, sessionToken: data.sessionToken };
+  }
+
+  /**
+   * Self-serve organization signup — creates a new practice + first admin and
+   * logs them in. Public + rate-limited (5/min per IP) to deter abuse.
+   */
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  async signup(
+    @Body() dto: SignupDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const data = await this.authService.signup(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    res.setCookie(SESSION_COOKIE, data.sessionToken, COOKIE_OPTS);
     return { user: data.user, sessionToken: data.sessionToken };
   }
 

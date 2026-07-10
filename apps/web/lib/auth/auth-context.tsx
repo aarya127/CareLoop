@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import type { AuthUser, AuthScope, AuthContextValue, UserRole } from './types';
+import type { AuthUser, AuthScope, AuthContextValue, UserRole, SignupInput } from './types';
 import { ROLE_SCOPES } from './types';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -132,6 +132,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
+  const signup = useCallback(async (input: SignupInput): Promise<boolean> => {
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(input),
+    });
+
+    if (!res.ok) {
+      let message = `Signup failed (${res.status})`;
+      try {
+        const errBody = await res.json();
+        if (errBody?.error) message = String(errBody.error);
+      } catch {
+        // non-JSON error body; keep the status-based message
+      }
+      throw new Error(message);
+    }
+
+    const data = await res.json();
+    const frontendRole = mapBackendRole(data.user.roles ?? data.user.role);
+    setUser({
+      id: data.user.id,
+      email: data.user.email,
+      firstName: data.user.firstName ?? '',
+      lastName: data.user.lastName ?? '',
+      role: frontendRole,
+      scopes: ROLE_SCOPES[frontendRole],
+      practiceId: data.user.practiceId ?? '',
+      createdAt: new Date(),
+      lastLoginAt: new Date(),
+    });
+    return true;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
@@ -153,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hasAllScopes,
     canAccessPatient,
     login,
+    signup,
     logout,
     refreshToken,
   };

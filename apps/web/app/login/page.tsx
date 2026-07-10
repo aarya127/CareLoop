@@ -138,6 +138,13 @@ export default function LoginPage() {
               {!isSubmitting && <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />}
             </motion.button>
           </form>
+
+          <p className="mt-6 text-sm text-slate-600">
+            New practice?{' '}
+            <a href="/signup" className="font-medium text-[#2f4f89] hover:underline">
+              Create an account
+            </a>
+          </p>
         </motion.section>
 
         <motion.aside

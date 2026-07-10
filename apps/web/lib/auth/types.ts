@@ -58,8 +58,18 @@ export interface AuthContextValue {
   hasAllScopes: (scopes: AuthScope[]) => boolean;
   canAccessPatient: (patientId: string) => boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  signup: (input: SignupInput) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
+}
+
+/** Self-serve organization signup payload (new practice + first admin). */
+export interface SignupInput {
+  practiceName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 }
 
 // Role-based scope mappings

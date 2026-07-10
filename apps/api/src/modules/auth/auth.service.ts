@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   HttpException,
   HttpStatus,
@@ -10,6 +11,7 @@ import {
 import { Prisma, prisma } from '@careloop/db';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
+import type { SignupDto } from './dto/signup.dto';
 import { AUTH_ERRORS, AUTH_LIMITS, AUTH_ROLES } from './auth.constants';
 import { hashPassword, verifyPassword } from './auth.utils';
 import { SessionService } from './session.service';
@@ -348,6 +350,78 @@ export class AuthService {
     } catch (error) {
       this.rethrowMappedAuthError(error);
     }
+  }
+
+  /**
+   * Self-serve organization signup: atomically creates a new Practice + its first
+   * admin User, then issues a session (same result shape as login). Public, so the
+   * controller rate-limits it. The new user is the admin of a brand-new, isolated
+   * practice — there is no cross-tenant exposure.
+   */
+  async signup(dto: SignupDto, context: { ip?: string; userAgent?: string }): Promise<LoginResult> {
+    const email = dto.email.trim().toLowerCase();
+
+    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (existing) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    const passwordHash = await hashPassword(dto.password);
+
+    // Practice + admin role + user + role assignment must all succeed together —
+    // never leave an orphan practice with no admin.
+    const { userId, practiceId } = await prisma.$transaction(async (tx) => {
+      const practice = await tx.practice.create({
+        data: {
+          name: dto.practiceName.trim(),
+          timeZone: dto.timeZone?.trim() || 'America/New_York',
+        },
+        select: { id: true },
+      });
+
+      const role = await tx.role.upsert({
+        where: { name: AUTH_ROLES.ADMIN },
+        update: {},
+        create: { name: AUTH_ROLES.ADMIN, description: 'admin role' },
+        select: { id: true },
+      });
+
+      const user = await tx.user.create({
+        data: {
+          email,
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          passwordHash,
+          passwordAlgo: 'bcrypt',
+          practiceId: practice.id,
+          status: 'active',
+        },
+        select: { id: true },
+      });
+
+      await tx.userRole.create({ data: { userId: user.id, roleId: role.id } });
+
+      return { userId: user.id, practiceId: practice.id };
+    });
+
+    const { rawToken, sessionId } = await this.sessionService.createSession({
+      userId,
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+
+    await this.addAuditLog({
+      eventType: 'signup',
+      outcome: 'success',
+      actorUserId: userId,
+      targetUserId: userId,
+      sessionId,
+      ip: context.ip,
+      userAgent: context.userAgent,
+      metadata: { practiceId },
+    });
+
+    return { sessionToken: rawToken, user: await this.toSafeUser(userId) };
   }
 
   async logout(sessionToken: string | undefined, context: { userId?: string; ip?: string; userAgent?: string }): Promise<void> {
