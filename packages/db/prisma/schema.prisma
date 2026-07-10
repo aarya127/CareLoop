@@ -53,8 +53,32 @@ model Practice {
   toothChartEntries ToothChartEntry[]
   periodontalExams  PeriodontalExam[]
   treatmentPlans    TreatmentPlan[]
+  invitations       Invitation[]
 
   @@index([name])
+}
+
+/// Team invitations — an admin/manager invites someone by email to join their
+/// practice with a given role. The raw token lives only in the invite link; we
+/// store its SHA-256 hash (same approach as Session). Accepting creates the User.
+model Invitation {
+  id              String    @id @default(cuid())
+  practiceId      String
+  email           String
+  role            String    @default("staff")
+  tokenHash       String    @unique
+  status          String    @default("pending") // pending | accepted | revoked | expired
+  invitedByUserId String?
+  acceptedUserId  String?
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, status])
+  @@index([email])
 }
 
 // ============================================================================

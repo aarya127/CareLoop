@@ -14,6 +14,7 @@ import {
   Home,
   BarChart3,
   UserCircle,
+  UserPlus,
   Bell,
   ChevronDown,
 } from 'lucide-react';
@@ -42,6 +43,12 @@ const navigation: NavItem[] = [
     name: 'Users',
     href: '/admin/users',
     icon: UserCircle,
+    roles: ['admin'],
+  },
+  {
+    name: 'Team',
+    href: '/admin/team',
+    icon: UserPlus,
     roles: ['admin'],
   },
   {

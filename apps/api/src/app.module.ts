@@ -21,6 +21,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { EmrModule } from './modules/emr/emr.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 import { JobsModule } from './jobs/jobs.module';
 import { SessionAuthGuard } from './common/guards/session-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -54,6 +55,7 @@ import { IdempotencyService } from './common/services/idempotency.service';
     AdminModule,
     RemindersModule,
     EmrModule,
+    InvitationsModule,
     JobsModule,
   ],
   providers: [

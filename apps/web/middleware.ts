@@ -7,6 +7,8 @@ const PUBLIC_PATH_PREFIXES = [
   '/login',
   // Self-serve organization signup (new practice + first admin).
   '/signup',
+  // Accept-a-team-invitation flow — invitee has no session yet.
+  '/join',
   // Patient-facing intake — no staff session required (mirrors the API's @Public
   // /intake/drafts endpoints). Without this, patients are bounced to /login.
   '/intake',
