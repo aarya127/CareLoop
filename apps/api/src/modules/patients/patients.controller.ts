@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { RequireRole } from '../../common/guards';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
@@ -13,8 +13,13 @@ export class PatientsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Req() req: any) {
-    return this.patientsService.findById(req.user.practiceId, id, req.user.id);
+  async findOne(@Param('id') id: string, @Req() req: any) {
+    // findById returns null for a missing OR cross-tenant record — surface a 404
+    // (not a 200-with-null) so semantics match the other modules and no resource
+    // existence is implied for another practice's records.
+    const patient = await this.patientsService.findById(req.user.practiceId, id, req.user.id);
+    if (!patient) throw new NotFoundException(`Patient ${id} not found`);
+    return patient;
   }
 
   @Get(':id/medical-history')
