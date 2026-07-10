@@ -39,13 +39,26 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
+    const classes = cn(buttonVariants({ variant, size, className }));
+
+    // asChild: render the single child element (e.g. a Next <Link>) with the
+    // button styling merged in, instead of a <button>. Avoids leaking `asChild`
+    // to the DOM and the invalid <button><a>…</a></button> nesting. Minimal,
+    // dependency-free version of Radix Slot.
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<Record<string, unknown>>;
+      return React.cloneElement(child, {
+        ...props,
+        className: cn(classes, child.props.className as string | undefined),
+        ref,
+      } as Record<string, unknown>);
+    }
+
     return (
-      <button
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
+      <button className={classes} ref={ref} {...props}>
+        {children}
+      </button>
     );
   }
 );

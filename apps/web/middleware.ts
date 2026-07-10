@@ -5,6 +5,9 @@ const SESSION_COOKIE = 'cl_session';
 
 const PUBLIC_PATH_PREFIXES = [
   '/login',
+  // Patient-facing intake — no staff session required (mirrors the API's @Public
+  // /intake/drafts endpoints). Without this, patients are bounced to /login.
+  '/intake',
   '/api/auth',
   '/_next',
   '/favicon.ico',

@@ -242,6 +242,7 @@ export default function IntakeFormPage({ params }: Props) {
   const router = useRouter();
 
   const [draft, setDraft] = useState<IntakeDraft | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [step, setStep] = useState<Step>(0);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -254,16 +255,20 @@ export default function IntakeFormPage({ params }: Props) {
 
   // Load draft on mount
   useEffect(() => {
-    intakeApi.getDraft(id).then((d) => {
-      setDraft(d);
-      const data: IntakeDraftData = d.data ?? {};
-      if (data.demographics) setDemographics(data.demographics);
-      if (data.emergencyContact) setEmergencyContact(data.emergencyContact);
-      if (data.insurance) setInsurance(data.insurance);
-      if (data.notes) setNotes(data.notes);
-      // Redirect if already submitted
-      if (d.status === 'submitted') router.replace(`/intake/${id}/success`);
-    });
+    intakeApi
+      .getDraft(id)
+      .then((d) => {
+        setDraft(d);
+        const data: IntakeDraftData = d.data ?? {};
+        if (data.demographics) setDemographics(data.demographics);
+        if (data.emergencyContact) setEmergencyContact(data.emergencyContact);
+        if (data.insurance) setInsurance(data.insurance);
+        if (data.notes) setNotes(data.notes);
+        // Redirect if already submitted
+        if (d.status === 'submitted') router.replace(`/intake/${id}/success`);
+      })
+      // A bad/expired link would otherwise spin on "Loading form…" forever.
+      .catch(() => setLoadError(true));
   }, [id, router]);
 
   // Auto-save current section to the draft
@@ -314,6 +319,20 @@ export default function IntakeFormPage({ params }: Props) {
       setStep((s) => (s - 1) as Step);
       setErrors({});
     }
+  }
+
+  if (loadError) {
+    return (
+      <main className="flex items-center justify-center min-h-screen px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-sm font-medium">This intake form couldn&apos;t be found.</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            The link may have expired or already been submitted. Please contact your dental office
+            for a new link.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   if (!draft) {
