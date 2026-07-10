@@ -17,9 +17,9 @@ export class MessagingService {
   /**
    * Get message history for a patient (Reminder records in any terminal state).
    */
-  async getConversation(patientId: string): Promise<ConversationEntry[]> {
+  async getConversation(practiceId: string, patientId: string): Promise<ConversationEntry[]> {
     const records = await prisma.reminder.findMany({
-      where: { patientId },
+      where: { patientId, practiceId },
       orderBy: { scheduledAt: 'desc' },
       take: 100,
     });
@@ -38,7 +38,7 @@ export class MessagingService {
    * Send a message immediately.
    * Updates the linked Reminder status if reminderId is provided.
    */
-  async send(dto: SendMessageDto): Promise<{ messageId: string }> {
+  async send(practiceId: string, dto: SendMessageDto): Promise<{ messageId: string }> {
     let messageId: string;
 
     if (dto.channel === 'sms') {
@@ -52,10 +52,14 @@ export class MessagingService {
     }
 
     if (dto.reminderId) {
-      await prisma.reminder.update({
-        where: { id: dto.reminderId },
-        data: { status: 'sent', sentAt: new Date() },
-      }).catch((err) => this.logger.warn(`Failed to mark reminder sent: ${err}`));
+      // Scope the status update to this practice so a reminderId from another
+      // tenant can't be flipped to "sent".
+      await prisma.reminder
+        .updateMany({
+          where: { id: dto.reminderId, practiceId },
+          data: { status: 'sent', sentAt: new Date() },
+        })
+        .catch((err) => this.logger.warn(`Failed to mark reminder sent: ${err}`));
     }
 
     return { messageId };
@@ -65,13 +69,13 @@ export class MessagingService {
    * Schedule a reminder: create the Reminder row and enqueue a BullMQ job.
    * The job fires at scheduledAt; the worker handles actual send.
    */
-  async scheduleReminder(dto: ScheduleReminderDto) {
+  async scheduleReminder(practiceId: string, dto: ScheduleReminderDto) {
     const scheduledAt = new Date(dto.scheduledAt);
     const delayMs = Math.max(0, scheduledAt.getTime() - Date.now());
 
     const reminder = await prisma.reminder.create({
       data: {
-        practiceId: dto.practiceId,
+        practiceId,
         patientId: dto.patientId,
         appointmentId: dto.appointmentId,
         channel: dto.channel,
@@ -84,7 +88,7 @@ export class MessagingService {
     await enqueueAppointmentReminder({
       appointmentId: dto.appointmentId ?? '',
       patientId: dto.patientId,
-      practiceId: dto.practiceId,
+      practiceId,
       reminderId: reminder.id,
       channel: dto.channel,
       to: dto.to,

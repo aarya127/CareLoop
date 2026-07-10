@@ -1,7 +1,7 @@
 export type MessageChannel = 'sms' | 'email';
 
 export interface SendMessageDto {
-  practiceId: string;
+  practiceId?: string;    // derived from the session; accepted but ignored
   patientId: string;
   channel: MessageChannel;
   to: string;             // E.164 phone or email address
@@ -11,7 +11,7 @@ export interface SendMessageDto {
 }
 
 export interface ScheduleReminderDto {
-  practiceId: string;
+  practiceId?: string;    // derived from the session; accepted but ignored
   patientId: string;
   appointmentId?: string;
   channel: MessageChannel;

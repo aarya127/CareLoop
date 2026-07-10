@@ -4,11 +4,14 @@ import {
   GoneException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { prisma } from '@careloop/db';
 import { AuditService } from '../audit/audit.service';
 import { SessionService } from '../auth/session.service';
+import { EmailService } from '../messaging/email.service';
+import { renderInvite } from '../messaging/templates';
 import { hashPassword, hashToken, randomToken } from '../auth/auth.utils';
 import type { AcceptInvitationDto, CreateInvitationDto } from './dto';
 
@@ -16,9 +19,12 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 @Injectable()
 export class InvitationsService {
+  private readonly logger = new Logger(InvitationsService.name);
+
   constructor(
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(SessionService) private readonly sessionService: SessionService,
+    @Inject(EmailService) private readonly email: EmailService,
   ) {}
 
   private appBaseUrl(): string {
@@ -54,16 +60,37 @@ export class InvitationsService {
       select: { id: true, email: true, role: true, status: true, expiresAt: true },
     });
 
+    const acceptUrl = `${this.appBaseUrl()}/join/${rawToken}`;
+
+    // Best-effort email delivery — the invite stands even if SMTP is unset/down;
+    // the caller still gets the shareable link back.
+    let emailSent = false;
+    try {
+      const practice = await prisma.practice.findUnique({
+        where: { id: practiceId },
+        select: { name: true },
+      });
+      const msg = renderInvite({
+        practiceName: practice?.name ?? 'your dental practice',
+        role: dto.role,
+        acceptUrl,
+      });
+      await this.email.send({ to: email, subject: msg.subject, html: msg.html, text: msg.text });
+      emailSent = true;
+    } catch (err) {
+      this.logger.warn(`Invite email to ${email} not sent: ${err instanceof Error ? err.message : err}`);
+    }
+
     void this.audit.record({
       eventType: 'invitation_created',
       outcome: 'success',
       actorUserId: invitedByUserId,
-      metadata: { invitationId: invite.id, email, role: dto.role, practiceId },
+      metadata: { invitationId: invite.id, email, role: dto.role, practiceId, emailSent },
     });
 
     // The raw token is returned exactly once (never stored) so the caller can
-    // share the link. Email delivery is wired in the notifications group.
-    return { ...invite, acceptUrl: `${this.appBaseUrl()}/join/${rawToken}` };
+    // share the link directly too.
+    return { ...invite, acceptUrl, emailSent };
   }
 
   async list(practiceId: string) {

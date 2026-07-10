@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { RemindersService } from './reminders.service';
 
@@ -8,54 +8,50 @@ export class RemindersController {
 
   @Get('history')
   getHistory(
-    @Query('practiceId') practiceId: string,
+    @Req() req: any,
     @Query('patientId') patientId?: string,
     @Query('channel') channel?: string,
     @Query('status') status?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.remindersService.getHistory({ practiceId, patientId, channel, status, from, to });
+    return this.remindersService.getHistory(req.user.practiceId, { patientId, channel, status, from, to });
   }
 
   @Get('patient/:patientId')
-  findByPatient(@Param('patientId') patientId: string) {
-    return this.remindersService.findByPatientId(patientId);
+  findByPatient(@Param('patientId') patientId: string, @Req() req: any) {
+    return this.remindersService.findByPatientId(req.user.practiceId, patientId);
   }
 
   @Get('appointment/:appointmentId')
-  findByAppointment(@Param('appointmentId') appointmentId: string) {
-    return this.remindersService.findByAppointmentId(appointmentId);
+  findByAppointment(@Param('appointmentId') appointmentId: string, @Req() req: any) {
+    return this.remindersService.findByAppointmentId(req.user.practiceId, appointmentId);
   }
 
   @Get('pending')
-  findPending(@Query('practiceId') practiceId: string) {
-    return this.remindersService.findPending(practiceId);
+  findPending(@Req() req: any) {
+    return this.remindersService.findPending(req.user.practiceId);
   }
 
   @Post()
-  create(
-    @Body() dto: any,
-    @Headers('x-actor-user-id') _actorUserId?: string,
-  ) {
-    return this.remindersService.create(dto);
+  create(@Body() dto: any, @Req() req: any) {
+    return this.remindersService.create(req.user.practiceId, dto);
   }
 
   /** Send a specific reminder immediately. Rate-limited to 20/min. */
   @Post(':id/send')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
-  sendNow(@Param('id') id: string) {
-    return this.remindersService.sendNow(id);
+  sendNow(@Param('id') id: string, @Req() req: any) {
+    return this.remindersService.sendNow(req.user.practiceId, id);
   }
 
   @Patch(':id/sent')
-  markSent(@Param('id') id: string) {
-    return this.remindersService.markSent(id);
+  markSent(@Param('id') id: string, @Req() req: any) {
+    return this.remindersService.markSent(req.user.practiceId, id);
   }
 
   @Patch(':id/cancel')
-  cancel(@Param('id') id: string) {
-    return this.remindersService.cancel(id);
+  cancel(@Param('id') id: string, @Req() req: any) {
+    return this.remindersService.cancel(req.user.practiceId, id);
   }
 }
-
