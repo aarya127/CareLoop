@@ -4,7 +4,7 @@
  */
 
 // Permission scopes
-export type AuthScope = 
+export type AuthScope =
   | 'PATIENT_READ'
   | 'PATIENT_WRITE'
   | 'APPT_READ'
@@ -98,14 +98,7 @@ export const ROLE_SCOPES: Record<UserRole, AuthScope[]> = {
     'VOIP_RECORD',
     'PII_REVEAL',
   ],
-  hygienist: [
-    'PATIENT_READ',
-    'APPT_READ',
-    'APPT_WRITE',
-    'COMMS_READ',
-    'COMMS_WRITE',
-    'VOIP_CALL',
-  ],
+  hygienist: ['PATIENT_READ', 'APPT_READ', 'APPT_WRITE', 'COMMS_READ', 'COMMS_WRITE', 'VOIP_CALL'],
   receptionist: [
     'PATIENT_READ',
     'APPT_READ',
@@ -115,9 +108,5 @@ export const ROLE_SCOPES: Record<UserRole, AuthScope[]> = {
     'VOIP_CALL',
     'VOIP_RECORD',
   ],
-  billing: [
-    'PATIENT_READ',
-    'APPT_READ',
-    'PII_REVEAL',
-  ],
+  billing: ['PATIENT_READ', 'APPT_READ', 'PII_REVEAL'],
 };

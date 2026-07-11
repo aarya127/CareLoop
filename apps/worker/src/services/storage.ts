@@ -18,9 +18,7 @@ function getClient(): S3Client {
     client = new S3Client({
       region,
       ...(endpoint ? { endpoint } : {}),
-      ...(accessKeyId && secretAccessKey
-        ? { credentials: { accessKeyId, secretAccessKey } }
-        : {}),
+      ...(accessKeyId && secretAccessKey ? { credentials: { accessKeyId, secretAccessKey } } : {}),
       forcePathStyle,
     });
   }

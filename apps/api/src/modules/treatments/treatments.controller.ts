@@ -23,7 +23,8 @@ export class TreatmentsController {
   /** GET /treatments?patientId=&providerId=&appointmentId=&status=&from=&to= (practice from session) */
   @Get()
   findAll(
-    @Query() query: {
+    @Query()
+    query: {
       patientId?: string;
       providerId?: string;
       appointmentId?: string;

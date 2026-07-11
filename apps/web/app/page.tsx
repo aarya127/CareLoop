@@ -55,7 +55,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="mt-5 max-w-2xl text-base text-slate-600 md:text-lg">
-            A modern, interactive workspace for dental practices to run front-desk operations, patient coordination, and AI-assisted workflows with confidence.
+            A modern, interactive workspace for dental practices to run front-desk operations,
+            patient coordination, and AI-assisted workflows with confidence.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -66,7 +67,9 @@ export default function LandingPage() {
               Sign in to Admin
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <span className="text-sm text-slate-500">Authentication is validated only by backend database credentials.</span>
+            <span className="text-sm text-slate-500">
+              Authentication is validated only by backend database credentials.
+            </span>
           </div>
 
           <div className="mt-5 max-w-xl rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">

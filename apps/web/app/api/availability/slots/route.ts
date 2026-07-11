@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     });
 
     const busyTimes = [...busyAppointments, ...blocks, ...holds].sort(
-      (a, b) => a.start.getTime() - b.start.getTime()
+      (a, b) => a.start.getTime() - b.start.getTime(),
     );
 
     const slots: Array<{ start: string; end: string }> = [];
@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
         if (slotEnd > dayEnd) break;
 
         const conflict = busyTimes.some(
-          (busy) => !(slotEnd <= busy.start || slotStart >= busy.end)
+          (busy) => !(slotEnd <= busy.start || slotStart >= busy.end),
         );
 
         if (!conflict && slotEnd <= to) {

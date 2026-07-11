@@ -15,9 +15,18 @@ export async function POST(req: NextRequest) {
     const data = await watchCalendar(user.id, body.calendarId, channelId, webhookUrl);
     await prisma.googleCalendarConnection.updateMany({
       where: { userId: user.id, provider: 'google', calendarId: body.calendarId },
-      data: { channelId, resourceId: data.resourceId || undefined, channelExpiry: data.expiration ? new Date(Number(data.expiration)) : null },
+      data: {
+        channelId,
+        resourceId: data.resourceId || undefined,
+        channelExpiry: data.expiration ? new Date(Number(data.expiration)) : null,
+      },
     });
-    return NextResponse.json({ ok: true, channelId, resourceId: data.resourceId, expiration: data.expiration });
+    return NextResponse.json({
+      ok: true,
+      channelId,
+      resourceId: data.resourceId,
+      expiration: data.expiration,
+    });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message || 'failed' }, { status: 500 });
   }

@@ -5,18 +5,18 @@ simulation → real systems engineering.
 
 ## What we picked: Flash Attention
 
-| | Naive (simulated) | Flash Attention (Triton kernel) |
-|---|---|---|
-| **Algorithm** | Textbook QKᵀ softmax V | Tiled, online-softmax |
-| **HBM memory** | O(N²) — full score matrix | O(N) — never materialises N×N |
-| **Kernel** | PyTorch ATen ops | Custom Triton JIT kernel |
-| **Seq 4096, 1 head** | ~64 MB extra | ~2 MB extra |
+|                      | Naive (simulated)         | Flash Attention (Triton kernel) |
+| -------------------- | ------------------------- | ------------------------------- |
+| **Algorithm**        | Textbook QKᵀ softmax V    | Tiled, online-softmax           |
+| **HBM memory**       | O(N²) — full score matrix | O(N) — never materialises N×N   |
+| **Kernel**           | PyTorch ATen ops          | Custom Triton JIT kernel        |
+| **Seq 4096, 1 head** | ~64 MB extra              | ~2 MB extra                     |
 
 ## Why Flash Attention?
 
 Naive attention materialises the full N×N attention score matrix in GPU
-high-bandwidth memory (HBM).  For N = 4096 and d = 64 that is **64 MB per
-head**.  With 32 heads that is 2 GB just for the intermediate matrix — before
+high-bandwidth memory (HBM). For N = 4096 and d = 64 that is **64 MB per
+head**. With 32 heads that is 2 GB just for the intermediate matrix — before
 you even store Q, K, V, or the output.
 
 Flash Attention (Dao et al., NeurIPS 2022) sidesteps this by:
@@ -89,6 +89,7 @@ Flash Attn (Triton)       4096    2           9.201   19.074           8.3     8
 ```
 
 The speedup grows with sequence length because:
+
 - Naive: quadratic memory pressure stalls the memory controller.
 - Flash: O(N) HBM traffic keeps the tensor cores fed.
 
@@ -111,26 +112,26 @@ Each program:
 ```
 
 The critical detail is step 2d: we correct the running accumulator by
-`exp(m_old − m_new)` each time a new maximum is discovered.  This is
+`exp(m_old − m_new)` each time a new maximum is discovered. This is
 **mathematically equivalent** to computing softmax over the full row — proven
 in the FlashAttention paper.
 
 ## Concepts demonstrated
 
-| Concept | Where |
-|---------|-------|
-| Triton `@triton.jit` kernel | `_flash_attn_fwd` |
-| Strided pointer arithmetic | `stride_qb / stride_qh / …` |
-| `tl.constexpr` tile sizes | `BLOCK_M, BLOCK_N, BLOCK_D` |
-| Online softmax (numerically stable) | the `m_i / l_i / acc` loop |
-| CUDA event timing | `benchmark.py → timed_run()` |
-| TFLOPS calculation | `attention_flops()` |
-| HBM memory modelling | `naive_attention_memory_bytes()` |
+| Concept                             | Where                            |
+| ----------------------------------- | -------------------------------- |
+| Triton `@triton.jit` kernel         | `_flash_attn_fwd`                |
+| Strided pointer arithmetic          | `stride_qb / stride_qh / …`      |
+| `tl.constexpr` tile sizes           | `BLOCK_M, BLOCK_N, BLOCK_D`      |
+| Online softmax (numerically stable) | the `m_i / l_i / acc` loop       |
+| CUDA event timing                   | `benchmark.py → timed_run()`     |
+| TFLOPS calculation                  | `attention_flops()`              |
+| HBM memory modelling                | `naive_attention_memory_bytes()` |
 
 ## References
 
-- Dao et al. (2022). *FlashAttention: Fast and Memory-Efficient Exact Attention
-  with IO-Awareness*. NeurIPS 2022. https://arxiv.org/abs/2205.14135
-- Tillet et al. (2019). *Triton: An Intermediate Language and Compiler for
-  Tiled Neural Network Computations*. MAPL 2019.
+- Dao et al. (2022). _FlashAttention: Fast and Memory-Efficient Exact Attention
+  with IO-Awareness_. NeurIPS 2022. https://arxiv.org/abs/2205.14135
+- Tillet et al. (2019). _Triton: An Intermediate Language and Compiler for
+  Tiled Neural Network Computations_. MAPL 2019.
 - OpenAI Triton docs: https://triton-lang.org

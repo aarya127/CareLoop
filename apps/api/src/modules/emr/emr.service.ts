@@ -56,7 +56,11 @@ export class EmrService {
     }
   }
 
-  private assertSamePractice(actor: EmrActor, record: { practiceId: string } | null, label: string) {
+  private assertSamePractice(
+    actor: EmrActor,
+    record: { practiceId: string } | null,
+    label: string,
+  ) {
     if (!record) throw new NotFoundException(`${label} not found`);
     if (record.practiceId !== actor.practiceId) {
       throw new ForbiddenException(`${label} belongs to a different practice`);

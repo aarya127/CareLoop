@@ -18,9 +18,7 @@ function toCalendarAppt(a: AppointmentRecord): CalendarAppointment {
     patientName: a.title,
     startTime: new Date(a.start),
     endTime: new Date(a.end),
-    duration: Math.round(
-      (new Date(a.end).getTime() - new Date(a.start).getTime()) / 60_000,
-    ),
+    duration: Math.round((new Date(a.end).getTime() - new Date(a.start).getTime()) / 60_000),
     procedure: a.procedureCode ?? '',
     doctorId: a.providerId,
     doctorName: '',
@@ -209,9 +207,7 @@ function generatePatientDrawerData(appointment: CalendarAppointment): PatientDra
         date: new Date(2025, 8, 15),
         reason: 'Routine Cleaning',
         provider: 'Dr. Smith',
-        procedures: [
-          { code: 'D1110', name: 'Prophylaxis - Adult', cost: 120 },
-        ],
+        procedures: [{ code: 'D1110', name: 'Prophylaxis - Adult', cost: 120 }],
         totalCost: 120,
         insurancePaid: 96,
         patientPaid: 24,
@@ -222,9 +218,7 @@ function generatePatientDrawerData(appointment: CalendarAppointment): PatientDra
         date: new Date(2025, 2, 20),
         reason: 'Filling',
         provider: 'Dr. Lee',
-        procedures: [
-          { code: 'D2391', name: 'Resin-based composite - one surface', cost: 180 },
-        ],
+        procedures: [{ code: 'D2391', name: 'Resin-based composite - one surface', cost: 180 }],
         totalCost: 180,
         insurancePaid: 144,
         patientPaid: 36,
@@ -238,7 +232,8 @@ function generatePatientDrawerData(appointment: CalendarAppointment): PatientDra
         author: 'Dr. Smith',
         role: 'Dentist',
         timestamp: new Date(2025, 8, 15, 10, 30),
-        content: 'Patient presents with good oral hygiene. No signs of decay. Advised to continue regular brushing and flossing.',
+        content:
+          'Patient presents with good oral hygiene. No signs of decay. Advised to continue regular brushing and flossing.',
         isEdited: false,
       },
     ],
@@ -258,7 +253,7 @@ const viewTransitionVariants = {
     transition: {
       duration: 0.4,
       ease: [0.4, 0, 0.2, 1] as any,
-    }
+    },
   },
   exit: (direction: number) => ({
     opacity: 0,
@@ -266,8 +261,8 @@ const viewTransitionVariants = {
     x: direction > 0 ? -50 : 50,
     transition: {
       duration: 0.3,
-    }
-  })
+    },
+  }),
 };
 
 export default function CustomCalendarPage() {
@@ -289,7 +284,9 @@ export default function CustomCalendarPage() {
         to: to.toISOString(),
       })
       .then((records) => setLiveAppointments(records.map(toCalendarAppt)))
-      .catch(() => {/* silently fall back to mock data */});
+      .catch(() => {
+        /* silently fall back to mock data */
+      });
   }, []);
 
   // Live appointment board: apply SSE events from colleagues' mutations
@@ -421,7 +418,10 @@ export default function CustomCalendarPage() {
 
   // Generate view data based on current view mode
   const monthDays = generateMonthViewDays(calendarState.currentDate, appointments);
-  const daySlots = generateDayViewSlots(calendarState.selectedDate || calendarState.currentDate, appointments);
+  const daySlots = generateDayViewSlots(
+    calendarState.selectedDate || calendarState.currentDate,
+    appointments,
+  );
   const weekDays = generateWeekViewDays(calendarState.currentDate, appointments);
 
   // Keyboard shortcuts
@@ -473,8 +473,8 @@ export default function CustomCalendarPage() {
           viewMode={calendarState.viewMode}
           onViewModeChange={handleViewModeChange}
           displayText={
-            calendarState.viewMode === 'agenda' 
-              ? 'Agenda View' 
+            calendarState.viewMode === 'agenda'
+              ? 'Agenda View'
               : getNavigationDisplayText(calendarState.currentDate, calendarState.viewMode)
           }
           onNavigate={handleNavigate}
@@ -520,9 +520,7 @@ export default function CustomCalendarPage() {
               )}
 
               {calendarState.viewMode === 'agenda' && (
-                <div className="p-8 text-center text-gray-500">
-                  Agenda view coming soon...
-                </div>
+                <div className="p-8 text-center text-gray-500">Agenda view coming soon...</div>
               )}
             </motion.div>
           </AnimatePresence>
@@ -533,7 +531,10 @@ export default function CustomCalendarPage() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-br from-sky-400 to-sky-500 text-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center z-30"
-          onClick={() => { setDefaultStart(undefined); setBookingModalOpen(true); }}
+          onClick={() => {
+            setDefaultStart(undefined);
+            setBookingModalOpen(true);
+          }}
         >
           <Plus className="w-6 h-6" />
         </motion.button>
@@ -560,7 +561,8 @@ export default function CustomCalendarPage() {
       />
 
       <div className="sr-only">
-        Keyboard shortcuts: ← → (navigate), D (day view), W (week view), M (month view), T (today), ESC (close)
+        Keyboard shortcuts: ← → (navigate), D (day view), W (week view), M (month view), T (today),
+        ESC (close)
       </div>
     </div>
   );

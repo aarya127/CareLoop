@@ -10,7 +10,15 @@ import type { AuditService } from '../audit/audit.service';
  * deletes must reject documents that belong to another practice, so a caller
  * cannot mint a signed URL for another clinic's radiographs/consent forms by id.
  */
-function makeService(doc: { id: string; practiceId: string; status: string; storageKey: string; fileName: string } | null) {
+function makeService(
+  doc: {
+    id: string;
+    practiceId: string;
+    status: string;
+    storageKey: string;
+    fileName: string;
+  } | null,
+) {
   const repo = {
     findById: vi.fn(async () => doc),
     softDelete: vi.fn(async () => doc),
@@ -42,7 +50,9 @@ describe('DocumentsService tenant isolation', () => {
 
   it('getDownloadUrl 404s for a different practice (no cross-tenant presigned URL)', async () => {
     const { service, storage } = makeService(DOC);
-    await expect(service.getDownloadUrl('practice-B', 'doc-1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.getDownloadUrl('practice-B', 'doc-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(storage.getPresignedDownloadUrl).not.toHaveBeenCalled();
   });
 

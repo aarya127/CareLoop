@@ -76,7 +76,10 @@ export default function PatientProfileDrawer({
   const [noteText, setNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
-  const [pendingDeletedNote, setPendingDeletedNote] = useState<{ note: DoctorNote; index: number } | null>(null);
+  const [pendingDeletedNote, setPendingDeletedNote] = useState<{
+    note: DoctorNote;
+    index: number;
+  } | null>(null);
   const [noteUndoTimeoutId, setNoteUndoTimeoutId] = useState<number | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -241,7 +244,7 @@ export default function PatientProfileDrawer({
     setPiiRevealed(true);
 
     // In production: Fetch unmasked member ID
-    setInsurance((prev) => prev ? { ...prev, member_id: 'BS123456789' } : null);
+    setInsurance((prev) => (prev ? { ...prev, member_id: 'BS123456789' } : null));
   };
 
   // Handle save note
@@ -420,13 +423,15 @@ export default function PatientProfileDrawer({
           {/* Tabs */}
           <div className="border-b border-gray-200 bg-gray-50 px-6">
             <div className="flex gap-1">
-              {([
-                { id: 'overview', label: 'Overview', icon: User },
-                { id: 'insurance', label: 'Insurance', icon: Shield },
-                { id: 'dental', label: 'Dental', icon: Activity },
-                { id: 'visits', label: 'Visits', icon: CalendarIcon },
-                { id: 'notes', label: 'Notes', icon: FileText },
-              ] as const).map((tab) => (
+              {(
+                [
+                  { id: 'overview', label: 'Overview', icon: User },
+                  { id: 'insurance', label: 'Insurance', icon: Shield },
+                  { id: 'dental', label: 'Dental', icon: Activity },
+                  { id: 'visits', label: 'Visits', icon: CalendarIcon },
+                  { id: 'notes', label: 'Notes', icon: FileText },
+                ] as const
+              ).map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
@@ -434,7 +439,7 @@ export default function PatientProfileDrawer({
                     'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2',
                     activeTab === tab.id
                       ? 'border-[#87CEEB] text-[#0A84FF] bg-white'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100',
                   )}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -450,9 +455,7 @@ export default function PatientProfileDrawer({
               <TabSkeleton />
             ) : (
               <>
-                {activeTab === 'overview' && patient && (
-                  <OverviewTab patient={patient} />
-                )}
+                {activeTab === 'overview' && patient && <OverviewTab patient={patient} />}
                 {activeTab === 'insurance' && insurance && (
                   <InsuranceTab
                     insurance={insurance}
@@ -468,9 +471,7 @@ export default function PatientProfileDrawer({
                     xrays={xrays}
                   />
                 )}
-                {activeTab === 'visits' && (
-                  <VisitsTab visits={visits} />
-                )}
+                {activeTab === 'visits' && <VisitsTab visits={visits} />}
                 {activeTab === 'notes' && (
                   <NotesTab
                     notes={notes}
@@ -571,14 +572,18 @@ function OverviewTab({ patient }: { patient: PatientSummary }) {
       </section>
 
       {/* Health Flags */}
-      {(patient.flags.has_allergies || patient.flags.requires_pre_medication || patient.flags.has_outstanding_balance) && (
+      {(patient.flags.has_allergies ||
+        patient.flags.requires_pre_medication ||
+        patient.flags.has_outstanding_balance) && (
         <section>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Health Alerts</h3>
           <div className="space-y-2">
             {patient.flags.has_allergies && (
               <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-medium text-purple-900">Has medication allergies</span>
+                <span className="text-sm font-medium text-purple-900">
+                  Has medication allergies
+                </span>
               </div>
             )}
             {patient.flags.requires_pre_medication && (
@@ -650,7 +655,9 @@ function InsuranceTab({
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <span className="text-sm text-gray-600">Coverage</span>
-            <span className="text-sm font-semibold text-green-600">{insurance.coverage_percent}%</span>
+            <span className="text-sm font-semibold text-green-600">
+              {insurance.coverage_percent}%
+            </span>
           </div>
         </div>
       </section>
@@ -698,13 +705,16 @@ function InsuranceTab({
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-700">Used</span>
             <span className="text-lg font-bold text-blue-900">
-              ${insurance.annual_max_used.toLocaleString()} / ${insurance.annual_max_total.toLocaleString()}
+              ${insurance.annual_max_used.toLocaleString()} / $
+              {insurance.annual_max_total.toLocaleString()}
             </span>
           </div>
           <div className="w-full h-2 bg-white rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-500 transition-all duration-500"
-              style={{ width: `${(insurance.annual_max_used / insurance.annual_max_total) * 100}%` }}
+              style={{
+                width: `${(insurance.annual_max_used / insurance.annual_max_total) * 100}%`,
+              }}
             />
           </div>
           <div className="mt-2 text-xs text-gray-600">
@@ -774,9 +784,7 @@ function VisitsTab({ visits }: { visits: VisitRecord[] }) {
             </div>
             <div className="text-right">
               <div className="text-lg font-bold text-gray-900">${visit.total_cost}</div>
-              <div className="text-xs text-gray-500">
-                Patient: ${visit.patient_paid}
-              </div>
+              <div className="text-xs text-gray-500">Patient: ${visit.patient_paid}</div>
             </div>
           </div>
           <div className="space-y-1">

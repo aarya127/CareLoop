@@ -18,8 +18,10 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export function redactPhi(input: string, hints: RedactHints = {}): string {
   let out = input;
 
-  if (hints.firstName) out = out.replace(new RegExp(`\\b${escapeRe(hints.firstName)}\\b`, 'gi'), '[NAME]');
-  if (hints.lastName) out = out.replace(new RegExp(`\\b${escapeRe(hints.lastName)}\\b`, 'gi'), '[NAME]');
+  if (hints.firstName)
+    out = out.replace(new RegExp(`\\b${escapeRe(hints.firstName)}\\b`, 'gi'), '[NAME]');
+  if (hints.lastName)
+    out = out.replace(new RegExp(`\\b${escapeRe(hints.lastName)}\\b`, 'gi'), '[NAME]');
   if (hints.phone) out = out.replace(new RegExp(escapeRe(hints.phone), 'g'), '[PHONE]');
 
   // Generic identifiers

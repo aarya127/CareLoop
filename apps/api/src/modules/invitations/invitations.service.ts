@@ -78,7 +78,9 @@ export class InvitationsService {
       await this.email.send({ to: email, subject: msg.subject, html: msg.html, text: msg.text });
       emailSent = true;
     } catch (err) {
-      this.logger.warn(`Invite email to ${email} not sent: ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `Invite email to ${email} not sent: ${err instanceof Error ? err.message : err}`,
+      );
     }
 
     void this.audit.record({
@@ -146,7 +148,10 @@ export class InvitationsService {
     const invite = await this.loadValidInvite(rawToken);
 
     // Guard against a race where the email got registered after the invite.
-    const existing = await prisma.user.findUnique({ where: { email: invite.email }, select: { id: true } });
+    const existing = await prisma.user.findUnique({
+      where: { email: invite.email },
+      select: { id: true },
+    });
     if (existing) {
       throw new ConflictException('A user with this email already exists');
     }

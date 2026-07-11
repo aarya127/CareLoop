@@ -11,11 +11,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { EmrService } from './emr.service';
-import {
-  CreatePeriodontalExamDto,
-  UpsertToothChartEntryDto,
-  type EmrActor,
-} from './dto';
+import { CreatePeriodontalExamDto, UpsertToothChartEntryDto, type EmrActor } from './dto';
 import { CurrentUser } from '../../common/decorators';
 import { RequireRole } from '../../common/guards';
 import { EMR_CLINICAL_ROLES } from '../auth/auth.constants';

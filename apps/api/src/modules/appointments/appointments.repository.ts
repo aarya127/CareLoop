@@ -50,12 +50,7 @@ export class AppointmentsRepository {
   // ── Conflict detection ────────────────────────────────────────────────────
 
   /** Returns appointments for providerId that overlap [start, end), excluding excludeId. */
-  async findConflicting(
-    providerId: string,
-    start: Date,
-    end: Date,
-    excludeId?: string,
-  ) {
+  async findConflicting(providerId: string, start: Date, end: Date, excludeId?: string) {
     return prisma.appointment.findMany({
       where: {
         providerId,
@@ -75,16 +70,10 @@ export class AppointmentsRepository {
         providerId,
         dayOfWeek,
         isActive: true,
-        OR: [
-          { effectiveTo: null },
-          { effectiveTo: { gte: today } },
-        ],
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: today } }],
         AND: [
           {
-            OR: [
-              { effectiveFrom: null },
-              { effectiveFrom: { lte: today } },
-            ],
+            OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: today } }],
           },
         ],
       },
@@ -111,11 +100,7 @@ export class AppointmentsRepository {
     });
   }
 
-  async findAppointmentsForDay(
-    providerId: string,
-    dayStart: Date,
-    dayEnd: Date,
-  ) {
+  async findAppointmentsForDay(providerId: string, dayStart: Date, dayEnd: Date) {
     return prisma.appointment.findMany({
       where: {
         providerId,

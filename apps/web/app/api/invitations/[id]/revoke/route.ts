@@ -9,7 +9,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const res = await fetch(`${API_URL}/invitations/${encodeURIComponent(id)}/revoke`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });

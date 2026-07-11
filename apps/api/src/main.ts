@@ -1,10 +1,7 @@
 import './load-env';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyCookie from '@fastify/cookie';
 import { ValidationPipe } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -60,7 +57,9 @@ function validateSecrets(): void {
   if (problems.length > 0) {
     console.error('\n[SECURITY] Production startup aborted due to misconfigured secrets:\n');
     problems.forEach((p) => console.error(p));
-    console.error('\nSet these in your secrets manager and inject them as environment variables.\n');
+    console.error(
+      '\nSet these in your secrets manager and inject them as environment variables.\n',
+    );
     process.exit(1);
   }
 }
@@ -74,7 +73,7 @@ async function bootstrap() {
     // rawBody: expose the unparsed request body (req.rawBody) so webhook handlers
     // can verify provider signatures over the exact bytes that were signed
     // (Stripe/SendGrid HMAC breaks if computed over re-serialized JSON).
-    { bufferLogs: true, rawBody: true }
+    { bufferLogs: true, rawBody: true },
   );
 
   // Register cookie plugin — required before any route handling
@@ -87,7 +86,7 @@ async function bootstrap() {
       forbidNonWhitelisted: false,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
-    })
+    }),
   );
 
   // Global exception filter — standard JSON error shape for all errors

@@ -2,9 +2,7 @@ import type { Job } from 'bullmq';
 import { prisma } from '@careloop/db';
 import type { ComputeKpisJobData } from '@careloop/shared';
 
-export async function computeKpisProcessor(
-  job: Job<ComputeKpisJobData>
-): Promise<void> {
+export async function computeKpisProcessor(job: Job<ComputeKpisJobData>): Promise<void> {
   const { practiceId, date } = job.data;
   job.log(`Computing KPIs for practice ${practiceId} on ${date}`);
 
@@ -22,9 +20,7 @@ export async function computeKpisProcessor(
     }),
   ]);
 
-  job.log(
-    `KPIs: patients=${totalPatients} appointments=${totalAppointments}`
-  );
+  job.log(`KPIs: patients=${totalPatients} appointments=${totalAppointments}`);
 
   // TODO: persist KPI snapshot to a dedicated table
 }

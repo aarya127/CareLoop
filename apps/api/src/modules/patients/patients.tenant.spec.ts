@@ -27,7 +27,9 @@ function makeService() {
 describe('PatientsService tenant isolation', () => {
   it('findById returns the patient for the owning practice', async () => {
     const { service } = makeService();
-    await expect(service.findById('practice-A', 'patient-1')).resolves.toMatchObject({ id: 'patient-1' });
+    await expect(service.findById('practice-A', 'patient-1')).resolves.toMatchObject({
+      id: 'patient-1',
+    });
   });
 
   it('findById returns null for a different practice (no cross-tenant read)', async () => {
@@ -43,7 +45,9 @@ describe('PatientsService tenant isolation', () => {
 
   it('update writes for the owning practice', async () => {
     const { service, update } = makeService();
-    await expect(service.update('practice-A', 'patient-1', { firstName: 'X' })).resolves.toMatchObject({
+    await expect(
+      service.update('practice-A', 'patient-1', { firstName: 'X' }),
+    ).resolves.toMatchObject({
       id: 'patient-1',
     });
     expect(update).toHaveBeenCalledOnce();

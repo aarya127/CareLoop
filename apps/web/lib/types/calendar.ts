@@ -200,7 +200,7 @@ export interface RippleEffect {
 export interface CalendarSettings {
   workingHours: {
     start: number; // 0-23
-    end: number;   // 0-23
+    end: number; // 0-23
   };
   slotDuration: number; // minutes (15, 30, 60)
   showWeekends: boolean;

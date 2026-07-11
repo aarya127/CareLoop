@@ -26,11 +26,20 @@ export default function LoginPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       const lower = message.toLowerCase();
-      const sanitized = message.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const sanitized = message
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
       const shortMessage = sanitized.length > 220 ? `${sanitized.slice(0, 220)}...` : sanitized;
 
-      if (lower.includes('failed to fetch') || lower.includes('networkerror') || lower.includes('cors')) {
-        setError('Unable to reach authentication API. Ensure API is running on port 3001 and web/api origins are allowed.');
+      if (
+        lower.includes('failed to fetch') ||
+        lower.includes('networkerror') ||
+        lower.includes('cors')
+      ) {
+        setError(
+          'Unable to reach authentication API. Ensure API is running on port 3001 and web/api origins are allowed.',
+        );
       } else if (lower.includes('401') || lower.includes('invalid credentials')) {
         setError('Invalid email or password. Please try again.');
       } else {
@@ -73,7 +82,8 @@ export default function LoginPage() {
               </span>
             </h2>
             <p className="mt-3 max-w-xl text-slate-600">
-              Authentication is validated against backend database credentials. No passwords or secrets are stored in frontend code.
+              Authentication is validated against backend database credentials. No passwords or
+              secrets are stored in frontend code.
             </p>
           </div>
 
@@ -135,7 +145,9 @@ export default function LoginPage() {
               className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Signing in...' : 'Sign In'}
-              {!isSubmitting && <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />}
+              {!isSubmitting && (
+                <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+              )}
             </motion.button>
           </form>
 
@@ -158,9 +170,12 @@ export default function LoginPage() {
             Apple-style Experience
           </div>
 
-          <h3 className="text-2xl font-semibold leading-tight">Fast, polished operations for your practice</h3>
+          <h3 className="text-2xl font-semibold leading-tight">
+            Fast, polished operations for your practice
+          </h3>
           <p className="mt-4 text-sm leading-relaxed text-sky-100/90">
-            Monitor growth, staff trends, patient flow, and monthly health indicators in one interactive command center.
+            Monitor growth, staff trends, patient flow, and monthly health indicators in one
+            interactive command center.
           </p>
 
           <div className="mt-8 space-y-3">
@@ -170,7 +185,10 @@ export default function LoginPage() {
               'Live monthly growth and churn indicators',
               'Smooth transitions tuned for desktop and mobile',
             ].map((item) => (
-              <div key={item} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm">
+              <div
+                key={item}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm"
+              >
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
                 <span>{item}</span>
               </div>
@@ -178,8 +196,10 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-xs leading-relaxed text-sky-100/90">
-            Temporary dev login:<br />
-            Email: <strong>demo@careloop.dev</strong><br />
+            Temporary dev login:
+            <br />
+            Email: <strong>demo@careloop.dev</strong>
+            <br />
             Password: <strong>Demo12345!</strong>
           </div>
         </motion.aside>

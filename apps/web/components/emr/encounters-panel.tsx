@@ -232,7 +232,9 @@ function SoapField({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
       <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="whitespace-pre-wrap text-gray-700">{value || <span className="text-gray-300">—</span>}</p>
+      <p className="whitespace-pre-wrap text-gray-700">
+        {value || <span className="text-gray-300">—</span>}
+      </p>
     </div>
   );
 }

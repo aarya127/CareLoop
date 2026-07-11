@@ -63,8 +63,8 @@ const config: Config = {
       animation: {
         'fade-in': 'fadeIn 0.2s ease-in-out',
         'slide-up': 'slideUp 0.25s ease-out',
-        'shimmer': 'shimmer 2s linear infinite',
-        'spring': 'spring 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        shimmer: 'shimmer 2s linear infinite',
+        spring: 'spring 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
       },
       keyframes: {
         fadeIn: {

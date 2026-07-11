@@ -28,7 +28,9 @@ export function emrAllergyToUi(a: EmrAllergy): Allergy {
   return {
     id: a.id,
     allergen: a.allergen,
-    severity: (ALLERGY_SEVERITIES.includes(a.severity) ? a.severity : 'moderate') as Allergy['severity'],
+    severity: (ALLERGY_SEVERITIES.includes(a.severity)
+      ? a.severity
+      : 'moderate') as Allergy['severity'],
     reaction: a.reaction ?? '',
     date_identified: day(a.notedAt),
   };
@@ -180,20 +182,40 @@ export async function syncEmrMedicalSlices(
 // Tooth chart  (ToothChartEntry  <->  ClinicalChart.teeth / ToothRecord)
 // ============================================================================
 const TOOTH_STATUS_VALUES: ToothRecord['status'][] = [
-  'healthy', 'decayed', 'filled', 'crowned', 'missing', 'implant', 'bridge', 'root_canal',
+  'healthy',
+  'decayed',
+  'filled',
+  'crowned',
+  'missing',
+  'implant',
+  'bridge',
+  'root_canal',
 ];
 // The EMR `condition` string stores the UI clinical status directly; map a few
 // synonyms back for resilience.
 const CONDITION_TO_STATUS: Record<string, ToothRecord['status']> = {
-  caries: 'decayed', cavity: 'decayed', decayed: 'decayed',
-  filling: 'filled', filled: 'filled',
-  crown: 'crowned', crowned: 'crowned',
-  missing: 'missing', implant: 'implant', bridge: 'bridge', root_canal: 'root_canal',
+  caries: 'decayed',
+  cavity: 'decayed',
+  decayed: 'decayed',
+  filling: 'filled',
+  filled: 'filled',
+  crown: 'crowned',
+  crowned: 'crowned',
+  missing: 'missing',
+  implant: 'implant',
+  bridge: 'bridge',
+  root_canal: 'root_canal',
   healthy: 'healthy',
 };
 const COLOR_BY_STATUS: Record<ToothRecord['status'], string> = {
-  healthy: '#22c55e', decayed: '#ef4444', filled: '#3b82f6', crowned: '#a855f7',
-  missing: '#9ca3af', implant: '#14b8a6', bridge: '#f59e0b', root_canal: '#ec4899',
+  healthy: '#22c55e',
+  decayed: '#ef4444',
+  filled: '#3b82f6',
+  crowned: '#a855f7',
+  missing: '#9ca3af',
+  implant: '#14b8a6',
+  bridge: '#f59e0b',
+  root_canal: '#ec4899',
 };
 
 function emrToothToUi(e: ToothChartEntry): ToothRecord {

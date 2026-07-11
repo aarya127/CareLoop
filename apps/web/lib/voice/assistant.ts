@@ -20,6 +20,6 @@ export async function runAssistantIntent(
   return {
     answer:
       "I'm sorry, I'm not able to assist with that right now. Please hold while I transfer you to a staff member.",
-    intent: "fallback",
+    intent: 'fallback',
   };
 }

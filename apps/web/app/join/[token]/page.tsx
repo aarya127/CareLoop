@@ -98,29 +98,75 @@ export default function JoinPage({ params }: Props) {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="firstName" className="mb-1.5 block text-sm font-medium text-slate-700">First name</label>
-                    <input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Jane" className={field} />
+                    <label
+                      htmlFor="firstName"
+                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                      First name
+                    </label>
+                    <input
+                      id="firstName"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      placeholder="Jane"
+                      className={field}
+                    />
                   </div>
                   <div>
-                    <label htmlFor="lastName" className="mb-1.5 block text-sm font-medium text-slate-700">Last name</label>
-                    <input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} required placeholder="Doe" className={field} />
+                    <label
+                      htmlFor="lastName"
+                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                      Last name
+                    </label>
+                    <input
+                      id="lastName"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      placeholder="Doe"
+                      className={field}
+                    />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
+                  <label
+                    htmlFor="password"
+                    className="mb-1.5 block text-sm font-medium text-slate-700"
+                  >
+                    Password
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                    <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} placeholder="At least 8 characters" className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-slate-900 outline-none transition focus:border-[#3e8ba8] focus:ring-2 focus:ring-[#99d6e4]" />
+                    <input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      placeholder="At least 8 characters"
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-slate-900 outline-none transition focus:border-[#3e8ba8] focus:ring-2 focus:ring-[#99d6e4]"
+                    />
                   </div>
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {error}
+                  </div>
                 )}
 
-                <button disabled={submitting} type="submit" className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+                <button
+                  disabled={submitting}
+                  type="submit"
+                  className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   {submitting ? 'Joining…' : 'Join team'}
-                  {!submitting && <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />}
+                  {!submitting && (
+                    <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  )}
                 </button>
               </form>
             </>

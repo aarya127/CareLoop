@@ -7,23 +7,21 @@
  * Falls back to an in-process Map for local dev without Redis.
  */
 
-import { randomBytes } from "node:crypto";
-import Redis from "ioredis";
+import { randomBytes } from 'node:crypto';
+import Redis from 'ioredis';
 
 const TTL_SECONDS = 5 * 60;
-const KEY_PREFIX = "voice:audio:";
+const KEY_PREFIX = 'voice:audio:';
 
 let redis: Redis | null | undefined;
 
 function getRedis(): Redis | null {
   if (redis !== undefined) return redis;
   const url = process.env.REDIS_URL;
-  redis = url
-    ? new Redis(url, { maxRetriesPerRequest: 2, enableOfflineQueue: true })
-    : null;
-  if (!redis && process.env.NODE_ENV === "production") {
+  redis = url ? new Redis(url, { maxRetriesPerRequest: 2, enableOfflineQueue: true }) : null;
+  if (!redis && process.env.NODE_ENV === 'production') {
     console.warn(
-      "[audio-store] REDIS_URL not set — falling back to in-memory storage, which breaks across serverless instances",
+      '[audio-store] REDIS_URL not set — falling back to in-memory storage, which breaks across serverless instances',
     );
   }
   return redis;
@@ -35,12 +33,12 @@ const memoryStore = new Map<string, Buffer>();
 export async function storeAudioBuffer(buffer: Buffer | Uint8Array | ArrayBuffer): Promise<string> {
   // The serving route is unauthenticated (Twilio <Play> fetches it), so the id
   // is the only access control — it must be crypto-random, not sequential.
-  const id = `audio-${randomBytes(16).toString("hex")}`;
+  const id = `audio-${randomBytes(16).toString('hex')}`;
   const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as ArrayBuffer);
 
   const client = getRedis();
   if (client) {
-    await client.set(KEY_PREFIX + id, data, "EX", TTL_SECONDS);
+    await client.set(KEY_PREFIX + id, data, 'EX', TTL_SECONDS);
     return id;
   }
 

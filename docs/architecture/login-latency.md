@@ -16,10 +16,10 @@ so they avoid a DB round-trip.
 
 ## Measured breakdown (local, warm)
 
-| Segment | Time |
-|---|---|
-| Direct API `POST /auth/login` (DB + bcrypt cost 12 + session) | **~53 ms** |
-| Via the Next BFF hop (adds proxy + second network leg) | **+250 ms** (dev-mode; less in prod) |
+| Segment                                                       | Time                                 |
+| ------------------------------------------------------------- | ------------------------------------ |
+| Direct API `POST /auth/login` (DB + bcrypt cost 12 + session) | **~53 ms**                           |
+| Via the Next BFF hop (adds proxy + second network leg)        | **+250 ms** (dev-mode; less in prod) |
 
 Takeaway: **the API itself is fast**. The latency users feel in a Vercel deployment is
 dominated by the hosting topology, not the code.
@@ -30,21 +30,21 @@ Ranked by impact:
 
 1. **Render free-tier cold starts (dominant).** Free services spin down after ~15 min
    idle; the next request pays a **30–60 s** container boot. This is almost certainly the
-   "login is slow" symptom. *Fix: a paid always-on instance, or a keep-warm ping (a cron
-   hitting `/health` every ~10 min).*
+   "login is slow" symptom. _Fix: a paid always-on instance, or a keep-warm ping (a cron
+   hitting `/health` every ~10 min)._
 2. **Cross-region network hop.** Vercel functions run in the region nearest the user; the
    API is in Render **Oregon**. A mismatched Vercel region adds a round-trip of tens–hundreds
-   of ms on both the BFF→API call and each `requireUser` → `/auth/me` check. *Fix: pin the
-   Vercel function region near Render Oregon (e.g. `pdx1`/`sfo1`).*
+   of ms on both the BFF→API call and each `requireUser` → `/auth/me` check. _Fix: pin the
+   Vercel function region near Render Oregon (e.g. `pdx1`/`sfo1`)._
 3. **bcrypt work factor on a weak CPU.** `bcrypt.compare` runs at the cost baked into the
    stored hash. Cost 12 is ~4× cost 10; on Render's shared free CPU that can be a few hundred
-   ms per login. *Fix: `BCRYPT_ROUNDS=10` (still ≥ OWASP minimum) — see rehash-on-login below.*
+   ms per login. _Fix: `BCRYPT_ROUNDS=10` (still ≥ OWASP minimum) — see rehash-on-login below._
 4. **Serverless cold starts (Vercel).** The first hit to a BFF route compiles/boots the
    function. Minor next to Render's, and warms quickly under traffic.
 
 ## What we changed in code
 
-- **Rehash-on-login.** `bcrypt.compare` always uses the *stored* hash's cost, so lowering
+- **Rehash-on-login.** `bcrypt.compare` always uses the _stored_ hash's cost, so lowering
   `BCRYPT_ROUNDS` does nothing for existing users by itself. On a successful login we now
   re-hash the password to the configured cost **in the background** (never blocking the
   response — see `auth.service.login` + `passwordNeedsRehash`). This lets ops tune the work
@@ -57,13 +57,13 @@ Ranked by impact:
 
 ## Configuration recommendations
 
-| Setting | Recommendation |
-|---|---|
-| Render plan | Move the API off free tier, **or** add a keep-warm `/health` ping (cron). |
+| Setting               | Recommendation                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| Render plan           | Move the API off free tier, **or** add a keep-warm `/health` ping (cron).                         |
 | `BCRYPT_ROUNDS` (API) | `10` on constrained CPUs (free tier); `12` on dedicated. Rehash-on-login migrates existing users. |
-| Vercel region | Pin near Render Oregon (`pdx1`/`sfo1`) to cut the cross-region leg. |
-| Prisma pooling | Add PgBouncer / a pooled `DATABASE_URL` under multiple API replicas. |
-| BFF | Keep it — it's required for the httpOnly session cookie. Minimize per-render `/auth/me` hops. |
+| Vercel region         | Pin near Render Oregon (`pdx1`/`sfo1`) to cut the cross-region leg.                               |
+| Prisma pooling        | Add PgBouncer / a pooled `DATABASE_URL` under multiple API replicas.                              |
+| BFF                   | Keep it — it's required for the httpOnly session cookie. Minimize per-render `/auth/me` hops.     |
 
 ## SLA targets (warm)
 

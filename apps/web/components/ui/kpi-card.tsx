@@ -35,17 +35,13 @@ export function KPICard({
       transition={{ duration: 0.2 }}
       whileHover={{ y: -2 }}
     >
-      <Card
-        hover={!!onClick}
-        onClick={onClick}
-        className={cn('overflow-hidden', className)}
-      >
+      <Card hover={!!onClick} onClick={onClick} className={cn('overflow-hidden', className)}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             {icon && <div className="text-muted-foreground">{icon}</div>}
           </div>
-          
+
           <div className="flex items-baseline gap-2">
             <motion.div
               className="text-3xl font-bold"
@@ -55,13 +51,13 @@ export function KPICard({
             >
               {value}
             </motion.div>
-            
+
             {trend !== undefined && (
               <div
                 className={cn(
                   'flex items-center text-xs font-medium',
                   hasPositiveTrend && 'text-green-600',
-                  hasNegativeTrend && 'text-red-600'
+                  hasNegativeTrend && 'text-red-600',
                 )}
               >
                 {hasPositiveTrend && <TrendingUp className="h-3 w-3 mr-1" />}

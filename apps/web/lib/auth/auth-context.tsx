@@ -65,21 +65,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (scope: AuthScope): boolean => {
       return user?.scopes.includes(scope) ?? false;
     },
-    [user]
+    [user],
   );
 
   const hasAnyScope = useCallback(
     (scopes: AuthScope[]): boolean => {
       return scopes.some((scope) => user?.scopes.includes(scope)) ?? false;
     },
-    [user]
+    [user],
   );
 
   const hasAllScopes = useCallback(
     (scopes: AuthScope[]): boolean => {
       return scopes.every((scope) => user?.scopes.includes(scope)) ?? false;
     },
-    [user]
+    [user],
   );
 
   const canAccessPatient = useCallback(
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return true;
     },
-    [user]
+    [user],
   );
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -207,7 +207,7 @@ export function useAuth() {
 // Higher-order component for protected routes
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
-  requiredScopes?: AuthScope[]
+  requiredScopes?: AuthScope[],
 ) {
   return function AuthenticatedComponent(props: P) {
     const { isAuthenticated, isLoading, hasAllScopes } = useAuth();
@@ -224,9 +224,7 @@ export function withAuth<P extends object>(
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              Authentication Required
-            </h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
             <p className="text-gray-600">Please log in to continue</p>
           </div>
         </div>
@@ -237,12 +235,8 @@ export function withAuth<P extends object>(
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              Access Denied
-            </h2>
-            <p className="text-gray-600">
-              You don&apos;t have permission to access this resource
-            </p>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600">You don&apos;t have permission to access this resource</p>
           </div>
         </div>
       );

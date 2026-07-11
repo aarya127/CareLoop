@@ -21,7 +21,9 @@ const PUBLIC_PATH_PREFIXES = [
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === '/') return true;
-  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 export function middleware(req: NextRequest) {

@@ -33,7 +33,15 @@ interface RadiographicFilesSectionProps {
   onUpload?: (file: File) => void;
 }
 
-type FileTypeFilter = 'all' | 'bitewing' | 'periapical' | 'panoramic' | 'cbct' | 'occlusal' | 'cephalometric' | 'intraoral_photo';
+type FileTypeFilter =
+  | 'all'
+  | 'bitewing'
+  | 'periapical'
+  | 'panoramic'
+  | 'cbct'
+  | 'occlusal'
+  | 'cephalometric'
+  | 'intraoral_photo';
 
 export default function RadiographicFilesSection({
   patientId,
@@ -48,9 +56,10 @@ export default function RadiographicFilesSection({
   const [isUploading, setIsUploading] = useState(false);
 
   // Filter records by type
-  const filteredRecords = filterType === 'all'
-    ? radiographicRecords
-    : radiographicRecords.filter(r => r.type === filterType);
+  const filteredRecords =
+    filterType === 'all'
+      ? radiographicRecords
+      : radiographicRecords.filter((r) => r.type === filterType);
 
   // Type labels for UI
   const typeLabels: Record<string, string> = {
@@ -113,12 +122,12 @@ export default function RadiographicFilesSection({
 
   // Handle zoom in
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.25, 3));
+    setZoomLevel((prev) => Math.min(prev + 0.25, 3));
   };
 
   // Handle zoom out
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
+    setZoomLevel((prev) => Math.max(prev - 0.25, 0.5));
   };
 
   // Handle download
@@ -146,10 +155,10 @@ export default function RadiographicFilesSection({
   // Calculate stats
   const stats = {
     total: radiographicRecords.length,
-    bitewing: radiographicRecords.filter(r => r.type === 'bitewing').length,
-    periapical: radiographicRecords.filter(r => r.type === 'periapical').length,
-    panoramic: radiographicRecords.filter(r => r.type === 'panoramic').length,
-    withAI: radiographicRecords.filter(r => r.ai_analysis).length,
+    bitewing: radiographicRecords.filter((r) => r.type === 'bitewing').length,
+    periapical: radiographicRecords.filter((r) => r.type === 'periapical').length,
+    panoramic: radiographicRecords.filter((r) => r.type === 'panoramic').length,
+    withAI: radiographicRecords.filter((r) => r.ai_analysis).length,
   };
 
   return (
@@ -221,7 +230,16 @@ export default function RadiographicFilesSection({
       {/* Filter Tabs */}
       <div className="flex items-center space-x-2 overflow-x-auto">
         <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
-        {(['all', 'bitewing', 'periapical', 'panoramic', 'cbct', 'intraoral_photo'] as FileTypeFilter[]).map((type) => (
+        {(
+          [
+            'all',
+            'bitewing',
+            'periapical',
+            'panoramic',
+            'cbct',
+            'intraoral_photo',
+          ] as FileTypeFilter[]
+        ).map((type) => (
           <button
             key={type}
             onClick={() => setFilterType(type)}
@@ -234,7 +252,7 @@ export default function RadiographicFilesSection({
             {type === 'all' ? 'All Images' : typeLabels[type]}
             {type !== 'all' && (
               <span className="ml-2 text-xs opacity-75">
-                ({radiographicRecords.filter(r => r.type === type).length})
+                ({radiographicRecords.filter((r) => r.type === type).length})
               </span>
             )}
           </button>
@@ -247,18 +265,12 @@ export default function RadiographicFilesSection({
           <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No X-rays Found</h3>
           <p className="text-gray-600 mb-4">
-            {filterType === 'all' 
+            {filterType === 'all'
               ? 'Upload your first X-ray to get started'
-              : `No ${typeLabels[filterType]} images found`
-            }
+              : `No ${typeLabels[filterType]} images found`}
           </p>
           <label className="cursor-pointer inline-block">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+            <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
             <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-block">
               Upload X-ray
             </span>
@@ -282,7 +294,7 @@ export default function RadiographicFilesSection({
                   alt={`${typeLabels[record.type]} - ${record.date_taken}`}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
-                
+
                 {/* Overlay on hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-center justify-center">
                   <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
@@ -300,7 +312,9 @@ export default function RadiographicFilesSection({
               {/* Info */}
               <div className="p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${typeColors[record.type]}`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${typeColors[record.type]}`}
+                  >
                     {typeLabels[record.type]}
                   </span>
                   <span className="text-xs text-gray-500 flex items-center">
@@ -311,9 +325,7 @@ export default function RadiographicFilesSection({
 
                 {/* Dentist Notes */}
                 {record.dentist_notes && (
-                  <p className="text-sm text-gray-700 line-clamp-2 mb-2">
-                    {record.dentist_notes}
-                  </p>
+                  <p className="text-sm text-gray-700 line-clamp-2 mb-2">{record.dentist_notes}</p>
                 )}
 
                 {/* AI Analysis Preview */}
@@ -321,7 +333,8 @@ export default function RadiographicFilesSection({
                   <div className="flex items-start space-x-2 text-xs text-amber-700 bg-amber-50 rounded p-2">
                     <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
                     <span className="line-clamp-1">
-                      {record.ai_analysis.detected_issues.length} issue{record.ai_analysis.detected_issues.length !== 1 ? 's' : ''} detected
+                      {record.ai_analysis.detected_issues.length} issue
+                      {record.ai_analysis.detected_issues.length !== 1 ? 's' : ''} detected
                     </span>
                   </div>
                 )}
@@ -427,7 +440,7 @@ export default function RadiographicFilesSection({
                   e.stopPropagation();
                   handleDownload(
                     selectedImage.file_url,
-                    `${typeLabels[selectedImage.type]}_${selectedImage.date_taken}.jpg`
+                    `${typeLabels[selectedImage.type]}_${selectedImage.date_taken}.jpg`,
                   );
                 }}
                 className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors rounded-lg px-4 py-2 flex items-center space-x-2"
@@ -473,9 +486,7 @@ export default function RadiographicFilesSection({
 
                   {/* Summary */}
                   <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-indigo-900">
-                      {selectedImage.ai_analysis.summary}
-                    </p>
+                    <p className="text-sm text-indigo-900">{selectedImage.ai_analysis.summary}</p>
                   </div>
 
                   {/* Detected Issues */}
@@ -493,12 +504,16 @@ export default function RadiographicFilesSection({
                         >
                           <div className="flex items-start justify-between mb-1">
                             <div className="flex items-center space-x-2">
-                              <AlertCircle className={`w-4 h-4 ${
-                                issue.type === 'cavity' ? 'text-red-600' : 'text-amber-600'
-                              }`} />
-                              <span className={`text-sm font-medium capitalize ${
-                                issue.type === 'cavity' ? 'text-red-900' : 'text-amber-900'
-                              }`}>
+                              <AlertCircle
+                                className={`w-4 h-4 ${
+                                  issue.type === 'cavity' ? 'text-red-600' : 'text-amber-600'
+                                }`}
+                              />
+                              <span
+                                className={`text-sm font-medium capitalize ${
+                                  issue.type === 'cavity' ? 'text-red-900' : 'text-amber-900'
+                                }`}
+                              >
                                 {issue.type.replace('_', ' ')}
                               </span>
                             </div>
@@ -506,9 +521,11 @@ export default function RadiographicFilesSection({
                               {Math.round(issue.confidence_score * 100)}% confidence
                             </span>
                           </div>
-                          <p className={`text-sm ${
-                            issue.type === 'cavity' ? 'text-red-800' : 'text-amber-800'
-                          }`}>
+                          <p
+                            className={`text-sm ${
+                              issue.type === 'cavity' ? 'text-red-800' : 'text-amber-800'
+                            }`}
+                          >
                             {issue.location}
                           </p>
                         </div>
@@ -534,12 +551,17 @@ export default function RadiographicFilesSection({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center space-x-2 mb-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  selectedImage.type === 'bitewing' ? 'bg-blue-600' :
-                  selectedImage.type === 'periapical' ? 'bg-green-600' :
-                  selectedImage.type === 'panoramic' ? 'bg-purple-600' :
-                  'bg-orange-600'
-                }`}>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    selectedImage.type === 'bitewing'
+                      ? 'bg-blue-600'
+                      : selectedImage.type === 'periapical'
+                        ? 'bg-green-600'
+                        : selectedImage.type === 'panoramic'
+                          ? 'bg-purple-600'
+                          : 'bg-orange-600'
+                  }`}
+                >
                   {typeLabels[selectedImage.type]}
                 </span>
                 <span className="text-sm flex items-center">
@@ -547,7 +569,7 @@ export default function RadiographicFilesSection({
                   {new Date(selectedImage.date_taken).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
-                    day: 'numeric'
+                    day: 'numeric',
                   })}
                 </span>
               </div>

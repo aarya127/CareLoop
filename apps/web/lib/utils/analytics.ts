@@ -33,7 +33,7 @@ export function calculateAnalytics(patients: Patient[]): AnalyticsData {
   // Calculate outstanding balances
   const outstandingBalances = patients.reduce(
     (sum, patient) => sum + patient.billing.outstandingBalance,
-    0
+    0,
   );
 
   // Calculate average visit cost
@@ -94,23 +94,23 @@ export function animateNumber(
   from: number,
   to: number,
   duration: number,
-  callback: (value: number) => void
+  callback: (value: number) => void,
 ) {
   const startTime = Date.now();
   const step = () => {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    
+
     // Ease-out cubic for smooth deceleration
     const easeOut = 1 - Math.pow(1 - progress, 3);
     const current = from + (to - from) * easeOut;
-    
+
     callback(Math.round(current));
-    
+
     if (progress < 1) {
       requestAnimationFrame(step);
     }
   };
-  
+
   requestAnimationFrame(step);
 }

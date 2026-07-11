@@ -23,13 +23,13 @@ interface CustomDayViewProps {
 const slotVariants = {
   default: {
     backgroundColor: 'transparent',
-    transition: { duration: 0.2 }
+    transition: { duration: 0.2 },
   },
   hover: {
     backgroundColor: 'rgba(135,206,235,0.05)',
     boxShadow: 'inset 0 0 0 2px rgba(135,206,235,0.2)',
-    transition: { duration: 0.15 }
-  }
+    transition: { duration: 0.15 },
+  },
 };
 
 const appointmentVariants = {
@@ -37,7 +37,7 @@ const appointmentVariants = {
     scale: 1,
     opacity: 1,
     y: 0,
-    transition: { duration: 0.2 }
+    transition: { duration: 0.2 },
   },
   expanded: {
     scale: 1.02,
@@ -47,14 +47,14 @@ const appointmentVariants = {
     transition: {
       type: 'spring' as const,
       stiffness: 300,
-      damping: 25
-    }
+      damping: 25,
+    },
   },
   selected: {
     scale: 1.05,
     opacity: 0.8,
-    transition: { duration: 0.3 }
-  }
+    transition: { duration: 0.3 },
+  },
 };
 
 export function CustomDayView({
@@ -105,7 +105,7 @@ export function CustomDayView({
                 whileTap={{ scale: 0.98 }}
                 className={cn(
                   'h-[100px] border-b border-gray-200 cursor-pointer relative',
-                  slot.isPast && 'bg-gray-50/50'
+                  slot.isPast && 'bg-gray-50/50',
                 )}
                 onClick={() => onSlotClick(slot.time)}
               />
@@ -144,7 +144,7 @@ export function CustomDayView({
                     appointment={apt}
                     onClick={() => onAppointmentClick(apt)}
                   />
-                ))
+                )),
               )}
             </div>
           </div>
@@ -191,16 +191,12 @@ function AppointmentCard({ appointment, onClick }: AppointmentCardProps) {
       >
         {/* Card content */}
         <div className="relative z-10">
-          <div className="text-white font-semibold text-sm mb-1">
-            {appointment.patientName}
-          </div>
+          <div className="text-white font-semibold text-sm mb-1">{appointment.patientName}</div>
           <div className="text-white/90 text-xs mb-1">
             {format(appointment.startTime, 'h:mm a')} - {format(appointment.endTime, 'h:mm a')}
           </div>
-          <div className="text-white/80 text-xs">
-            {appointment.procedure}
-          </div>
-          
+          <div className="text-white/80 text-xs">{appointment.procedure}</div>
+
           {/* Doctor badge */}
           <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full backdrop-blur-sm">
             <Clock className="w-3 h-3 text-white" />

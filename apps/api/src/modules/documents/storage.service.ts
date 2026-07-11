@@ -90,8 +90,6 @@ export class StorageService implements OnModuleInit {
    * Permanently remove an object from storage.
    */
   async deleteObject(key: string): Promise<void> {
-    await this.client.send(
-      new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: key }),
-    );
+    await this.client.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: key }));
   }
 }

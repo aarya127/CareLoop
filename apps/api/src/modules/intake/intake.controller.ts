@@ -58,10 +58,7 @@ export class IntakeController {
    */
   @Public()
   @Post('drafts/:id/submit')
-  submitDraft(
-    @Param('id') id: string,
-    @Headers('idempotency-key') idempotencyKey: string,
-  ) {
+  submitDraft(@Param('id') id: string, @Headers('idempotency-key') idempotencyKey: string) {
     if (!idempotencyKey?.trim()) {
       throw new BadRequestException('Idempotency-Key header is required');
     }

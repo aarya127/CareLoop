@@ -1,11 +1,10 @@
-
-"use client";
-import React, { useState } from "react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+'use client';
+import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 
 // Lazy-load the entire FullCalendar bundle (~300 KB) — only downloaded when the calendar route is visited
-const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
+const FullCalendar = dynamic(() => import('@fullcalendar/react'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-96 text-gray-400 animate-pulse">
@@ -15,10 +14,10 @@ const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
 });
 
 // Plugins are tiny re-exports — import them normally so FullCalendar can receive them as props
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import listPlugin from "@fullcalendar/list";
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list';
 
 // Helper to fetch events from backend
 async function fetchEvents(info: any, successCallback: any, failureCallback: any) {
@@ -28,12 +27,12 @@ async function fetchEvents(info: any, successCallback: any, failureCallback: any
       end: info.endStr,
     });
     const res = await fetch(`/api/calendar/events?${params.toString()}`);
-    if (!res.ok) throw new Error("Failed to fetch events");
+    if (!res.ok) throw new Error('Failed to fetch events');
     const data = await res.json();
     // Map backend events to FullCalendar format
     const events = data.events.map((evt: any) => ({
       id: evt.id,
-      title: evt.summary || evt.title || "(No Title)",
+      title: evt.summary || evt.title || '(No Title)',
       start: evt.start,
       end: evt.end,
       extendedProps: evt,
@@ -106,9 +105,7 @@ export default function AdminCalendarPage() {
   // Handler for date selection (create new event)
   function handleDateSelect(selectInfo: any) {
     // Could open a modal for new event creation
-    alert(
-      `Create new appointment from ${selectInfo.startStr} to ${selectInfo.endStr}`
-    );
+    alert(`Create new appointment from ${selectInfo.startStr} to ${selectInfo.endStr}`);
   }
 
   // Handler for event drop/resize
@@ -116,8 +113,8 @@ export default function AdminCalendarPage() {
     const event = changeInfo.event;
     // Call backend to update event
     await fetch(`/api/calendar/events/${event.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         start: event.start?.toISOString(),
         end: event.end?.toISOString(),
@@ -162,17 +159,12 @@ export default function AdminCalendarPage() {
       </div>
       <div className="bg-white rounded-lg shadow border p-4">
         <FullCalendar
-          plugins={[
-            dayGridPlugin,
-            timeGridPlugin,
-            interactionPlugin,
-            listPlugin,
-          ]}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
           initialView="timeGridWeek"
           headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
           }}
           selectable={true}
           editable={true}
@@ -213,7 +205,9 @@ export default function AdminCalendarPage() {
               </button>
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded"
-                onClick={() => router.push(`/admin/patient-record?id=${selectedEvent.patientId || ''}`)}
+                onClick={() =>
+                  router.push(`/admin/patient-record?id=${selectedEvent.patientId || ''}`)
+                }
               >
                 View Patient Record
               </button>

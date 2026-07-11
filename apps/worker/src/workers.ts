@@ -32,8 +32,7 @@ function withFailedHandler(worker: Worker): Worker {
     const isFinal = job.attemptsMade >= maxAttempts;
 
     if (isFinal) {
-      const practiceId =
-        (job.data as Record<string, unknown>).practiceId as string | undefined;
+      const practiceId = (job.data as Record<string, unknown>).practiceId as string | undefined;
 
       await prisma.failedJob
         .create({
@@ -49,10 +48,7 @@ function withFailedHandler(worker: Worker): Worker {
           },
         })
         .catch((dbErr: unknown) =>
-          console.error(
-            `[dead-letter] Failed to record dead-letter for job ${job.id}:`,
-            dbErr,
-          ),
+          console.error(`[dead-letter] Failed to record dead-letter for job ${job.id}:`, dbErr),
         );
 
       console.error(
@@ -70,17 +66,32 @@ export function createWorkers(connection: Redis): Worker[] {
   // Legacy workers — concurrency kept, retry policy added
   // Note: defaultJobOptions lives on the Queue, not the Worker — removed here.
   const legacyWorkers: Worker[] = [
-    new Worker(JobNames.FINALIZE_TRANSCRIPT, finalizeTranscriptProcessor, { ...workerOptions, concurrency: 5 }),
-    new Worker(JobNames.SYNC_GOOGLE_CALENDAR, syncGoogleCalendarProcessor, { ...workerOptions, concurrency: 3 }),
-    new Worker(JobNames.APPOINTMENT_REMINDER, appointmentReminderProcessor, { ...workerOptions, concurrency: 10 }),
+    new Worker(JobNames.FINALIZE_TRANSCRIPT, finalizeTranscriptProcessor, {
+      ...workerOptions,
+      concurrency: 5,
+    }),
+    new Worker(JobNames.SYNC_GOOGLE_CALENDAR, syncGoogleCalendarProcessor, {
+      ...workerOptions,
+      concurrency: 3,
+    }),
+    new Worker(JobNames.APPOINTMENT_REMINDER, appointmentReminderProcessor, {
+      ...workerOptions,
+      concurrency: 10,
+    }),
     new Worker(JobNames.COMPUTE_KPIS, computeKpisProcessor, { ...workerOptions, concurrency: 1 }),
   ];
 
   // New spec-aligned workers
   const newWorkers: Worker[] = [
     new Worker(QUEUE_NAMES.REMINDERS, remindersProcessor, { ...workerOptions, concurrency: 10 }),
-    new Worker(QUEUE_NAMES.ANALYTICS, analyticsRefreshProcessor, { ...workerOptions, concurrency: 1 }),
-    new Worker(QUEUE_NAMES.DOCUMENTS, documentCleanupProcessor, { ...workerOptions, concurrency: 2 }),
+    new Worker(QUEUE_NAMES.ANALYTICS, analyticsRefreshProcessor, {
+      ...workerOptions,
+      concurrency: 1,
+    }),
+    new Worker(QUEUE_NAMES.DOCUMENTS, documentCleanupProcessor, {
+      ...workerOptions,
+      concurrency: 2,
+    }),
     new Worker(QUEUE_NAMES.EXPORTS, exportsProcessor, { ...workerOptions, concurrency: 2 }),
     new Worker(QUEUE_NAMES.WEBHOOKS, webhooksProcessor, { ...workerOptions, concurrency: 5 }),
     new Worker(QUEUE_NAMES.SCHEDULER, reminderScanProcessor, { ...workerOptions, concurrency: 1 }),
@@ -90,4 +101,3 @@ export function createWorkers(connection: Redis): Worker[] {
   allWorkers.forEach(withFailedHandler);
   return allWorkers;
 }
-

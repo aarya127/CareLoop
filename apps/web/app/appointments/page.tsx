@@ -123,7 +123,10 @@ export default function AppointmentsPage() {
   }, []);
 
   function refresh() {
-    if (!DEMO_PRACTICE_ID) { setLoading(false); return; }
+    if (!DEMO_PRACTICE_ID) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = new Date();
     from.setDate(from.getDate() - 7);
@@ -144,7 +147,9 @@ export default function AppointmentsPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+  }, []);
 
   async function handleCancel(appt: AppointmentRecord) {
     if (!confirm(`Cancel "${appt.title}"?`)) return;
@@ -195,18 +200,15 @@ export default function AppointmentsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Appointments</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Upcoming and recent appointments
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Upcoming and recent appointments</p>
         </div>
         <Button onClick={() => setModalOpen(true)}>+ New Appointment</Button>
       </div>
 
       {!DEMO_PRACTICE_ID && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm px-4 py-3 mb-4">
-          Set <code>NEXT_PUBLIC_DEMO_PRACTICE_ID</code> and{' '}
-          <code>NEXT_PUBLIC_DEMO_USER_ID</code> in your .env to connect to the
-          real API.
+          Set <code>NEXT_PUBLIC_DEMO_PRACTICE_ID</code> and <code>NEXT_PUBLIC_DEMO_USER_ID</code> in
+          your .env to connect to the real API.
         </div>
       )}
 
@@ -240,18 +242,14 @@ export default function AppointmentsPage() {
               {appointments.map((appt) => (
                 <tr key={appt.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{appt.title}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatApptDate(appt.start)}
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatApptDate(appt.start)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {formatSlotTime(appt.start)} – {formatSlotTime(appt.end)}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={appt.status} />
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground capitalize">
-                    {appt.source}
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground capitalize">{appt.source}</td>
                   <td className="px-4 py-3">
                     {appt.status !== 'cancelled' && appt.status !== 'completed' ? (
                       <ReminderBadge

@@ -30,15 +30,15 @@
 
 ## OWASP Top 10 Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Injection | Prisma parameterized queries; input validation with Zod |
-| Broken Auth | Short-lived tokens; secure session cookies; bcrypt |
-| Sensitive Data | Encrypted PII; TLS everywhere |
-| XXE | Not applicable (no XML parsing) |
-| Broken Access Control | RBAC guards on every endpoint |
-| Security Misconfiguration | Hardened Docker images; automated SAST |
-| XSS | Next.js escaping; CSP headers |
-| Insecure Deserialization | JSON only; no eval |
-| Known Vulnerabilities | Dependabot; snyk in CI |
-| Insufficient Logging | Structured audit log; centralized observability |
+| Risk                      | Mitigation                                              |
+| ------------------------- | ------------------------------------------------------- |
+| Injection                 | Prisma parameterized queries; input validation with Zod |
+| Broken Auth               | Short-lived tokens; secure session cookies; bcrypt      |
+| Sensitive Data            | Encrypted PII; TLS everywhere                           |
+| XXE                       | Not applicable (no XML parsing)                         |
+| Broken Access Control     | RBAC guards on every endpoint                           |
+| Security Misconfiguration | Hardened Docker images; automated SAST                  |
+| XSS                       | Next.js escaping; CSP headers                           |
+| Insecure Deserialization  | JSON only; no eval                                      |
+| Known Vulnerabilities     | Dependabot; snyk in CI                                  |
+| Insufficient Logging      | Structured audit log; centralized observability         |

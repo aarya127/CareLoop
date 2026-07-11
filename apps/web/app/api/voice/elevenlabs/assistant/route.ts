@@ -1,11 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { requireUser } from "@/lib/auth/server";
-import { prisma } from "@/lib/db/prisma";
-import { getDemoPatient } from "@/lib/demo/sample-data";
-import { getDentalRecordById } from "@/lib/data/mock-dental-records";
-import { synthesizeWithElevenLabs } from "@/lib/services/elevenlabs";
-import { getAiTestPatientById, getDefaultAiTestPatient } from "@/experiments/ai_test/patient-random-data";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { requireUser } from '@/lib/auth/server';
+import { prisma } from '@/lib/db/prisma';
+import { getDemoPatient } from '@/lib/demo/sample-data';
+import { getDentalRecordById } from '@/lib/data/mock-dental-records';
+import { synthesizeWithElevenLabs } from '@/lib/services/elevenlabs';
+import {
+  getAiTestPatientById,
+  getDefaultAiTestPatient,
+} from '@/experiments/ai_test/patient-random-data';
 
 const schema = z.object({
   question: z.string().min(3),
@@ -15,10 +18,10 @@ const schema = z.object({
   voiceName: z.string().optional(),
   modelId: z.string().optional(),
   lookaheadDays: z.number().int().min(1).max(60).default(14),
-  timeZone: z.string().default("America/Toronto"),
+  timeZone: z.string().default('America/Toronto'),
 });
 
-type AssistantIntent = "availability" | "records" | "next_checkup" | "general";
+type AssistantIntent = 'availability' | 'records' | 'next_checkup' | 'general';
 
 type AvailabilitySlot = {
   start: string;
@@ -27,28 +30,39 @@ type AvailabilitySlot = {
 
 function detectIntent(question: string): AssistantIntent {
   const q = question.toLowerCase();
-  if (q.includes("availability") || q.includes("available") || q.includes("schedule") || q.includes("appointment")) {
-    return "availability";
-  }
-  if (q.includes("check up") || q.includes("checkup") || q.includes("check-up") || q.includes("cleaning") || q.includes("next visit")) {
-    return "next_checkup";
+  if (
+    q.includes('availability') ||
+    q.includes('available') ||
+    q.includes('schedule') ||
+    q.includes('appointment')
+  ) {
+    return 'availability';
   }
   if (
-    q.includes("record") ||
-    q.includes("medical") ||
-    q.includes("history") ||
-    q.includes("allerg") ||
-    q.includes("insurance") ||
-    q.includes("x-ray") ||
-    q.includes("xray")
+    q.includes('check up') ||
+    q.includes('checkup') ||
+    q.includes('check-up') ||
+    q.includes('cleaning') ||
+    q.includes('next visit')
   ) {
-    return "records";
+    return 'next_checkup';
   }
-  return "general";
+  if (
+    q.includes('record') ||
+    q.includes('medical') ||
+    q.includes('history') ||
+    q.includes('allerg') ||
+    q.includes('insurance') ||
+    q.includes('x-ray') ||
+    q.includes('xray')
+  ) {
+    return 'records';
+  }
+  return 'general';
 }
 
 function toBase64(buffer: ArrayBuffer): string {
-  return Buffer.from(buffer).toString("base64");
+  return Buffer.from(buffer).toString('base64');
 }
 
 function asDateIso(date: Date): string {
@@ -87,7 +101,10 @@ function generateCandidateSlots(startAt: Date, days: number): AvailabilitySlot[]
   return slots;
 }
 
-async function getNextAvailability(userId: string, lookaheadDays: number): Promise<AvailabilitySlot[]> {
+async function getNextAvailability(
+  userId: string,
+  lookaheadDays: number,
+): Promise<AvailabilitySlot[]> {
   const now = new Date();
   const until = new Date(now);
   until.setDate(now.getDate() + lookaheadDays);
@@ -97,7 +114,7 @@ async function getNextAvailability(userId: string, lookaheadDays: number): Promi
     busy = await prisma.appointment.findMany({
       where: {
         userId,
-        status: { in: ["scheduled", "confirmed", "in_progress"] },
+        status: { in: ['scheduled', 'confirmed', 'in_progress'] },
         start: { gte: now },
         end: { lte: until },
       },
@@ -105,7 +122,7 @@ async function getNextAvailability(userId: string, lookaheadDays: number): Promi
         start: true,
         end: true,
       },
-      orderBy: { start: "asc" },
+      orderBy: { start: 'asc' },
     });
   } catch {
     // If DB is unavailable (for local demo), continue with empty busy slots.
@@ -128,11 +145,11 @@ async function getDbPatientSummary(patientId: string) {
     include: {
       insuranceRecords: {
         where: { active: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         take: 1,
       },
       transcripts: {
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         take: 1,
       },
     },
@@ -142,11 +159,11 @@ async function getDbPatientSummary(patientId: string) {
 
   const upcoming = await prisma.appointment.findFirst({
     where: { patientId, start: { gte: new Date() } },
-    orderBy: { start: "asc" },
+    orderBy: { start: 'asc' },
   });
 
   return {
-    source: "db" as const,
+    source: 'db' as const,
     patientName: `${patient.firstName} ${patient.lastName}`,
     dateOfBirth: patient.dateOfBirth?.toISOString() || null,
     patientType: patient.patientType,
@@ -172,10 +189,10 @@ function getDemoPatientSummary(patientId: string) {
   const record = getDentalRecordById(patientId);
 
   return {
-    source: "demo" as const,
+    source: 'demo' as const,
     patientName: `${demo.first_name} ${demo.last_name}`,
     dateOfBirth: demo.date_of_birth,
-    patientType: "demo",
+    patientType: 'demo',
     phoneE164: demo.phone,
     insurancePayer: record?.insurance?.provider_name || null,
     insurancePlan: record?.insurance?.plan_id || null,
@@ -201,10 +218,10 @@ function getAiTestPatientSummary(patientId?: string) {
   if (!record) return null;
 
   return {
-    source: "ai_test" as const,
+    source: 'ai_test' as const,
     patientName: `${record.firstName} ${record.lastName}`,
     dateOfBirth: record.dateOfBirth,
-    patientType: "ai_test",
+    patientType: 'ai_test',
     phoneE164: record.phoneE164,
     insurancePayer: record.insurance.payerName,
     insurancePlan: record.insurance.planName,
@@ -230,63 +247,84 @@ function composeAnswer(input: {
 }): string {
   const { intent, patientSummary, availability } = input;
 
-  if (!patientSummary && (intent === "records" || intent === "next_checkup")) {
-    return "I can answer detailed record and check-up questions once you provide a patient ID. I can still share next open appointment slots right now.";
+  if (!patientSummary && (intent === 'records' || intent === 'next_checkup')) {
+    return 'I can answer detailed record and check-up questions once you provide a patient ID. I can still share next open appointment slots right now.';
   }
 
-  if (intent === "next_checkup") {
+  if (intent === 'next_checkup') {
     if (patientSummary?.upcomingAppointment?.start) {
-      return `Your next recorded visit is ${new Date(patientSummary.upcomingAppointment.start).toLocaleString()} for ${patientSummary.upcomingAppointment.title || "a dental appointment"}. If you want, I can propose earlier open slots as well.`;
+      return `Your next recorded visit is ${new Date(patientSummary.upcomingAppointment.start).toLocaleString()} for ${patientSummary.upcomingAppointment.title || 'a dental appointment'}. If you want, I can propose earlier open slots as well.`;
     }
     if (availability.length > 0) {
       return `I do not see a specific upcoming check-up on file, but the next open slots are ${availability
         .map((slot) => new Date(slot.start).toLocaleString())
         .slice(0, 3)
-        .join(", ")}.`;
+        .join(', ')}.`;
     }
-    return "I could not find an upcoming check-up or open slot in the selected window. Try widening the lookahead period.";
+    return 'I could not find an upcoming check-up or open slot in the selected window. Try widening the lookahead period.';
   }
 
-  if (intent === "availability") {
+  if (intent === 'availability') {
     if (availability.length === 0) {
-      return "I could not find free appointment slots in the selected lookahead range.";
+      return 'I could not find free appointment slots in the selected lookahead range.';
     }
     return `The next available appointment times are ${availability
       .map((slot) => new Date(slot.start).toLocaleString())
-      .join(", ")}.`;
+      .join(', ')}.`;
   }
 
-  if (intent === "records") {
+  if (intent === 'records') {
     const details: string[] = [];
     details.push(`Patient: ${patientSummary.patientName}.`);
 
     if (patientSummary.upcomingAppointment?.start) {
-      details.push(`Next appointment: ${new Date(patientSummary.upcomingAppointment.start).toLocaleString()}.`);
+      details.push(
+        `Next appointment: ${new Date(patientSummary.upcomingAppointment.start).toLocaleString()}.`,
+      );
     }
     if (patientSummary.insurancePayer) {
-      details.push(`Insurance: ${patientSummary.insurancePayer}${patientSummary.insurancePlan ? ` (${patientSummary.insurancePlan})` : ""}.`);
+      details.push(
+        `Insurance: ${patientSummary.insurancePayer}${patientSummary.insurancePlan ? ` (${patientSummary.insurancePlan})` : ''}.`,
+      );
     }
-    if (patientSummary.medicalHighlights?.outstandingBalance !== null && patientSummary.medicalHighlights?.outstandingBalance !== undefined) {
-      details.push(`Outstanding balance: $${Number(patientSummary.medicalHighlights.outstandingBalance).toFixed(2)}.`);
+    if (
+      patientSummary.medicalHighlights?.outstandingBalance !== null &&
+      patientSummary.medicalHighlights?.outstandingBalance !== undefined
+    ) {
+      details.push(
+        `Outstanding balance: $${Number(patientSummary.medicalHighlights.outstandingBalance).toFixed(2)}.`,
+      );
     }
     if (patientSummary.medicalHighlights?.allergyFlag === true) {
-      details.push("Allergy flag: yes.");
+      details.push('Allergy flag: yes.');
     }
-    if (typeof patientSummary.medicalHighlights?.radiographCount === "number") {
+    if (typeof patientSummary.medicalHighlights?.radiographCount === 'number') {
       details.push(`Radiographs on file: ${patientSummary.medicalHighlights.radiographCount}.`);
     }
-    if (Array.isArray(patientSummary.medicalHighlights?.conditions) && patientSummary.medicalHighlights.conditions.length > 0) {
-      details.push(`Conditions: ${patientSummary.medicalHighlights.conditions.join(", ")}.`);
+    if (
+      Array.isArray(patientSummary.medicalHighlights?.conditions) &&
+      patientSummary.medicalHighlights.conditions.length > 0
+    ) {
+      details.push(`Conditions: ${patientSummary.medicalHighlights.conditions.join(', ')}.`);
     }
-    if (Array.isArray(patientSummary.medicalHighlights?.medications) && patientSummary.medicalHighlights.medications.length > 0) {
-      details.push(`Current medications: ${patientSummary.medicalHighlights.medications.join(", ")}.`);
+    if (
+      Array.isArray(patientSummary.medicalHighlights?.medications) &&
+      patientSummary.medicalHighlights.medications.length > 0
+    ) {
+      details.push(
+        `Current medications: ${patientSummary.medicalHighlights.medications.join(', ')}.`,
+      );
     }
     if (patientSummary.medicalHighlights?.lastCleaningDate) {
-      details.push(`Last cleaning: ${new Date(patientSummary.medicalHighlights.lastCleaningDate).toLocaleDateString()}.`);
+      details.push(
+        `Last cleaning: ${new Date(patientSummary.medicalHighlights.lastCleaningDate).toLocaleDateString()}.`,
+      );
     }
 
-    details.push("I can provide more details if you ask about a specific area such as insurance, x-rays, or upcoming visits.");
-    return details.join(" ");
+    details.push(
+      'I can provide more details if you ask about a specific area such as insurance, x-rays, or upcoming visits.',
+    );
+    return details.join(' ');
   }
 
   return "I can help with appointment availability, next check-up timing, and available patient records. Ask me things like 'When is my next check-up?' or 'What records do you have for demo-p-001?'";
@@ -302,7 +340,7 @@ export async function POST(req: NextRequest) {
     let patientSummary = null;
     if (!body.patientId) {
       patientSummary = getAiTestPatientSummary();
-    } else if (body.patientId.startsWith("ai-test-")) {
+    } else if (body.patientId.startsWith('ai-test-')) {
       patientSummary = getAiTestPatientSummary(body.patientId);
     } else {
       try {
@@ -312,7 +350,8 @@ export async function POST(req: NextRequest) {
           getAiTestPatientSummary(body.patientId);
       } catch {
         // Local fallback when DB is not configured.
-        patientSummary = getDemoPatientSummary(body.patientId) || getAiTestPatientSummary(body.patientId);
+        patientSummary =
+          getDemoPatientSummary(body.patientId) || getAiTestPatientSummary(body.patientId);
       }
     }
 
@@ -342,7 +381,7 @@ export async function POST(req: NextRequest) {
       patientSummary,
       availability,
       audioBase64,
-      audioMimeType: audioBase64 ? "audio/mpeg" : undefined,
+      audioMimeType: audioBase64 ? 'audio/mpeg' : undefined,
       metadata: {
         lookaheadDays: body.lookaheadDays,
         timeZone: body.timeZone,
@@ -351,10 +390,10 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     if (error instanceof Response) {
       const status = error.status || 500;
-      const explicit = status === 401 ? "unauthorized" : "request_failed";
+      const explicit = status === 401 ? 'unauthorized' : 'request_failed';
       return NextResponse.json({ ok: false, error: explicit }, { status });
     }
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

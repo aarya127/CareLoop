@@ -133,7 +133,7 @@ class AuditService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify({ logs }),
       });
@@ -192,7 +192,7 @@ class AuditService {
 
       const response = await fetch(`/api/audit/logs?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
 
@@ -256,7 +256,7 @@ export async function trackAPICall(
   method: string,
   success: boolean,
   error?: string,
-  requestId?: string
+  requestId?: string,
 ): Promise<void> {
   return auditService.log({
     action: success ? 'api_success' : 'api_error',

@@ -12,39 +12,43 @@
  * Twilio expects a TwiML response (text/xml) within 10 seconds.
  */
 
-import { NextRequest } from "next/server";
-import { childLogger } from "@/lib/utils/logger";
-import { synthesizeWithElevenLabs } from "@/lib/services/elevenlabs";
+import { NextRequest } from 'next/server';
+import { childLogger } from '@/lib/utils/logger';
+import { synthesizeWithElevenLabs } from '@/lib/services/elevenlabs';
 import {
   buildPlayAndGatherTwiml,
   buildSayAndGatherTwiml,
   requireTwilioRequest,
-} from "@/lib/services/twilio";
-import { storeAudioBuffer, getAudioUrl } from "@/lib/voice/audio-store";
+} from '@/lib/services/twilio';
+import { storeAudioBuffer, getAudioUrl } from '@/lib/voice/audio-store';
 
-const log = childLogger("telephony/webhook");
+const log = childLogger('telephony/webhook');
 
 const GREETING =
   "Hello, thank you for calling CareLoop Dental. I'm your AI assistant. " +
-  "I can help you with appointment scheduling, check-up reminders, and patient records. " +
-  "How can I help you today?";
+  'I can help you with appointment scheduling, check-up reminders, and patient records. ' +
+  'How can I help you today?';
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData().catch(() => new FormData());
 
-  const rejected = requireTwilioRequest(req.nextUrl, formData, req.headers.get("x-twilio-signature"));
+  const rejected = requireTwilioRequest(
+    req.nextUrl,
+    formData,
+    req.headers.get('x-twilio-signature'),
+  );
   if (rejected) {
-    log.warn("rejected inbound call webhook: invalid Twilio signature");
+    log.warn('rejected inbound call webhook: invalid Twilio signature');
     return rejected;
   }
 
-  const callSid = formData.get("CallSid")?.toString() ?? "unknown";
-  const from = formData.get("From")?.toString() ?? "";
-  const to = formData.get("To")?.toString() ?? "";
+  const callSid = formData.get('CallSid')?.toString() ?? 'unknown';
+  const from = formData.get('From')?.toString() ?? '';
+  const to = formData.get('To')?.toString() ?? '';
 
-  log.info({ callSid, from, to }, "inbound call received");
+  log.info({ callSid, from, to }, 'inbound call received');
 
-  const baseUrl = process.env.BASE_URL ?? process.env.APP_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.BASE_URL ?? process.env.APP_BASE_URL ?? 'http://localhost:3000';
   const gatherUrl = `${baseUrl}/api/voice/telephony/gather`;
 
   try {
@@ -57,22 +61,25 @@ export async function POST(req: NextRequest) {
       audioUrl,
       gatherUrl,
       timeoutSeconds: 10,
-      speechTimeout: "auto",
+      speechTimeout: 'auto',
     });
 
-    log.info({ callSid, audioId }, "greeting ready, returning TwiML");
+    log.info({ callSid, audioId }, 'greeting ready, returning TwiML');
     return new Response(twiml, {
       status: 200,
-      headers: { "Content-Type": "text/xml" },
+      headers: { 'Content-Type': 'text/xml' },
     });
   } catch (err) {
-    log.error({ callSid, err: String(err) }, "greeting synthesis failed — falling back to Twilio TTS");
+    log.error(
+      { callSid, err: String(err) },
+      'greeting synthesis failed — falling back to Twilio TTS',
+    );
 
     // Fallback: use Twilio's built-in TTS (Polly) so the call still connects
     const twiml = buildSayAndGatherTwiml({ text: GREETING, gatherUrl });
     return new Response(twiml, {
       status: 200,
-      headers: { "Content-Type": "text/xml" },
+      headers: { 'Content-Type': 'text/xml' },
     });
   }
 }

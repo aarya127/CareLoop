@@ -10,12 +10,7 @@ import { PatientsService } from '../patients/patients.service';
 import { InsuranceService } from '../insurance/insurance.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { prisma } from '../../config/database';
-import type {
-  CreateDraftDto,
-  UpdateDraftDto,
-  IntakeDraftData,
-  DemographicsData,
-} from './dto';
+import type { CreateDraftDto, UpdateDraftDto, IntakeDraftData, DemographicsData } from './dto';
 
 @Injectable()
 export class IntakeService {
@@ -46,11 +41,7 @@ export class IntakeService {
     return draft;
   }
 
-  async updateDraft(
-    id: string,
-    dto: UpdateDraftDto,
-    actorUserId?: string,
-  ): Promise<any> {
+  async updateDraft(id: string, dto: UpdateDraftDto, actorUserId?: string): Promise<any> {
     const existing = await this.intakeRepository.findDraftById(id);
     if (!existing) throw new NotFoundException(`IntakeDraft ${id} not found`);
     if (existing.status === 'submitted') {
@@ -79,11 +70,7 @@ export class IntakeService {
     return draft;
   }
 
-  async submitDraft(
-    id: string,
-    idempotencyKey: string,
-    actorUserId?: string,
-  ): Promise<any> {
+  async submitDraft(id: string, idempotencyKey: string, actorUserId?: string): Promise<any> {
     // 1. Idempotency check — return cached result on replay
     const cached = await this.idempotencyService.claim(idempotencyKey);
     if (cached) return cached.body;

@@ -18,8 +18,8 @@ export class AvailabilityService {
   async getSlots(params: {
     practiceId: string;
     providerId: string;
-    date: string;       // YYYY-MM-DD
-    duration: number;   // minutes
+    date: string; // YYYY-MM-DD
+    duration: number; // minutes
   }): Promise<TimeSlot[]> {
     const { providerId, date, duration } = params;
     const cacheKey = `avail:${providerId}:${date}:${duration}`;
@@ -102,9 +102,7 @@ export class AvailabilityService {
       let cursor = windowStart;
       while (cursor + durationMs <= windowEnd) {
         const slotEnd = cursor + durationMs;
-        const isAvailable = !busy.some(
-          ([bStart, bEnd]) => cursor < bEnd && slotEnd > bStart,
-        );
+        const isAvailable = !busy.some(([bStart, bEnd]) => cursor < bEnd && slotEnd > bStart);
         slots.push({
           start: new Date(cursor).toISOString(),
           end: new Date(slotEnd).toISOString(),

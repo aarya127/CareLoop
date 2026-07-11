@@ -450,10 +450,7 @@ export function getAppointmentsByDate(date: Date): Appointment[] {
 /**
  * Helper function to get appointments in a date range
  */
-export function getAppointmentsByDateRange(
-  startDate: Date,
-  endDate: Date
-): Appointment[] {
+export function getAppointmentsByDateRange(startDate: Date, endDate: Date): Appointment[] {
   return mockAppointments.filter((apt) => {
     const aptDate = new Date(apt.startTime);
     return aptDate >= startDate && aptDate <= endDate;
@@ -466,7 +463,7 @@ export function getAppointmentsByDateRange(
 export function getBookingSourceCounts() {
   const ai = mockAppointments.filter((apt) => apt.bookingSource === 'ai').length;
   const manual = mockAppointments.filter((apt) => apt.bookingSource === 'manual').length;
-  
+
   return {
     ai,
     manual,

@@ -8,12 +8,14 @@ export const PatientSchema = z.object({
   dateOfBirth: z.string(),
   phone: z.string(),
   email: z.string().email().optional(),
-  address: z.object({
-    street: z.string(),
-    city: z.string(),
-    state: z.string(),
-    zip: z.string(),
-  }).optional(),
+  address: z
+    .object({
+      street: z.string(),
+      city: z.string(),
+      state: z.string(),
+      zip: z.string(),
+    })
+    .optional(),
   tags: z.array(z.string()).default([]),
   avatar: z.string().optional(),
 });
@@ -46,7 +48,15 @@ export const AppointmentSchema = z.object({
   type: z.enum(['new_patient', 'hygiene', 'procedure', 'emergency', 'follow_up']),
   start: z.string(),
   end: z.string(),
-  status: z.enum(['scheduled', 'confirmed', 'checked_in', 'in_progress', 'completed', 'cancelled', 'no_show']),
+  status: z.enum([
+    'scheduled',
+    'confirmed',
+    'checked_in',
+    'in_progress',
+    'completed',
+    'cancelled',
+    'no_show',
+  ]),
   notes: z.string().optional(),
   insurancePending: z.boolean().default(false),
   balanceDue: z.boolean().default(false),

@@ -54,11 +54,7 @@ export class JobsService {
   }
 
   /** Returns dead-lettered jobs from the DB (all retries exhausted). */
-  async listFailedJobs(filter?: {
-    queue?: string;
-    practiceId?: string;
-    limit?: number;
-  }) {
+  async listFailedJobs(filter?: { queue?: string; practiceId?: string; limit?: number }) {
     return prisma.failedJob.findMany({
       where: {
         ...(filter?.queue ? { queue: filter.queue } : {}),

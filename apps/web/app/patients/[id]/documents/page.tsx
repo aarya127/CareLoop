@@ -13,7 +13,11 @@ import { Button } from '@/components/ui/button';
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const ALLOWED_TYPES = [
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heic',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -160,9 +164,7 @@ export default function PatientDocumentsPage({ params }: Props) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Documents</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Uploaded files for this patient
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Uploaded files for this patient</p>
         </div>
 
         {/* Upload controls */}
@@ -173,15 +175,14 @@ export default function PatientDocumentsPage({ params }: Props) {
             className="h-10 rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {CATEGORIES.map(([val, label]) => (
-              <option key={val} value={val}>{label}</option>
+              <option key={val} value={val}>
+                {label}
+              </option>
             ))}
           </select>
 
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? uploadProgress ?? 'Uploading…' : 'Upload File'}
+          <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+            {uploading ? (uploadProgress ?? 'Uploading…') : 'Upload File'}
           </Button>
 
           {/* Hidden file input */}
@@ -243,9 +244,7 @@ export default function PatientDocumentsPage({ params }: Props) {
                   <td className="px-4 py-3 text-muted-foreground">
                     {CATEGORY_LABELS[doc.category] ?? doc.category}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatBytes(doc.sizeBytes)}
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatBytes(doc.sizeBytes)}</td>
                   <td className="px-4 py-3">
                     <UploadStatus status={doc.status} />
                   </td>

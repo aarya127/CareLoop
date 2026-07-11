@@ -24,6 +24,7 @@ yarn-error.log*
 
 # Python env / cache
 .venv/
+.venv_s3/
 venv/
 env/
 ENV/

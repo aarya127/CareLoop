@@ -9,7 +9,7 @@ export type NewAppointment = {
   title: string;
   notes?: string;
   start: string; // ISO with Z
-  end: string;   // ISO with Z
+  end: string; // ISO with Z
   timeZone: string;
   attendees?: { email: string; displayName?: string }[];
   patientId?: string;
@@ -47,11 +47,22 @@ export async function listCalendars(userId: string) {
   return res.data.items || [];
 }
 
-export async function listEvents(userId: string, calendarId: string, timeMin: string, timeMax: string) {
+export async function listEvents(
+  userId: string,
+  calendarId: string,
+  timeMin: string,
+  timeMax: string,
+) {
   const auth = await getOAuthClientForUser(userId, calendarId);
   if (!auth) throw new Error('No Google connection for user');
   const cal = google.calendar({ version: 'v3', auth: auth.client });
-  const res = await cal.events.list({ calendarId, timeMin, timeMax, singleEvents: true, orderBy: 'startTime' });
+  const res = await cal.events.list({
+    calendarId,
+    timeMin,
+    timeMax,
+    singleEvents: true,
+    orderBy: 'startTime',
+  });
   return res.data.items || [];
 }
 
@@ -60,11 +71,20 @@ export async function insertEvent(userId: string, appt: NewAppointment) {
   if (!auth) throw new Error('No Google connection for user');
   const cal = google.calendar({ version: 'v3', auth: auth.client });
   const reqBody = toGoogleEvent(appt);
-  const res = await cal.events.insert({ calendarId: appt.calendarId, requestBody: reqBody, supportsAttachments: true });
+  const res = await cal.events.insert({
+    calendarId: appt.calendarId,
+    requestBody: reqBody,
+    supportsAttachments: true,
+  });
   return res.data;
 }
 
-export async function updateEvent(userId: string, calendarId: string, eventId: string, appt: Partial<NewAppointment> & { timeZone: string }) {
+export async function updateEvent(
+  userId: string,
+  calendarId: string,
+  eventId: string,
+  appt: Partial<NewAppointment> & { timeZone: string },
+) {
   const auth = await getOAuthClientForUser(userId, calendarId);
   if (!auth) throw new Error('No Google connection for user');
   const cal = google.calendar({ version: 'v3', auth: auth.client });
@@ -96,7 +116,13 @@ export async function deleteEvent(userId: string, calendarId: string, eventId: s
   await cal.events.delete({ calendarId, eventId });
 }
 
-export async function freebusy(userId: string, timeMin: string, timeMax: string, items: { id: string }[], timeZone: string) {
+export async function freebusy(
+  userId: string,
+  timeMin: string,
+  timeMax: string,
+  items: { id: string }[],
+  timeZone: string,
+) {
   const auth = await getOAuthClientForUser(userId);
   if (!auth) throw new Error('No Google connection for user');
   const cal = google.calendar({ version: 'v3', auth: auth.client });
@@ -104,7 +130,12 @@ export async function freebusy(userId: string, timeMin: string, timeMax: string,
   return res.data;
 }
 
-export async function watchCalendar(userId: string, calendarId: string, channelId: string, webhookUrl: string) {
+export async function watchCalendar(
+  userId: string,
+  calendarId: string,
+  channelId: string,
+  webhookUrl: string,
+) {
   const auth = await getOAuthClientForUser(userId, calendarId);
   if (!auth) throw new Error('No Google connection for user');
   const cal = google.calendar({ version: 'v3', auth: auth.client });

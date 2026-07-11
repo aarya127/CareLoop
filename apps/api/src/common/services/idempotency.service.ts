@@ -69,15 +69,10 @@ export class IdempotencyService {
     idempotencyKey: string,
     statusCode: number,
     body: unknown,
-    ttlSeconds = DEFAULT_TTL_SECONDS
+    ttlSeconds = DEFAULT_TTL_SECONDS,
   ): Promise<void> {
     const stored: StoredResult = { status: 'completed', statusCode, body };
-    await this.redis.set(
-      this.key(idempotencyKey),
-      JSON.stringify(stored),
-      'EX',
-      ttlSeconds
-    );
+    await this.redis.set(this.key(idempotencyKey), JSON.stringify(stored), 'EX', ttlSeconds);
   }
 
   /**

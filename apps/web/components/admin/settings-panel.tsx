@@ -44,7 +44,12 @@ export function SettingsPanel() {
         });
       }
       if (Array.isArray(policyData?.policies) && policyData.policies.length > 0) {
-        setPolicies(policyData.policies.map((p: { patientType: string; mode: RoutingMode }) => ({ patientType: p.patientType, mode: p.mode })));
+        setPolicies(
+          policyData.policies.map((p: { patientType: string; mode: RoutingMode }) => ({
+            patientType: p.patientType,
+            mode: p.mode,
+          })),
+        );
       }
     });
   }, []);
@@ -95,22 +100,36 @@ export function SettingsPanel() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-600 mt-1">Control AI personality, alert thresholds, and manual overtake strategy</p>
+        <p className="text-sm text-gray-600 mt-1">
+          Control AI personality, alert thresholds, and manual overtake strategy
+        </p>
       </div>
 
-      {status ? <div className="rounded-md bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">{status}</div> : null}
+      {status ? (
+        <div className="rounded-md bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
+          {status}
+        </div>
+      ) : null}
 
-      <form onSubmit={savePrompt} className="rounded-lg border border-gray-200 bg-white p-5 space-y-3">
+      <form
+        onSubmit={savePrompt}
+        className="rounded-lg border border-gray-200 bg-white p-5 space-y-3"
+      >
         <h2 className="font-semibold text-gray-900">AI Personality Prompt</h2>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           className="w-full min-h-44 rounded-md border border-gray-300 p-3 text-sm"
         />
-        <button className="rounded-md bg-indigo-600 px-4 py-2 text-white text-sm">Save Prompt Version</button>
+        <button className="rounded-md bg-indigo-600 px-4 py-2 text-white text-sm">
+          Save Prompt Version
+        </button>
       </form>
 
-      <form onSubmit={saveThresholds} className="rounded-lg border border-gray-200 bg-white p-5 space-y-3">
+      <form
+        onSubmit={saveThresholds}
+        className="rounded-lg border border-gray-200 bg-white p-5 space-y-3"
+      >
         <h2 className="font-semibold text-gray-900">Alert Thresholds</h2>
         <label className="block text-sm text-gray-700">
           Sentiment Alert Minimum (1-10)
@@ -119,7 +138,9 @@ export function SettingsPanel() {
             min={1}
             max={10}
             value={thresholds.sentimentMin}
-            onChange={(e) => setThresholds((prev) => ({ ...prev, sentimentMin: Number(e.target.value) }))}
+            onChange={(e) =>
+              setThresholds((prev) => ({ ...prev, sentimentMin: Number(e.target.value) }))
+            }
             className="mt-1 w-28 rounded-md border border-gray-300 p-2"
           />
         </label>
@@ -127,14 +148,21 @@ export function SettingsPanel() {
           <input
             type="checkbox"
             checked={thresholds.escalateOnTreatmentDecline}
-            onChange={(e) => setThresholds((prev) => ({ ...prev, escalateOnTreatmentDecline: e.target.checked }))}
+            onChange={(e) =>
+              setThresholds((prev) => ({ ...prev, escalateOnTreatmentDecline: e.target.checked }))
+            }
           />
           Escalate to receptionist when treatment is declined
         </label>
-        <button className="rounded-md bg-indigo-600 px-4 py-2 text-white text-sm">Save Thresholds</button>
+        <button className="rounded-md bg-indigo-600 px-4 py-2 text-white text-sm">
+          Save Thresholds
+        </button>
       </form>
 
-      <form onSubmit={saveRouting} className="rounded-lg border border-gray-200 bg-white p-5 space-y-3">
+      <form
+        onSubmit={saveRouting}
+        className="rounded-lg border border-gray-200 bg-white p-5 space-y-3"
+      >
         <h2 className="font-semibold text-gray-900">AI vs Manual Overtake Routing</h2>
         {policies.map((policy, index) => (
           <div key={policy.patientType} className="grid grid-cols-2 gap-3">
@@ -154,7 +182,9 @@ export function SettingsPanel() {
             </select>
           </div>
         ))}
-        <button className="rounded-md bg-indigo-600 px-4 py-2 text-white text-sm">Save Routing</button>
+        <button className="rounded-md bg-indigo-600 px-4 py-2 text-white text-sm">
+          Save Routing
+        </button>
       </form>
     </div>
   );

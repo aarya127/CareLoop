@@ -173,8 +173,12 @@ export default function CalendarMiniModal({
   });
 
   // Group by upcoming/past
-  const upcomingAppointments = filteredAppointments.filter((appt) => isFuture(parseISO(appt.start)));
-  const pastAppointments = filteredAppointments.filter((appt) => isPast(parseISO(appt.start)) && !isToday(parseISO(appt.start)));
+  const upcomingAppointments = filteredAppointments.filter((appt) =>
+    isFuture(parseISO(appt.start)),
+  );
+  const pastAppointments = filteredAppointments.filter(
+    (appt) => isPast(parseISO(appt.start)) && !isToday(parseISO(appt.start)),
+  );
 
   // Handle new booking
   const handleNewBooking = async () => {
@@ -240,7 +244,7 @@ export default function CalendarMiniModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-          onClick={() => selectedAppointment ? setSelectedAppointment(null) : onClose()}
+          onClick={() => (selectedAppointment ? setSelectedAppointment(null) : onClose())}
         />
 
         {/* Modal */}
@@ -261,7 +265,8 @@ export default function CalendarMiniModal({
                 <div>
                   <h2 className="text-xl font-bold">{patientName}'s Calendar</h2>
                   <p className="text-sm text-white/80">
-                    {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} on record
+                    {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} on
+                    record
                   </p>
                 </div>
               </div>
@@ -287,7 +292,7 @@ export default function CalendarMiniModal({
                     'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
                     filter === filterType
                       ? 'bg-[#87CEEB] text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300',
                   )}
                 >
                   {filterType === 'all' && 'All'}
@@ -325,7 +330,10 @@ export default function CalendarMiniModal({
             {isLoading ? (
               <LoadingSkeleton />
             ) : filteredAppointments.length === 0 ? (
-              <EmptyState filter={filter} onNewBooking={hasScope('APPT_WRITE') ? handleNewBooking : undefined} />
+              <EmptyState
+                filter={filter}
+                onNewBooking={hasScope('APPT_WRITE') ? handleNewBooking : undefined}
+              />
             ) : (
               <div className="space-y-6">
                 {/* Upcoming Appointments */}
@@ -376,11 +384,15 @@ export default function CalendarMiniModal({
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-4">
                   <span className="text-gray-600">
-                    <span className="font-semibold text-gray-900">{upcomingAppointments.length}</span> upcoming
+                    <span className="font-semibold text-gray-900">
+                      {upcomingAppointments.length}
+                    </span>{' '}
+                    upcoming
                   </span>
                   <span className="text-gray-400">•</span>
                   <span className="text-gray-600">
-                    <span className="font-semibold text-gray-900">{pastAppointments.length}</span> completed
+                    <span className="font-semibold text-gray-900">{pastAppointments.length}</span>{' '}
+                    completed
                   </span>
                 </div>
                 {hasScope('APPT_READ') && (
@@ -455,19 +467,47 @@ function AppointmentCard({
   const getStatusBadge = () => {
     switch (appointment.status) {
       case 'scheduled':
-        return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Scheduled</span>;
+        return (
+          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+            Scheduled
+          </span>
+        );
       case 'confirmed':
-        return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Confirmed</span>;
+        return (
+          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+            Confirmed
+          </span>
+        );
       case 'checked_in':
-        return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Checked In</span>;
+        return (
+          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+            Checked In
+          </span>
+        );
       case 'in_progress':
-        return <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">In Progress</span>;
+        return (
+          <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+            In Progress
+          </span>
+        );
       case 'completed':
-        return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">Completed</span>;
+        return (
+          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+            Completed
+          </span>
+        );
       case 'cancelled':
-        return <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Cancelled</span>;
+        return (
+          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+            Cancelled
+          </span>
+        );
       case 'no_show':
-        return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">No Show</span>;
+        return (
+          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+            No Show
+          </span>
+        );
     }
   };
 
@@ -479,7 +519,9 @@ function AppointmentCard({
       onClick={onClick}
       className={cn(
         'p-4 border rounded-xl cursor-pointer transition-all hover:shadow-md',
-        isPast ? 'bg-gray-50 border-gray-200 hover:bg-gray-100' : 'bg-white border-gray-200 hover:border-[#87CEEB]'
+        isPast
+          ? 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+          : 'bg-white border-gray-200 hover:border-[#87CEEB]',
       )}
     >
       <div className="flex items-start justify-between mb-3">
@@ -493,7 +535,8 @@ function AppointmentCard({
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Clock className="w-4 h-4" />
             <span className="font-medium">
-              {format(startDate, 'MMM d, yyyy')} • {format(startDate, 'h:mm a')} - {format(endDate, 'h:mm a')}
+              {format(startDate, 'MMM d, yyyy')} • {format(startDate, 'h:mm a')} -{' '}
+              {format(endDate, 'h:mm a')}
             </span>
           </div>
         </div>
@@ -576,12 +619,18 @@ function AppointmentDetailModal({
             <>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm text-gray-600">Insurance Coverage</span>
-                <span className="text-sm font-medium text-green-600">${appointment.insurance_coverage_estimate}</span>
+                <span className="text-sm font-medium text-green-600">
+                  ${appointment.insurance_coverage_estimate}
+                </span>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                 <span className="text-sm font-semibold text-gray-900">Patient Responsibility</span>
                 <span className="text-sm font-bold text-gray-900">
-                  ${((appointment.estimated_cost || 0) - (appointment.insurance_coverage_estimate || 0)).toFixed(2)}
+                  $
+                  {(
+                    (appointment.estimated_cost || 0) -
+                    (appointment.insurance_coverage_estimate || 0)
+                  ).toFixed(2)}
                 </span>
               </div>
             </>
@@ -598,12 +647,16 @@ function AppointmentDetailModal({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Channel</span>
-              <span className="font-medium text-gray-900 capitalize">{appointment.booking_channel?.replace('_', ' ')}</span>
+              <span className="font-medium text-gray-900 capitalize">
+                {appointment.booking_channel?.replace('_', ' ')}
+              </span>
             </div>
             {appointment.ai_confidence_score && (
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">AI Confidence</span>
-                <span className="font-medium text-gray-900">{(appointment.ai_confidence_score * 100).toFixed(0)}%</span>
+                <span className="font-medium text-gray-900">
+                  {(appointment.ai_confidence_score * 100).toFixed(0)}%
+                </span>
               </div>
             )}
           </div>
@@ -649,7 +702,13 @@ function LoadingSkeleton() {
 }
 
 // Empty State
-function EmptyState({ filter, onNewBooking }: { filter: AppointmentFilter; onNewBooking?: () => void }) {
+function EmptyState({
+  filter,
+  onNewBooking,
+}: {
+  filter: AppointmentFilter;
+  onNewBooking?: () => void;
+}) {
   const getMessage = () => {
     switch (filter) {
       case 'upcoming':
@@ -668,7 +727,9 @@ function EmptyState({ filter, onNewBooking }: { filter: AppointmentFilter; onNew
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-1">{getMessage()}</h3>
       <p className="text-sm text-gray-600 mb-6">
-        {filter === 'upcoming' ? 'Schedule a new appointment to get started' : 'This patient has no appointment history'}
+        {filter === 'upcoming'
+          ? 'Schedule a new appointment to get started'
+          : 'This patient has no appointment history'}
       </p>
       {onNewBooking && filter !== 'past' && (
         <button

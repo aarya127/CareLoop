@@ -86,7 +86,14 @@ export interface NextAppointment {
 // Simplified Radiographic Record for patient profile quick access
 export interface RadiographicRecord {
   id: string;
-  type: 'bitewing' | 'periapical' | 'panoramic' | 'cbct' | 'occlusal' | 'cephalometric' | 'intraoral_photo';
+  type:
+    | 'bitewing'
+    | 'periapical'
+    | 'panoramic'
+    | 'cbct'
+    | 'occlusal'
+    | 'cephalometric'
+    | 'intraoral_photo';
   file_url: string;
   thumbnail_url: string;
   date_taken: string;
@@ -229,7 +236,15 @@ export interface ClinicalChart {
 export interface ToothRecord {
   tooth_number: number; // 1-32 (Universal numbering)
   tooth_name?: string; // "Upper Right Third Molar"
-  status: 'healthy' | 'decayed' | 'filled' | 'crowned' | 'missing' | 'implant' | 'bridge' | 'root_canal';
+  status:
+    | 'healthy'
+    | 'decayed'
+    | 'filled'
+    | 'crowned'
+    | 'missing'
+    | 'implant'
+    | 'bridge'
+    | 'root_canal';
   condition_details?: ToothCondition[];
   surfaces_affected?: ToothSurface[];
   treatment_recommended?: string;
@@ -246,14 +261,14 @@ export interface ToothCondition {
   notes?: string;
 }
 
-export type ToothSurface = 
-  | 'occlusal'      // Biting surface
-  | 'mesial'        // Front surface (toward midline)
-  | 'distal'        // Back surface (away from midline)
-  | 'buccal'        // Cheek side
-  | 'lingual'       // Tongue side
-  | 'facial'        // Face side
-  | 'incisal';      // Edge (for front teeth)
+export type ToothSurface =
+  | 'occlusal' // Biting surface
+  | 'mesial' // Front surface (toward midline)
+  | 'distal' // Back surface (away from midline)
+  | 'buccal' // Cheek side
+  | 'lingual' // Tongue side
+  | 'facial' // Face side
+  | 'incisal'; // Edge (for front teeth)
 
 export interface GumHealthSummary {
   overall_health: 'excellent' | 'good' | 'fair' | 'poor';
@@ -377,28 +392,28 @@ export interface AIDetection {
 
 export interface PeriodontalRecords {
   patient_id: string;
-  exams: PeriodontalExam[];  // Renamed from 'examinations' for consistency
+  exams: PeriodontalExam[]; // Renamed from 'examinations' for consistency
   summary: PeriodontalSummary;
   treatment_history: PeriodontalTreatment[];
 }
 
 export interface PeriodontalExam {
-  exam_id: string;  // Renamed from 'id' for consistency
+  exam_id: string; // Renamed from 'id' for consistency
   exam_date: string;
   examiner_name: string;
-  tooth_measurements: ToothMeasurement[];  // Simplified from nested measurements
+  tooth_measurements: ToothMeasurement[]; // Simplified from nested measurements
   overall_diagnosis: string;
-  treatment_recommendations?: string[];  // Added for recommendations
+  treatment_recommendations?: string[]; // Added for recommendations
   notes?: string;
 }
 
 // Simplified tooth measurement for periodontal charting
 export interface ToothMeasurement {
   tooth_number: number;
-  pocket_depths: number[];  // Array of 6 depths [MB, B, DB, ML, L, DL]
-  bleeding_on_probing: boolean[];  // Array of 6 bleeding indicators
-  recession_mm: number[];  // Array of 6 recession measurements
-  mobility_grade: number;  // 0-3
+  pocket_depths: number[]; // Array of 6 depths [MB, B, DB, ML, L, DL]
+  bleeding_on_probing: boolean[]; // Array of 6 bleeding indicators
+  recession_mm: number[]; // Array of 6 recession measurements
+  mobility_grade: number; // 0-3
   furcation_involvement?: 'none' | 'class_i' | 'class_ii' | 'class_iii';
   notes?: string;
 }
@@ -412,7 +427,13 @@ export interface PeriodontalMeasurement {
 }
 
 export interface PeriodontalSite {
-  site_position: 'mesial_buccal' | 'mid_buccal' | 'distal_buccal' | 'mesial_lingual' | 'mid_lingual' | 'distal_lingual';
+  site_position:
+    | 'mesial_buccal'
+    | 'mid_buccal'
+    | 'distal_buccal'
+    | 'mesial_lingual'
+    | 'mid_lingual'
+    | 'distal_lingual';
   pocket_depth_mm: number;
   gingival_margin_mm?: number;
   clinical_attachment_level_mm?: number;
@@ -423,7 +444,12 @@ export interface PeriodontalSite {
 
 export interface PeriodontalSummary {
   last_exam_date: string;
-  periodontal_status: 'healthy' | 'gingivitis' | 'mild_periodontitis' | 'moderate_periodontitis' | 'severe_periodontitis';
+  periodontal_status:
+    | 'healthy'
+    | 'gingivitis'
+    | 'mild_periodontitis'
+    | 'moderate_periodontitis'
+    | 'severe_periodontitis';
   average_pocket_depth: number;
   percentage_bleeding_sites: number;
   percentage_plaque_sites: number;
@@ -435,7 +461,12 @@ export interface PeriodontalSummary {
 export interface PeriodontalTreatment {
   id: string;
   treatment_date: string;
-  treatment_type: 'scaling_root_planing' | 'periodontal_maintenance' | 'gingivectomy' | 'bone_graft' | 'guided_tissue_regeneration';
+  treatment_type:
+    | 'scaling_root_planing'
+    | 'periodontal_maintenance'
+    | 'gingivectomy'
+    | 'bone_graft'
+    | 'guided_tissue_regeneration';
   teeth_treated: number[];
   provider_name: string;
   outcome_notes?: string;
@@ -453,7 +484,7 @@ export interface AdministrativeDocuments {
 
 export interface AdministrativeDocument {
   id: string;
-  document_type: 
+  document_type:
     | 'consent_form'
     | 'treatment_plan'
     | 'invoice'
@@ -493,7 +524,7 @@ export interface DocumentSignature {
 export interface ActivityTimelineEntry {
   id: string;
   timestamp: string; // ISO datetime
-  activity_type: 
+  activity_type:
     | 'appointment'
     | 'treatment'
     | 'xray_taken'
@@ -517,7 +548,12 @@ export interface ActivityTimelineEntry {
 // ============================================================================
 
 export interface AIAssistantQuery {
-  query_type: 'summarize_health' | 'list_unresolved_treatments' | 'predict_next_visit' | 'risk_assessment' | 'custom';
+  query_type:
+    | 'summarize_health'
+    | 'list_unresolved_treatments'
+    | 'predict_next_visit'
+    | 'risk_assessment'
+    | 'custom';
   query_text: string;
   patient_id: string;
 }

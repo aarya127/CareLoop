@@ -114,16 +114,19 @@ export class RemindersService {
     // Enqueue with delay so worker fires at the right time
     if (dto.to) {
       const delayMs = Math.max(0, scheduledAt.getTime() - Date.now());
-      await enqueueAppointmentReminder({
-        appointmentId: dto.appointmentId ?? '',
-        patientId: dto.patientId,
-        practiceId,
-        reminderId: reminder.id,
-        channel: dto.channel as 'sms' | 'email',
-        to: dto.to,
-        reminderType: dto.channel as 'sms' | 'email',
-        content: (meta.body as string) ?? '',
-      }, { delay: delayMs });
+      await enqueueAppointmentReminder(
+        {
+          appointmentId: dto.appointmentId ?? '',
+          patientId: dto.patientId,
+          practiceId,
+          reminderId: reminder.id,
+          channel: dto.channel as 'sms' | 'email',
+          to: dto.to,
+          reminderType: dto.channel as 'sms' | 'email',
+          content: (meta.body as string) ?? '',
+        },
+        { delay: delayMs },
+      );
     }
 
     return reminder;

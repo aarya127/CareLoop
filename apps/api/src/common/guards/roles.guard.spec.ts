@@ -18,8 +18,7 @@ function ctx(opts: {
   class FakeController {}
   if (opts.classRoles) Reflect.defineMetadata(ROLE_METADATA_KEY, opts.classRoles, FakeController);
 
-  const user =
-    opts.userRoles !== undefined ? { roles: opts.userRoles } : { role: opts.userRole };
+  const user = opts.userRoles !== undefined ? { roles: opts.userRoles } : { role: opts.userRole };
   return {
     getHandler: () => handler,
     getClass: () => FakeController,
@@ -35,13 +34,15 @@ describe('RolesGuard', () => {
   });
 
   it('allows when the user has one of the required roles', () => {
-    expect(guard.canActivate(ctx({ handlerRoles: ['manager', 'staff'], userRoles: ['staff'] }))).toBe(true);
+    expect(
+      guard.canActivate(ctx({ handlerRoles: ['manager', 'staff'], userRoles: ['staff'] })),
+    ).toBe(true);
   });
 
   it('denies (403) when the user has none of the required roles', () => {
-    expect(() => guard.canActivate(ctx({ handlerRoles: ['manager'], userRoles: ['staff'] }))).toThrow(
-      ForbiddenException,
-    );
+    expect(() =>
+      guard.canActivate(ctx({ handlerRoles: ['manager'], userRoles: ['staff'] })),
+    ).toThrow(ForbiddenException);
   });
 
   it('grants admin a blanket bypass', () => {
@@ -50,17 +51,31 @@ describe('RolesGuard', () => {
 
   it('compares roles case-insensitively', () => {
     expect(guard.canActivate(ctx({ handlerRoles: ['ADMIN'], userRoles: ['admin'] }))).toBe(true);
-    expect(guard.canActivate(ctx({ handlerRoles: ['Manager'], userRoles: ['MANAGER'] }))).toBe(true);
+    expect(guard.canActivate(ctx({ handlerRoles: ['Manager'], userRoles: ['MANAGER'] }))).toBe(
+      true,
+    );
   });
 
   it('handler metadata overrides class metadata (method-level wins)', () => {
     // Class allows front-office; the method restricts to management. staff must be denied.
     expect(() =>
-      guard.canActivate(ctx({ classRoles: ['admin', 'manager', 'staff'], handlerRoles: ['admin', 'manager'], userRoles: ['staff'] })),
+      guard.canActivate(
+        ctx({
+          classRoles: ['admin', 'manager', 'staff'],
+          handlerRoles: ['admin', 'manager'],
+          userRoles: ['staff'],
+        }),
+      ),
     ).toThrow(ForbiddenException);
     // ...but a manager passes the method-level requirement.
     expect(
-      guard.canActivate(ctx({ classRoles: ['admin', 'manager', 'staff'], handlerRoles: ['admin', 'manager'], userRoles: ['manager'] })),
+      guard.canActivate(
+        ctx({
+          classRoles: ['admin', 'manager', 'staff'],
+          handlerRoles: ['admin', 'manager'],
+          userRoles: ['manager'],
+        }),
+      ),
     ).toBe(true);
   });
 

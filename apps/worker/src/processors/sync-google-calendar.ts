@@ -2,7 +2,7 @@ import type { Job } from 'bullmq';
 import type { SyncGoogleCalendarJobData } from '@careloop/shared';
 
 export async function syncGoogleCalendarProcessor(
-  job: Job<SyncGoogleCalendarJobData>
+  job: Job<SyncGoogleCalendarJobData>,
 ): Promise<void> {
   const { practiceId, userId, calendarId } = job.data;
   job.log(`Syncing Google Calendar ${calendarId} for user ${userId} (practice ${practiceId})`);

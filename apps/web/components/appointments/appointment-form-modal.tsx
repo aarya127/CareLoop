@@ -26,7 +26,7 @@ interface AppointmentFormModalProps {
   /** Called with the newly created appointment */
   onCreated?: (appt: any) => void;
   practiceId: string;
-  userId: string;       // logged-in staff user
+  userId: string; // logged-in staff user
   providers?: Provider[];
   patients?: Patient[];
   /** Pre-fill a patient */
@@ -60,9 +60,7 @@ export function AppointmentFormModal({
 
   // Form fields
   const [providerId, setProviderId] = useState(providers[0]?.id ?? '');
-  const [date, setDate] = useState(
-    defaultStart ? toDateInput(new Date(defaultStart)) : today,
-  );
+  const [date, setDate] = useState(defaultStart ? toDateInput(new Date(defaultStart)) : today);
   const [duration, setDuration] = useState(30);
   const [patientId, setPatientId] = useState(defaultPatientId ?? '');
   const [title, setTitle] = useState('');
@@ -83,7 +81,10 @@ export function AppointmentFormModal({
 
   // Load slots whenever provider / date / duration change
   useEffect(() => {
-    if (!providerId || !date) { setSlots([]); return; }
+    if (!providerId || !date) {
+      setSlots([]);
+      return;
+    }
     setSlotsLoading(true);
     setSlotsError(null);
     setSelectedSlot(null);
@@ -105,7 +106,10 @@ export function AppointmentFormModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedSlot) { setSubmitError('Please select a time slot'); return; }
+    if (!selectedSlot) {
+      setSubmitError('Please select a time slot');
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
 
@@ -167,7 +171,9 @@ export function AppointmentFormModal({
                 >
                   <option value="">Select provider…</option>
                   {providers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -194,7 +200,9 @@ export function AppointmentFormModal({
                   className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {DURATIONS.map((d) => (
-                    <option key={d} value={d}>{d} min</option>
+                    <option key={d} value={d}>
+                      {d} min
+                    </option>
                   ))}
                 </select>
               </div>
@@ -259,9 +267,7 @@ export function AppointmentFormModal({
               <p className="text-sm font-medium mb-2">
                 Available Slots
                 {selectedSlot && (
-                  <span className="ml-2 text-primary">
-                    — {formatSlotTime(selectedSlot.start)}
-                  </span>
+                  <span className="ml-2 text-primary">— {formatSlotTime(selectedSlot.start)}</span>
                 )}
               </p>
 
@@ -303,9 +309,7 @@ export function AppointmentFormModal({
 
           {/* Footer */}
           <div className="border-t px-6 py-4 flex items-center justify-between gap-3">
-            {submitError && (
-              <p className="text-sm text-destructive">{submitError}</p>
-            )}
+            {submitError && <p className="text-sm text-destructive">{submitError}</p>}
             <div className="ml-auto flex gap-3">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel

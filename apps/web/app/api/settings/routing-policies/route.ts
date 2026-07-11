@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
 
 const policySchema = z.array(
   z.object({
-    practiceId: z.string().default("default-practice"),
+    practiceId: z.string().default('default-practice'),
     patientType: z.string().min(1),
-    mode: z.enum(["ai_only", "manual_only", "ai_then_manual"]),
+    mode: z.enum(['ai_only', 'manual_only', 'ai_then_manual']),
   }),
 );
 
@@ -16,11 +16,11 @@ export async function GET(req: NextRequest) {
     const user = await requireUser(req);
     const policies = await prisma.routingPolicy.findMany({
       where: { practiceId: user.practiceId },
-      orderBy: { patientType: "asc" },
+      orderBy: { patientType: 'asc' },
     });
     return NextResponse.json({ ok: true, policies });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
@@ -52,7 +52,7 @@ export async function PUT(req: NextRequest) {
     const policies = await prisma.$transaction(upserts);
     return NextResponse.json({ ok: true, policies });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

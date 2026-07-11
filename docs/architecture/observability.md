@@ -25,14 +25,14 @@
 
 ## Alerts
 
-| Alert | Threshold | Severity |
-|---|---|---|
-| API error rate | >1% over 5m | critical |
-| API p99 latency | >2s over 5m | warning |
-| Appointment reminder queue depth | >100 jobs | warning |
-| Failed jobs | >5 in 1m | critical |
-| DB connection pool exhausted | >90% | critical |
-| Disk usage (postgres PVC) | >80% | warning |
+| Alert                            | Threshold   | Severity |
+| -------------------------------- | ----------- | -------- |
+| API error rate                   | >1% over 5m | critical |
+| API p99 latency                  | >2s over 5m | warning  |
+| Appointment reminder queue depth | >100 jobs   | warning  |
+| Failed jobs                      | >5 in 1m    | critical |
+| DB connection pool exhausted     | >90%        | critical |
+| Disk usage (postgres PVC)        | >80%        | warning  |
 
 ## Health Checks
 

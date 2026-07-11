@@ -150,7 +150,10 @@ export class DocumentsService {
   /**
    * Generate a pre-signed GET URL (15 min) for secure download/view.
    */
-  async getDownloadUrl(practiceId: string, documentId: string): Promise<{ url: string; fileName: string }> {
+  async getDownloadUrl(
+    practiceId: string,
+    documentId: string,
+  ): Promise<{ url: string; fileName: string }> {
     const doc = await this.getOwnedDoc(practiceId, documentId);
     if (doc.status !== 'active') throw new ForbiddenException('Document is not available');
 

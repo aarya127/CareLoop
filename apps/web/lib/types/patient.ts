@@ -135,7 +135,11 @@ export interface BillingInfo {
   };
 }
 
-export type PatientStatus = 'allergies' | 'outstanding-balance' | 'follow-up-due' | 'pre-medication';
+export type PatientStatus =
+  | 'allergies'
+  | 'outstanding-balance'
+  | 'follow-up-due'
+  | 'pre-medication';
 
 export interface PatientStats {
   lastVisit: string;

@@ -7,10 +7,18 @@ function getRangeDays(range: string): number {
 }
 
 function resolveApiBase(): string {
-  const configured = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const configured =
+    process.env.API_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    '';
   if (!configured) return 'https://careloop-tf2l.onrender.com';
   const normalized = configured.replace(/\/$/, '');
-  if (normalized.includes('localhost:3000') || normalized.includes('127.0.0.1:3000') || normalized === '/') {
+  if (
+    normalized.includes('localhost:3000') ||
+    normalized.includes('127.0.0.1:3000') ||
+    normalized === '/'
+  ) {
     return 'https://careloop-tf2l.onrender.com';
   }
   return normalized;
@@ -48,7 +56,7 @@ export async function GET(req: NextRequest) {
           ok: false,
           message: 'Unable to load analytics dashboard payload.',
         },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -74,7 +82,7 @@ export async function GET(req: NextRequest) {
         ok: false,
         message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

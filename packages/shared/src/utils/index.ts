@@ -3,9 +3,7 @@ export function formatFullName(firstName: string, lastName: string): string {
 }
 
 export function formatCentsToDollars(cents: number, currency = 'CAD'): string {
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency }).format(
-    cents / 100
-  );
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency }).format(cents / 100);
 }
 
 export function formatDateISO(date: Date): string {
@@ -24,10 +22,7 @@ export function chunk<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
-export function omit<T extends object, K extends keyof T>(
-  obj: T,
-  keys: K[]
-): Omit<T, K> {
+export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
   const result = { ...obj };
   for (const key of keys) {
     delete result[key];

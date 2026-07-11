@@ -404,7 +404,9 @@ export default function PatientOverview({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Policy Number</p>
-                  <p className="text-gray-900 font-medium mt-1">{profile.insurance.policy_number}</p>
+                  <p className="text-gray-900 font-medium mt-1">
+                    {profile.insurance.policy_number}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Plan ID</p>
@@ -547,8 +549,8 @@ export default function PatientOverview({
                     profile.next_appointment.status === 'confirmed'
                       ? 'bg-green-500 text-white'
                       : profile.next_appointment.status === 'scheduled'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-yellow-500 text-white'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-yellow-500 text-white'
                   }`}
                 >
                   {profile.next_appointment.status.charAt(0).toUpperCase() +

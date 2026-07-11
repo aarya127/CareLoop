@@ -8,11 +8,7 @@
 import { useState } from 'react';
 import type { PopulatedAppointment } from '@/lib/types/appointment';
 import { CompactAppointmentCard } from './appointment-card';
-import {
-  formatTime,
-  sortAppointmentsByTime,
-  isToday,
-} from '@/lib/utils/calendar';
+import { formatTime, sortAppointmentsByTime, isToday } from '@/lib/utils/calendar';
 import { startOfWeek, endOfWeek, addDays, format } from 'date-fns';
 
 interface WeekViewProps {
@@ -81,7 +77,7 @@ export default function WeekView({
       appointments.filter((apt) => {
         const aptDate = new Date(apt.startTime);
         return aptDate >= dayStart && aptDate <= dayEnd;
-      })
+      }),
     ) as PopulatedAppointment[];
 
     return {
@@ -90,7 +86,7 @@ export default function WeekView({
     };
   });
 
-  const handleDayClick = (day: typeof weekDays[0], index: number) => {
+  const handleDayClick = (day: (typeof weekDays)[0], index: number) => {
     setSelectedDayIndex(index);
     onDayClick?.(day.date);
   };
@@ -115,10 +111,10 @@ export default function WeekView({
               ${selectedDayIndex === index ? 'ring-2 ring-[#87CEEB] ring-inset' : ''}
             `}
           >
-            <div className="text-xs font-medium uppercase tracking-wide">
-              {day.dayName}
-            </div>
-            <div className={`text-lg font-semibold ${day.isToday ? 'text-white' : 'text-gray-900'}`}>
+            <div className="text-xs font-medium uppercase tracking-wide">{day.dayName}</div>
+            <div
+              className={`text-lg font-semibold ${day.isToday ? 'text-white' : 'text-gray-900'}`}
+            >
               {day.dayNumber}
             </div>
             <div className={`text-xs ${day.isToday ? 'text-white/80' : 'text-gray-500'}`}>
@@ -134,13 +130,8 @@ export default function WeekView({
           {/* Time labels column */}
           <div className="sticky left-0 z-10 border-r border-gray-200 bg-white">
             {timeSlots.map((slot) => (
-              <div
-                key={slot.hour}
-                className="h-16 border-b border-gray-100 px-2 py-1 text-right"
-              >
-                <span className="text-xs font-medium text-gray-600">
-                  {slot.time}
-                </span>
+              <div key={slot.hour} className="h-16 border-b border-gray-100 px-2 py-1 text-right">
+                <span className="text-xs font-medium text-gray-600">{slot.time}</span>
               </div>
             ))}
           </div>
@@ -217,7 +208,7 @@ export function CompactWeekView({
       appointments.filter((apt) => {
         const aptDate = new Date(apt.startTime);
         return aptDate >= dayStart && aptDate <= dayEnd;
-      })
+      }),
     ) as PopulatedAppointment[];
 
     return {
@@ -240,10 +231,10 @@ export function CompactWeekView({
               ${day.isToday ? 'bg-[#87CEEB] text-white' : 'bg-gray-50 hover:bg-gray-100'}
             `}
           >
-            <div className="text-xs font-medium uppercase">
-              {day.dayName}
-            </div>
-            <div className={`text-base font-semibold ${day.isToday ? 'text-white' : 'text-gray-900'}`}>
+            <div className="text-xs font-medium uppercase">{day.dayName}</div>
+            <div
+              className={`text-base font-semibold ${day.isToday ? 'text-white' : 'text-gray-900'}`}
+            >
               {day.dayNumber}
             </div>
           </div>
@@ -268,9 +259,7 @@ export function CompactWeekView({
                     />
                   ))
                 ) : (
-                  <div className="py-4 text-center text-xs text-gray-400">
-                    No appointments
-                  </div>
+                  <div className="py-4 text-center text-xs text-gray-400">No appointments</div>
                 )}
               </div>
             </div>
@@ -289,12 +278,8 @@ export function WeekViewEmpty({ onAddClick }: { onAddClick?: () => void }) {
     <div className="flex h-full items-center justify-center">
       <div className="text-center">
         <div className="mb-4 text-6xl">📆</div>
-        <h3 className="mb-2 text-xl font-semibold text-gray-900">
-          Nothing scheduled this week
-        </h3>
-        <p className="mb-6 text-gray-600">
-          Start adding appointments to fill up your calendar.
-        </p>
+        <h3 className="mb-2 text-xl font-semibold text-gray-900">Nothing scheduled this week</h3>
+        <p className="mb-6 text-gray-600">Start adding appointments to fill up your calendar.</p>
         {onAddClick && (
           <button
             onClick={onAddClick}

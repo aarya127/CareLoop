@@ -28,7 +28,9 @@ export class SessionAuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<FastifyRequest & { user?: unknown }>();
 
     // Accept session token from: 1) HTTP-only cookie, 2) Authorization Bearer header
-    const cookieToken: string | undefined = ((req as any).cookies as Record<string, string>)[SESSION_COOKIE];
+    const cookieToken: string | undefined = ((req as any).cookies as Record<string, string>)[
+      SESSION_COOKIE
+    ];
     const authHeader = req.headers.authorization;
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
     const token = cookieToken ?? bearerToken;

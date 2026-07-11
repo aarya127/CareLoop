@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
-import { decrypt } from "@/lib/crypto/crypto";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
+import { decrypt } from '@/lib/crypto/crypto';
 
 const schema = z.object({
   patientId: z.string().min(1),
@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
       include: {
         insuranceRecords: {
           where: { active: true },
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: 'desc' },
           take: 1,
         },
       },
     });
 
     if (!patient) {
-      return NextResponse.json({ ok: false, error: "patient_not_found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: 'patient_not_found' }, { status: 404 });
     }
 
     const insurance = patient.insuranceRecords[0]
@@ -57,9 +57,9 @@ export async function POST(req: NextRequest) {
     // requireUser throws a NextResponse — return it as-is (401) instead of a 500.
     if (error instanceof Response) return error;
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: "invalid_request" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: 'invalid_request' }, { status: 400 });
     }
-    console.error("[voice/patient-context] failed:", error);
-    return NextResponse.json({ ok: false, error: "failed" }, { status: 500 });
+    console.error('[voice/patient-context] failed:', error);
+    return NextResponse.json({ ok: false, error: 'failed' }, { status: 500 });
   }
 }

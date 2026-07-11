@@ -25,9 +25,7 @@ registerSchedulers(connection)
   })
   .catch((err) => console.error('[Worker] failed to register schedulers:', err));
 
-console.info(
-  `[Worker] processing queues: ${Object.values(JobNames).join(', ')}`
-);
+console.info(`[Worker] processing queues: ${Object.values(JobNames).join(', ')}`);
 
 async function shutdown() {
   console.info('[Worker] shutting down...');

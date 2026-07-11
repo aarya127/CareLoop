@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
-import { extractKpisFromTranscript } from "@/lib/services/analytics-engine";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/db/prisma';
+import { extractKpisFromTranscript } from '@/lib/services/analytics-engine';
 
 const webhookSchema = z.object({
-  event: z.enum(["call.completed", "call.segment"]),
+  event: z.enum(['call.completed', 'call.segment']),
   callSid: z.string(),
-  practiceId: z.string().default("default-practice"),
+  practiceId: z.string().default('default-practice'),
   payload: z.record(z.unknown()).default({}),
 });
 
@@ -15,16 +15,16 @@ export async function POST(req: NextRequest) {
   try {
     const body = webhookSchema.parse(await req.json());
 
-    if (body.event !== "call.completed") {
+    if (body.event !== 'call.completed') {
       return NextResponse.json({ ok: true, ignored: true });
     }
 
     const transcript = await prisma.callTranscript.findUnique({ where: { callSid: body.callSid } });
     if (!transcript) {
-      return NextResponse.json({ ok: false, error: "transcript_not_found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: 'transcript_not_found' }, { status: 404 });
     }
 
-    const kpis = extractKpisFromTranscript(transcript.fullTranscript ?? "");
+    const kpis = extractKpisFromTranscript(transcript.fullTranscript ?? '');
 
     await prisma.analyticsResult.upsert({
       where: { transcriptId: transcript.id },
@@ -52,40 +52,42 @@ export async function POST(req: NextRequest) {
     });
 
     const today = new Date();
-    const midnightUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const midnightUtc = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
 
     await prisma.practiceKPI.createMany({
       data: [
         {
           practiceId: body.practiceId,
           kpiDate: midnightUtc,
-          metricName: "avg_sentiment",
+          metricName: 'avg_sentiment',
           metricValue: kpis.sentimentScore,
-          dimensions: { source: "voice_call" },
+          dimensions: { source: 'voice_call' },
           transcriptId: transcript.id,
         },
         {
           practiceId: body.practiceId,
           kpiDate: midnightUtc,
-          metricName: "treatment_acceptance_rate",
+          metricName: 'treatment_acceptance_rate',
           metricValue: kpis.treatmentAcceptance.accepted ? 1 : 0,
-          dimensions: { procedure: kpis.treatmentAcceptance.procedure ?? "unknown" },
+          dimensions: { procedure: kpis.treatmentAcceptance.procedure ?? 'unknown' },
           transcriptId: transcript.id,
         },
         {
           practiceId: body.practiceId,
           kpiDate: midnightUtc,
-          metricName: "provider_satisfaction_dentist",
+          metricName: 'provider_satisfaction_dentist',
           metricValue: kpis.satisfactionByProvider.dentist,
-          dimensions: { providerRole: "dentist" },
+          dimensions: { providerRole: 'dentist' },
           transcriptId: transcript.id,
         },
         {
           practiceId: body.practiceId,
           kpiDate: midnightUtc,
-          metricName: "provider_satisfaction_hygienist",
+          metricName: 'provider_satisfaction_hygienist',
           metricValue: kpis.satisfactionByProvider.hygienist,
-          dimensions: { providerRole: "hygienist" },
+          dimensions: { providerRole: 'hygienist' },
           transcriptId: transcript.id,
         },
       ],
@@ -93,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, kpis });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

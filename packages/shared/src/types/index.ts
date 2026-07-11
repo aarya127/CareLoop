@@ -27,12 +27,7 @@ export interface JWTPayload {
 }
 
 // Appointment
-export type AppointmentStatus =
-  | 'confirmed'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled'
-  | 'no_show';
+export type AppointmentStatus = 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
 
 export type AppointmentSource = 'manual' | 'ai' | 'rescheduled';
 
@@ -131,11 +126,11 @@ export interface AppointmentReminderJobData {
   appointmentId: string;
   patientId: string;
   practiceId: string;
-  reminderId: string;       // links back to Reminder row for status update
+  reminderId: string; // links back to Reminder row for status update
   channel: 'sms' | 'email';
-  to: string;               // E.164 phone or email address
+  to: string; // E.164 phone or email address
   reminderType: 'sms' | 'email'; // kept for backward compat with legacy workers
-  content: string;          // pre-rendered message body
+  content: string; // pre-rendered message body
 }
 
 export interface ComputeKpisJobData {
@@ -160,11 +155,11 @@ export interface ExportDataJobData {
 }
 
 export interface ProcessWebhookJobData {
-  provider: string;         // twilio | sendgrid | google_calendar | stripe
-  event: string;            // inbound_sms | delivered | calendar_push etc.
+  provider: string; // twilio | sendgrid | google_calendar | stripe
+  event: string; // inbound_sms | delivered | calendar_push etc.
   payload: Record<string, unknown>;
-  webhookLogId: string;     // FK to WebhookLog for status update
-  idempotencyKey: string;   // already claimed in WebhookLog
+  webhookLogId: string; // FK to WebhookLog for status update
+  idempotencyKey: string; // already claimed in WebhookLog
 }
 
 /** Fired by the hourly scheduler to find and enqueue pending reminders. */

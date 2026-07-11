@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
-import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
+import { Prisma } from '@prisma/client';
 
 const schema = z.object({
   callSid: z.string().min(3),
-  orchestrator: z.enum(["vapi", "retell"]),
-  speaker: z.enum(["patient", "ai", "staff"]),
+  orchestrator: z.enum(['vapi', 'retell']),
+  speaker: z.enum(['patient', 'ai', 'staff']),
   text: z.string().min(1),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime().optional(),
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, transcriptId: transcript.id, segmentId: segment.id });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

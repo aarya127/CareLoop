@@ -57,7 +57,9 @@ export default function TreatmentPlansPanel({ patientId }: { patientId: string }
 
   const createPlan = () =>
     run(async () => {
-      const plan = await treatmentPlansApi.create(patientId, { title: newTitle || 'Treatment Plan' });
+      const plan = await treatmentPlansApi.create(patientId, {
+        title: newTitle || 'Treatment Plan',
+      });
       setNewTitle('');
       setCreating(false);
       setSelectedId(plan.id);
@@ -132,7 +134,9 @@ export default function TreatmentPlansPanel({ patientId }: { patientId: string }
                     <span className="truncate text-sm font-medium text-gray-800">{p.title}</span>
                     <StatusChip status={p.status} />
                   </div>
-                  <span className="text-xs text-gray-400">{dollars(p.estimatedCostCents)} est.</span>
+                  <span className="text-xs text-gray-400">
+                    {dollars(p.estimatedCostCents)} est.
+                  </span>
                 </button>
               </li>
             ))}
@@ -212,7 +216,9 @@ export default function TreatmentPlansPanel({ patientId }: { patientId: string }
                             <button
                               title="Mark completed"
                               onClick={() =>
-                                run(() => treatmentPlansApi.updateItem(it.id, { status: 'completed' }))
+                                run(() =>
+                                  treatmentPlansApi.updateItem(it.id, { status: 'completed' }),
+                                )
                               }
                               disabled={busy}
                               className="rounded p-1 text-emerald-600 hover:bg-emerald-50"
@@ -244,7 +250,10 @@ export default function TreatmentPlansPanel({ patientId }: { patientId: string }
                   onChange={(e) =>
                     setItemForm((f) => ({
                       ...f,
-                      [selected.id]: { ...(f[selected.id] ?? emptyItem), description: e.target.value },
+                      [selected.id]: {
+                        ...(f[selected.id] ?? emptyItem),
+                        description: e.target.value,
+                      },
                     }))
                   }
                   placeholder="e.g. Composite filling"
@@ -257,7 +266,10 @@ export default function TreatmentPlansPanel({ patientId }: { patientId: string }
                   onChange={(e) =>
                     setItemForm((f) => ({
                       ...f,
-                      [selected.id]: { ...(f[selected.id] ?? emptyItem), procedureCode: e.target.value },
+                      [selected.id]: {
+                        ...(f[selected.id] ?? emptyItem),
+                        procedureCode: e.target.value,
+                      },
                     }))
                   }
                   placeholder="D2391"

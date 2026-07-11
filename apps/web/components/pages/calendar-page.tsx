@@ -9,13 +9,7 @@ import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import TopNavigation from '@/components/shared/top-navigation';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-  Filter,
-  Plus,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Plus } from 'lucide-react';
 import { Footer } from '@/components/layout/footer';
 import { motion } from 'framer-motion';
 import './calendar-styles.css';
@@ -133,7 +127,7 @@ export function CalendarPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <TopNavigation />
-      
+
       <main className="flex-1 container mx-auto px-6 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -144,9 +138,7 @@ export function CalendarPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold mb-2">Calendar</h1>
-              <p className="text-muted-foreground">
-                Manage appointments and provider schedules
-              </p>
+              <p className="text-muted-foreground">Manage appointments and provider schedules</p>
             </div>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -162,13 +154,11 @@ export function CalendarPage() {
                   <Filter className="h-4 w-4" />
                   Filters
                 </h3>
-                
+
                 <div className="space-y-4">
                   {/* Date Picker Placeholder */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Date
-                    </label>
+                    <label className="text-sm font-medium mb-2 block">Date</label>
                     <Button variant="outline" className="w-full justify-start gap-2">
                       <CalendarIcon className="h-4 w-4" />
                       Select Date
@@ -177,9 +167,7 @@ export function CalendarPage() {
 
                   {/* Provider Filter */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Provider
-                    </label>
+                    <label className="text-sm font-medium mb-2 block">Provider</label>
                     <select className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm">
                       <option>All Providers</option>
                       <option>Dr. Smith</option>
@@ -190,9 +178,7 @@ export function CalendarPage() {
 
                   {/* Room Filter */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Room/Chair
-                    </label>
+                    <label className="text-sm font-medium mb-2 block">Room/Chair</label>
                     <select className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm">
                       <option>All Rooms</option>
                       <option>Room 1</option>
@@ -203,9 +189,7 @@ export function CalendarPage() {
 
                   {/* Appointment Type */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Type
-                    </label>
+                    <label className="text-sm font-medium mb-2 block">Type</label>
                     <div className="space-y-2">
                       {['New Patient', 'Hygiene', 'Procedure', 'Emergency', 'Follow-up'].map(
                         (type) => (
@@ -213,7 +197,7 @@ export function CalendarPage() {
                             <input type="checkbox" defaultChecked className="rounded" />
                             <span className="text-sm">{type}</span>
                           </label>
-                        )
+                        ),
                       )}
                     </div>
                   </div>

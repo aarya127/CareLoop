@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  Req,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { RequireRole } from '../../common/guards';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
@@ -41,7 +53,11 @@ export class PatientsController {
   }
 
   @Get(':id/record-section/:section')
-  async getRecordSection(@Param('id') id: string, @Param('section') section: string, @Req() req: any) {
+  async getRecordSection(
+    @Param('id') id: string,
+    @Param('section') section: string,
+    @Req() req: any,
+  ) {
     return this.patientsService.findRecordSection(req.user.practiceId, id, section);
   }
 
@@ -52,7 +68,12 @@ export class PatientsController {
     @Body() dto: any,
     @Req() req: any,
   ) {
-    const updated = await this.patientsService.upsertRecordSection(req.user.practiceId, id, section, dto);
+    const updated = await this.patientsService.upsertRecordSection(
+      req.user.practiceId,
+      id,
+      section,
+      dto,
+    );
     if (!updated) {
       throw new BadRequestException(`Unable to update patient record section: ${section}`);
     }

@@ -37,7 +37,12 @@ export function PatientsPage() {
   const getPatientNextAppointment = (patientId: string): Appointment | undefined => {
     const now = new Date();
     const upcomingAppointments = mockAppointments
-      .filter(apt => apt.patientId === patientId && new Date(apt.startTime) > now && apt.status === 'scheduled')
+      .filter(
+        (apt) =>
+          apt.patientId === patientId &&
+          new Date(apt.startTime) > now &&
+          apt.status === 'scheduled',
+      )
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
     return upcomingAppointments[0];
   };
@@ -46,7 +51,8 @@ export function PatientsPage() {
   const getUpcomingAppointmentsCount = (patientId: string): number => {
     const now = new Date();
     return mockAppointments.filter(
-      apt => apt.patientId === patientId && new Date(apt.startTime) > now && apt.status === 'scheduled'
+      (apt) =>
+        apt.patientId === patientId && new Date(apt.startTime) > now && apt.status === 'scheduled',
     ).length;
   };
 
@@ -172,7 +178,7 @@ export function PatientsPage() {
                   'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
                   viewMode === 'grid'
                     ? 'bg-[#0A84FF] text-white shadow-sm'
-                    : 'text-[#86868B] hover:text-[#1D1D1F]'
+                    : 'text-[#86868B] hover:text-[#1D1D1F]',
                 )}
                 aria-label="Grid view"
               >
@@ -184,7 +190,7 @@ export function PatientsPage() {
                   'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
                   viewMode === 'list'
                     ? 'bg-[#0A84FF] text-white shadow-sm'
-                    : 'text-[#86868B] hover:text-[#1D1D1F]'
+                    : 'text-[#86868B] hover:text-[#1D1D1F]',
                 )}
                 aria-label="List view"
               >
@@ -196,12 +202,12 @@ export function PatientsPage() {
 
         {/* Patient Cards Grid/List */}
         {isLoading ? (
-          <div className={cn(
-            'grid gap-6',
-            viewMode === 'grid' 
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-              : 'grid-cols-1'
-          )}>
+          <div
+            className={cn(
+              'grid gap-6',
+              viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1',
+            )}
+          >
             {[...Array(6)].map((_, i) => (
               <PatientCardSkeleton key={i} viewMode={viewMode} />
             ))}
@@ -229,9 +235,7 @@ export function PatientsPage() {
             layout
             className={cn(
               'grid gap-6',
-              viewMode === 'grid' 
-                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-                : 'grid-cols-1'
+              viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1',
             )}
           >
             {sortedPatients.map((patient) => (

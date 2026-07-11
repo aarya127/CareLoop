@@ -76,7 +76,9 @@ export class AuditService {
       const redis = getRedisClient();
       const cached = await redis.get(cacheKey);
       if (cached) return JSON.parse(cached);
-    } catch { /* Redis unavailable */ }
+    } catch {
+      /* Redis unavailable */
+    }
 
     const [rows, total] = await Promise.all([
       prisma.auditLog.findMany({
@@ -106,7 +108,9 @@ export class AuditService {
     try {
       const redis = getRedisClient();
       await redis.set(cacheKey, JSON.stringify(result), 'EX', this.readCacheTtlSeconds);
-    } catch { /* ok */ }
+    } catch {
+      /* ok */
+    }
 
     return result;
   }

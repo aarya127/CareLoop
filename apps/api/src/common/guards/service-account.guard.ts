@@ -22,7 +22,9 @@ type RequestWithHeaders = {
 export class ServiceAccountGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<RequestWithHeaders>();
-    const raw = req.headers[AUTH_SERVICE_ACCOUNT_HEADER] ?? req.headers[AUTH_SERVICE_ACCOUNT_HEADER.toLowerCase()];
+    const raw =
+      req.headers[AUTH_SERVICE_ACCOUNT_HEADER] ??
+      req.headers[AUTH_SERVICE_ACCOUNT_HEADER.toLowerCase()];
 
     if (!raw || Array.isArray(raw)) {
       throw new UnauthorizedException('Missing service account credential');

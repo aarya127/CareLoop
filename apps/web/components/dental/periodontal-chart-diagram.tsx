@@ -27,7 +27,6 @@ export default function PeriodontalChartDiagram({
   showLegend = true,
   interactive = true,
 }: PeriodontalChartDiagramProps) {
-  
   // Get severity level based on pocket depth
   const getSeverityLevel = (depth: number): 'healthy' | 'mild' | 'moderate' | 'severe' => {
     if (depth <= 3) return 'healthy';
@@ -58,18 +57,15 @@ export default function PeriodontalChartDiagram({
   const lowerTeeth = Array.from({ length: 16 }, (_, i) => i + 17);
 
   const getToothReading = (toothNumber: number): PeriodontalReading | undefined => {
-    return readings.find(r => r.toothNumber === toothNumber);
+    return readings.find((r) => r.toothNumber === toothNumber);
   };
 
   const renderTooth = (toothNumber: number, isUpper: boolean) => {
     const reading = getToothReading(toothNumber);
-    
+
     if (!reading) {
       return (
-        <div
-          key={toothNumber}
-          className="flex flex-col items-center gap-1 opacity-30"
-        >
+        <div key={toothNumber} className="flex flex-col items-center gap-1 opacity-30">
           <div className="text-[10px] text-gray-400 font-mono">{toothNumber}</div>
           <div className="w-8 h-12 rounded-sm bg-gray-100 border border-gray-200" />
           <div className="text-[10px] text-gray-400">-</div>
@@ -80,16 +76,17 @@ export default function PeriodontalChartDiagram({
     // Calculate average pocket depth
     const avgDepth = reading.pocketDepths.reduce((a, b) => a + b, 0) / reading.pocketDepths.length;
     const severity = getSeverityLevel(avgDepth);
-    const hasAlerts = reading.mobility && reading.mobility > 0 || reading.furcation && reading.furcation > 0;
-    const hasBleedingPoints = reading.bleedingPoints.some(bp => bp);
+    const hasAlerts =
+      (reading.mobility && reading.mobility > 0) || (reading.furcation && reading.furcation > 0);
+    const hasBleedingPoints = reading.bleedingPoints.some((bp) => bp);
 
     // Tooth measurements
     // For upper teeth: [Distal-Buccal, Buccal, Mesial-Buccal] on top, [Distal-Lingual, Lingual, Mesial-Lingual] on bottom
     // For lower teeth: [Mesial-Buccal, Buccal, Distal-Buccal] on top, [Mesial-Lingual, Lingual, Distal-Lingual] on bottom
-    const facialMeasurements = isUpper 
+    const facialMeasurements = isUpper
       ? [reading.pocketDepths[2], reading.pocketDepths[1], reading.pocketDepths[0]] // Distal to Mesial
       : [reading.pocketDepths[0], reading.pocketDepths[1], reading.pocketDepths[2]]; // Mesial to Distal
-    
+
     const lingualMeasurements = isUpper
       ? [reading.pocketDepths[5], reading.pocketDepths[4], reading.pocketDepths[3]] // Distal to Mesial
       : [reading.pocketDepths[3], reading.pocketDepths[4], reading.pocketDepths[5]]; // Mesial to Distal
@@ -110,17 +107,19 @@ export default function PeriodontalChartDiagram({
         transition={{ duration: 0.2 }}
         className={cn(
           'flex flex-col items-center gap-1 relative',
-          interactive && 'group cursor-pointer'
+          interactive && 'group cursor-pointer',
         )}
       >
         {/* Tooth Number */}
-        <div className={cn(
-          'text-[10px] font-mono font-semibold',
-          severity === 'healthy' && 'text-gray-700',
-          severity === 'mild' && 'text-yellow-700',
-          severity === 'moderate' && 'text-orange-700',
-          severity === 'severe' && 'text-red-700'
-        )}>
+        <div
+          className={cn(
+            'text-[10px] font-mono font-semibold',
+            severity === 'healthy' && 'text-gray-700',
+            severity === 'mild' && 'text-yellow-700',
+            severity === 'moderate' && 'text-orange-700',
+            severity === 'severe' && 'text-red-700',
+          )}
+        >
           {toothNumber}
         </div>
 
@@ -128,32 +127,30 @@ export default function PeriodontalChartDiagram({
         <div className="flex gap-0.5 items-end justify-center w-full">
           {facialMeasurements.map((depth, idx) => (
             <div key={`facial-${idx}`} className="flex flex-col items-center">
-              <div 
+              <div
                 className={cn(
                   'text-[9px] font-semibold font-mono px-0.5 rounded',
-                  facialBleeding[idx] && 'bg-red-100 text-red-700'
+                  facialBleeding[idx] && 'bg-red-100 text-red-700',
                 )}
                 style={{ color: facialBleeding[idx] ? undefined : getDepthColor(depth) }}
               >
                 {depth}
               </div>
-              {facialBleeding[idx] && (
-                <div className="w-1 h-1 rounded-full bg-red-500" />
-              )}
+              {facialBleeding[idx] && <div className="w-1 h-1 rounded-full bg-red-500" />}
             </div>
           ))}
         </div>
 
         {/* Tooth Visual */}
         <div className="relative">
-          <div 
+          <div
             className={cn(
               'w-8 h-12 rounded-sm border-2 transition-all',
               severity === 'healthy' && 'bg-green-50 border-green-300',
               severity === 'mild' && 'bg-yellow-50 border-yellow-300',
               severity === 'moderate' && 'bg-orange-50 border-orange-300',
               severity === 'severe' && 'bg-red-50 border-red-300',
-              interactive && 'group-hover:scale-110 group-hover:shadow-lg'
+              interactive && 'group-hover:scale-110 group-hover:shadow-lg',
             )}
           />
           {hasAlerts && (
@@ -167,13 +164,11 @@ export default function PeriodontalChartDiagram({
         <div className="flex gap-0.5 items-start justify-center w-full">
           {lingualMeasurements.map((depth, idx) => (
             <div key={`lingual-${idx}`} className="flex flex-col items-center">
-              {lingualBleeding[idx] && (
-                <div className="w-1 h-1 rounded-full bg-red-500" />
-              )}
-              <div 
+              {lingualBleeding[idx] && <div className="w-1 h-1 rounded-full bg-red-500" />}
+              <div
                 className={cn(
                   'text-[9px] font-semibold font-mono px-0.5 rounded',
-                  lingualBleeding[idx] && 'bg-red-100 text-red-700'
+                  lingualBleeding[idx] && 'bg-red-100 text-red-700',
                 )}
                 style={{ color: lingualBleeding[idx] ? undefined : getDepthColor(depth) }}
               >
@@ -184,9 +179,7 @@ export default function PeriodontalChartDiagram({
         </div>
 
         {/* Average Depth */}
-        <div className="text-[9px] text-gray-600 font-medium">
-          {avgDepth.toFixed(1)}mm
-        </div>
+        <div className="text-[9px] text-gray-600 font-medium">{avgDepth.toFixed(1)}mm</div>
 
         {/* Tooltip on Hover (Interactive Mode) */}
         {interactive && (
@@ -204,13 +197,15 @@ export default function PeriodontalChartDiagram({
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-gray-300">Status:</span>
-                  <span className={cn(
-                    'font-semibold capitalize',
-                    severity === 'healthy' && 'text-green-400',
-                    severity === 'mild' && 'text-yellow-400',
-                    severity === 'moderate' && 'text-orange-400',
-                    severity === 'severe' && 'text-red-400'
-                  )}>
+                  <span
+                    className={cn(
+                      'font-semibold capitalize',
+                      severity === 'healthy' && 'text-green-400',
+                      severity === 'mild' && 'text-yellow-400',
+                      severity === 'moderate' && 'text-orange-400',
+                      severity === 'severe' && 'text-red-400',
+                    )}
+                  >
                     {severity}
                   </span>
                 </div>
@@ -262,7 +257,7 @@ export default function PeriodontalChartDiagram({
           Upper Arch (Maxilla)
         </div>
         <div className="flex justify-center gap-1 overflow-x-auto pb-2">
-          {upperTeeth.map(tooth => renderTooth(tooth, true))}
+          {upperTeeth.map((tooth) => renderTooth(tooth, true))}
         </div>
       </div>
 
@@ -272,7 +267,7 @@ export default function PeriodontalChartDiagram({
           Lower Arch (Mandible)
         </div>
         <div className="flex justify-center gap-1 overflow-x-auto pb-2">
-          {lowerTeeth.map(tooth => renderTooth(tooth, false))}
+          {lowerTeeth.map((tooth) => renderTooth(tooth, false))}
         </div>
       </div>
 
@@ -318,7 +313,8 @@ export default function PeriodontalChartDiagram({
                   <span className="text-sm text-gray-700">Mobility or Furcation Issue</span>
                 </div>
                 <div className="text-xs text-gray-600 mt-3 pt-3 border-t border-gray-200">
-                  <strong>Reading Format:</strong> Top values = Facial/Buccal side, Bottom values = Lingual/Palatal side
+                  <strong>Reading Format:</strong> Top values = Facial/Buccal side, Bottom values =
+                  Lingual/Palatal side
                 </div>
               </div>
             </div>
@@ -336,19 +332,31 @@ export default function PeriodontalChartDiagram({
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="text-sm text-gray-600 mb-1">Avg Depth</div>
             <div className="text-2xl font-bold text-gray-900">
-              {(readings.reduce((sum, r) => sum + r.pocketDepths.reduce((a, b) => a + b, 0) / r.pocketDepths.length, 0) / readings.length).toFixed(1)}mm
+              {(
+                readings.reduce(
+                  (sum, r) =>
+                    sum + r.pocketDepths.reduce((a, b) => a + b, 0) / r.pocketDepths.length,
+                  0,
+                ) / readings.length
+              ).toFixed(1)}
+              mm
             </div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="text-sm text-gray-600 mb-1">Bleeding Sites</div>
             <div className="text-2xl font-bold text-red-600">
-              {readings.reduce((sum, r) => sum + r.bleedingPoints.filter(bp => bp).length, 0)}
+              {readings.reduce((sum, r) => sum + r.bleedingPoints.filter((bp) => bp).length, 0)}
             </div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="text-sm text-gray-600 mb-1">Health Score</div>
             <div className="text-2xl font-bold text-green-600">
-              {Math.round(readings.filter(r => r.pocketDepths.every(d => d <= 3)).length / readings.length * 100)}%
+              {Math.round(
+                (readings.filter((r) => r.pocketDepths.every((d) => d <= 3)).length /
+                  readings.length) *
+                  100,
+              )}
+              %
             </div>
           </div>
         </div>

@@ -376,10 +376,9 @@ export class PatientsService {
         return null;
       }
 
-      const rows = await this.patientsRepository.prisma.$queryRawUnsafe<Array<{ history: unknown }>>(
-        `SELECT "history" FROM "PatientMedicalHistory" WHERE "patientId" = $1 LIMIT 1`,
-        patientId
-      );
+      const rows = await this.patientsRepository.prisma.$queryRawUnsafe<
+        Array<{ history: unknown }>
+      >(`SELECT "history" FROM "PatientMedicalHistory" WHERE "patientId" = $1 LIMIT 1`, patientId);
 
       return rows[0]?.history ?? null;
     } catch {
@@ -387,7 +386,11 @@ export class PatientsService {
     }
   }
 
-  async upsertMedicalHistory(practiceId: string, patientId: string, history: unknown): Promise<any> {
+  async upsertMedicalHistory(
+    practiceId: string,
+    patientId: string,
+    history: unknown,
+  ): Promise<any> {
     try {
       if (!history || typeof history !== 'object') {
         return null;
@@ -409,7 +412,7 @@ export class PatientsService {
             "updatedAt" = CURRENT_TIMESTAMP
         `,
         patientId,
-        JSON.stringify(history)
+        JSON.stringify(history),
       );
 
       return this.findMedicalHistory(practiceId, patientId);
@@ -419,7 +422,13 @@ export class PatientsService {
   }
 
   private isValidRecordSection(section: string): boolean {
-    return ['profile', 'clinicalChart', 'periodontalRecords', 'radiographicRecords', 'adminDocuments'].includes(section);
+    return [
+      'profile',
+      'clinicalChart',
+      'periodontalRecords',
+      'radiographicRecords',
+      'adminDocuments',
+    ].includes(section);
   }
 
   async findRecordSection(practiceId: string, patientId: string, section: string): Promise<any> {
@@ -437,7 +446,7 @@ export class PatientsService {
       const rows = await this.patientsRepository.prisma.$queryRawUnsafe<Array<{ value: unknown }>>(
         `SELECT "payload" as value FROM "PatientRecordSectionsKv" WHERE "patientId" = $1 AND "section" = $2 LIMIT 1`,
         patientId,
-        section
+        section,
       );
 
       return rows[0]?.value ?? null;
@@ -446,7 +455,12 @@ export class PatientsService {
     }
   }
 
-  async upsertRecordSection(practiceId: string, patientId: string, section: string, payload: unknown): Promise<any> {
+  async upsertRecordSection(
+    practiceId: string,
+    patientId: string,
+    section: string,
+    payload: unknown,
+  ): Promise<any> {
     try {
       if (!this.isValidRecordSection(section) || payload === undefined) {
         return null;
@@ -469,7 +483,7 @@ export class PatientsService {
         `,
         patientId,
         section,
-        JSON.stringify(payload)
+        JSON.stringify(payload),
       );
 
       return this.findRecordSection(practiceId, patientId, section);

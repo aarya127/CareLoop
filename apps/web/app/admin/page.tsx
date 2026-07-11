@@ -72,7 +72,11 @@ function StatTile({
               positive ? 'text-emerald-600' : 'text-rose-600'
             }`}
           >
-            {positive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+            {positive ? (
+              <ArrowUpRight className="h-4 w-4" />
+            ) : (
+              <ArrowDownRight className="h-4 w-4" />
+            )}
             {Math.abs(trend).toFixed(1)}%
           </div>
         )}
@@ -160,7 +164,8 @@ export default function AdminDashboard() {
               Practice pulse at a glance
             </h1>
             <p className="mt-3 max-w-2xl text-slate-600">
-              Monthly user growth, churn, and operational indicators are sourced from backend database records only.
+              Monthly user growth, churn, and operational indicators are sourced from backend
+              database records only.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:text-right">
@@ -183,7 +188,10 @@ export default function AdminDashboard() {
       {loading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="h-40 animate-pulse rounded-2xl border border-white/70 bg-white/75" />
+            <div
+              key={idx}
+              className="h-40 animate-pulse rounded-2xl border border-white/70 bg-white/75"
+            />
           ))}
         </div>
       ) : (
@@ -212,7 +220,8 @@ export default function AdminDashboard() {
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Application Health Overview</h2>
               <p className="mt-2 text-sm text-slate-600">
-                Core operational indicators for staffing, patient flow, and AI-assisted communication.
+                Core operational indicators for staffing, patient flow, and AI-assisted
+                communication.
               </p>
 
               <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -221,7 +230,9 @@ export default function AdminDashboard() {
                     <TrendingUp className="h-4 w-4" />
                     Team Growth Momentum
                   </div>
-                  <p className="text-3xl font-semibold text-slate-900">{overview.users.monthlyGrowthPct}%</p>
+                  <p className="text-3xl font-semibold text-slate-900">
+                    {overview.users.monthlyGrowthPct}%
+                  </p>
                   <p className="mt-1 text-sm text-slate-600">compared with previous month</p>
                 </div>
 
@@ -230,7 +241,9 @@ export default function AdminDashboard() {
                     <UserMinus className="h-4 w-4" />
                     User Churn Signal
                   </div>
-                  <p className="text-3xl font-semibold text-slate-900">{overview.users.leftThisMonth}</p>
+                  <p className="text-3xl font-semibold text-slate-900">
+                    {overview.users.leftThisMonth}
+                  </p>
                   <p className="mt-1 text-sm text-slate-600">users left during current month</p>
                 </div>
               </div>
@@ -243,7 +256,10 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {overview.users.leftReasons.map((item) => (
-                      <span key={item.reason} className="rounded-full bg-white px-3 py-1 text-xs text-slate-700 border border-slate-200">
+                      <span
+                        key={item.reason}
+                        className="rounded-full bg-white px-3 py-1 text-xs text-slate-700 border border-slate-200"
+                      >
                         {item.reason}: {item.count}
                       </span>
                     ))}
@@ -258,7 +274,9 @@ export default function AdminDashboard() {
                   <Phone className="h-4 w-4" />
                   AI Voice Activity
                 </div>
-                <p className="text-3xl font-semibold text-slate-900">{overview.activity.transcriptsThisMonth}</p>
+                <p className="text-3xl font-semibold text-slate-900">
+                  {overview.activity.transcriptsThisMonth}
+                </p>
                 <p className="mt-1 text-sm text-slate-600">call transcripts this month</p>
               </div>
 
@@ -267,7 +285,9 @@ export default function AdminDashboard() {
                   <MessageSquare className="h-4 w-4" />
                   Messaging Throughput
                 </div>
-                <p className="text-3xl font-semibold text-slate-900">{overview.activity.conversationsThisMonth}</p>
+                <p className="text-3xl font-semibold text-slate-900">
+                  {overview.activity.conversationsThisMonth}
+                </p>
                 <p className="mt-1 text-sm text-slate-600">new conversations this month</p>
               </div>
             </div>

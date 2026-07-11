@@ -3,7 +3,7 @@ import { prisma } from '@careloop/db';
 import type { FinalizeTranscriptJobData } from '@careloop/shared';
 
 export async function finalizeTranscriptProcessor(
-  job: Job<FinalizeTranscriptJobData>
+  job: Job<FinalizeTranscriptJobData>,
 ): Promise<void> {
   const { transcriptId, practiceId } = job.data;
   job.log(`Finalizing transcript ${transcriptId} for practice ${practiceId}`);

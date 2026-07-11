@@ -11,25 +11,25 @@
 
 ## Modules
 
-| Route prefix | Module | Description |
-|---|---|---|
-| `/health` | HealthModule | Liveness/readiness check |
-| `/auth` | AuthModule | Login, register, session |
-| `/users` | UsersModule | User profile management |
-| `/intake` | IntakeModule | Patient intake forms |
-| `/patients` | PatientsModule | Patient CRUD |
-| `/insurance` | InsuranceModule | Insurance plans & eligibility |
-| `/appointments` | AppointmentsModule | Scheduling & availability |
-| `/treatments` | TreatmentsModule | Treatment plans & charting |
-| `/billing` | BillingModule | Invoices |
-| `/payments` | PaymentsModule | Payment processing |
-| `/documents` | DocumentsModule | File upload/download |
-| `/messaging` | MessagingModule | SMS, email, reminders |
-| `/analytics` | AnalyticsModule | KPIs & reports |
-| `/audit` | AuditModule | Activity log |
-| `/search` | SearchModule | Global search |
-| `/webhooks` | WebhooksModule | Stripe & Twilio callbacks |
-| `/admin` | AdminModule | System administration |
+| Route prefix    | Module             | Description                   |
+| --------------- | ------------------ | ----------------------------- |
+| `/health`       | HealthModule       | Liveness/readiness check      |
+| `/auth`         | AuthModule         | Login, register, session      |
+| `/users`        | UsersModule        | User profile management       |
+| `/intake`       | IntakeModule       | Patient intake forms          |
+| `/patients`     | PatientsModule     | Patient CRUD                  |
+| `/insurance`    | InsuranceModule    | Insurance plans & eligibility |
+| `/appointments` | AppointmentsModule | Scheduling & availability     |
+| `/treatments`   | TreatmentsModule   | Treatment plans & charting    |
+| `/billing`      | BillingModule      | Invoices                      |
+| `/payments`     | PaymentsModule     | Payment processing            |
+| `/documents`    | DocumentsModule    | File upload/download          |
+| `/messaging`    | MessagingModule    | SMS, email, reminders         |
+| `/analytics`    | AnalyticsModule    | KPIs & reports                |
+| `/audit`        | AuditModule        | Activity log                  |
+| `/search`       | SearchModule       | Global search                 |
+| `/webhooks`     | WebhooksModule     | Stripe & Twilio callbacks     |
+| `/admin`        | AdminModule        | System administration         |
 
 ## Authentication Flow
 

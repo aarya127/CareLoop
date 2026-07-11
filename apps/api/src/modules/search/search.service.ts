@@ -47,13 +47,22 @@ export class SearchService {
       try {
         const cached = await getRedisClient().get(cacheKey);
         if (cached) return JSON.parse(cached) as SearchResult[];
-      } catch { /* non-fatal cache miss */ }
+      } catch {
+        /* non-fatal cache miss */
+      }
 
       const results = await this._runSearch(type, q, practiceId, limit);
 
       try {
-        await getRedisClient().set(cacheKey, JSON.stringify(results), 'EX', SEARCH_CACHE_TTL_SECONDS);
-      } catch { /* non-fatal */ }
+        await getRedisClient().set(
+          cacheKey,
+          JSON.stringify(results),
+          'EX',
+          SEARCH_CACHE_TTL_SECONDS,
+        );
+      } catch {
+        /* non-fatal */
+      }
 
       return results;
     }
@@ -88,11 +97,17 @@ export class SearchService {
   private async searchPatients(
     query: string,
     practiceId: string,
-    limit: number
+    limit: number,
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
     const rows = await prisma.$queryRawUnsafe<
-      Array<{ id: string; firstName: string; lastName: string; phoneE164: string | null; rank: number }>
+      Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        phoneE164: string | null;
+        rank: number;
+      }>
     >(
       `SELECT id, "firstName", "lastName", "phoneE164",
               ts_rank(search_vector, to_tsquery('english', $1)) AS rank
@@ -118,7 +133,7 @@ export class SearchService {
   private async searchAppointments(
     query: string,
     practiceId: string,
-    limit: number
+    limit: number,
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
     const rows = await prisma.$queryRawUnsafe<
@@ -148,7 +163,7 @@ export class SearchService {
   private async searchTreatments(
     query: string,
     practiceId: string,
-    limit: number
+    limit: number,
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
     const rows = await prisma.$queryRawUnsafe<
@@ -178,7 +193,7 @@ export class SearchService {
   private async searchDocuments(
     query: string,
     practiceId: string,
-    limit: number
+    limit: number,
   ): Promise<SearchResult[]> {
     const tsQuery = this.toTsQuery(query);
     const rows = await prisma.$queryRawUnsafe<
@@ -222,4 +237,3 @@ export class SearchService {
     return tokens.map((t) => `${t}:*`).join(' & ');
   }
 }
-

@@ -42,6 +42,7 @@ PGPASSWORD=<from secrets manager>
 #### On AWS RDS
 
 Enable automated backups with 7-day (minimum, recommend 30-day) retention:
+
 ```
 aws rds modify-db-instance \
   --db-instance-identifier careloop-postgres \
@@ -105,9 +106,7 @@ Replicate to a secondary region (e.g. `ca-west-1` if primary is `ca-central-1`).
       "Id": "TransitionToIA",
       "Status": "Enabled",
       "Filter": { "Prefix": "" },
-      "Transitions": [
-        { "Days": 90, "StorageClass": "STANDARD_IA" }
-      ],
+      "Transitions": [{ "Days": 90, "StorageClass": "STANDARD_IA" }],
       "NoncurrentVersionExpiration": { "NoncurrentDays": 365 }
     }
   ]
@@ -159,11 +158,11 @@ pg_restore \
 
 ## Recovery Testing Schedule
 
-| Test | Frequency | Owner |
-|---|---|---|
-| Verify daily backup exists + size > 0 | Daily (automated alert) | DevOps |
-| Restore to staging and run smoke tests | Monthly | On-call engineer |
-| Full DR drill (restore to isolated environment) | Quarterly | Engineering lead |
+| Test                                            | Frequency               | Owner            |
+| ----------------------------------------------- | ----------------------- | ---------------- |
+| Verify daily backup exists + size > 0           | Daily (automated alert) | DevOps           |
+| Restore to staging and run smoke tests          | Monthly                 | On-call engineer |
+| Full DR drill (restore to isolated environment) | Quarterly               | Engineering lead |
 
 ---
 
@@ -177,11 +176,11 @@ pg_restore \
 
 ## Encryption at Rest
 
-| Storage | Mechanism |
-|---|---|
+| Storage                  | Mechanism                                                             |
+| ------------------------ | --------------------------------------------------------------------- |
 | PostgreSQL (self-hosted) | OS-level disk encryption (LUKS / dm-crypt) or cloud volume encryption |
-| PostgreSQL (AWS RDS) | `StorageEncrypted: true` with KMS CMK — enable at creation time |
-| S3 documents | SSE-S3 (default) or SSE-KMS with `alias/careloop-documents` |
-| Redis (AWS ElastiCache) | Enable `at-rest-encryption-enabled` at cluster creation |
+| PostgreSQL (AWS RDS)     | `StorageEncrypted: true` with KMS CMK — enable at creation time       |
+| S3 documents             | SSE-S3 (default) or SSE-KMS with `alias/careloop-documents`           |
+| Redis (AWS ElastiCache)  | Enable `at-rest-encryption-enabled` at cluster creation               |
 
 **Note:** Prisma-level column encryption (e.g. via `pgcrypto`) for high-sensitivity fields (SSN, insurance numbers) is a future phase item tracked in `docs/need-to-do.md`.

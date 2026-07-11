@@ -108,8 +108,7 @@ export interface TimelineEvent {
 // ── Client ───────────────────────────────────────────────────────────────
 export const emrApi = {
   // Encounters
-  listEncounters: (patientId: string) =>
-    apiFetch<Encounter[]>(`/patients/${patientId}/encounters`),
+  listEncounters: (patientId: string) => apiFetch<Encounter[]>(`/patients/${patientId}/encounters`),
   getEncounter: (id: string) => apiFetch<Encounter>(`/encounters/${id}`),
   createEncounter: (patientId: string, dto: Partial<Encounter>, idempotencyKey?: string) =>
     apiFetch<Encounter>(`/patients/${patientId}/encounters`, {
@@ -119,8 +118,7 @@ export const emrApi = {
     }),
   updateEncounter: (id: string, dto: Partial<Encounter>) =>
     apiFetch<Encounter>(`/encounters/${id}`, { method: 'PUT', body: JSON.stringify(dto) }),
-  signEncounter: (id: string) =>
-    apiFetch<Encounter>(`/encounters/${id}/sign`, { method: 'POST' }),
+  signEncounter: (id: string) => apiFetch<Encounter>(`/encounters/${id}/sign`, { method: 'POST' }),
 
   // Allergies
   listAllergies: (patientId: string) => apiFetch<Allergy[]>(`/patients/${patientId}/allergies`),
@@ -146,8 +144,7 @@ export const emrApi = {
   deleteMedication: (id: string) => apiFetch<void>(`/medications/${id}`, { method: 'DELETE' }),
 
   // Conditions (problem list)
-  listConditions: (patientId: string) =>
-    apiFetch<Condition[]>(`/patients/${patientId}/conditions`),
+  listConditions: (patientId: string) => apiFetch<Condition[]>(`/patients/${patientId}/conditions`),
   createCondition: (patientId: string, dto: Partial<Condition>) =>
     apiFetch<Condition>(`/patients/${patientId}/conditions`, {
       method: 'POST',

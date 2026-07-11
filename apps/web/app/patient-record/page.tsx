@@ -33,7 +33,12 @@ import PeriodontalRecordsSection from '@/components/dental-records/periodontal-r
 import AdminDocumentsSection from '@/components/dental-records/administrative-documents-section';
 import RadiographicFilesSection from '@/components/dental-records/radiographic-files-section';
 import { getDentalRecordById } from '@/lib/data/mock-dental-records';
-import { treatmentsApi, STATUS_LABELS, STATUS_COLORS, type TreatmentRecord } from '@/lib/api/treatments';
+import {
+  treatmentsApi,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  type TreatmentRecord,
+} from '@/lib/api/treatments';
 import { documentsApi, computeSha256Hex } from '@/lib/api/documents';
 import {
   loadEmrMedicalSlices,
@@ -44,14 +49,14 @@ import {
   loadEmrPerioExams,
   syncEmrPerioExams,
 } from '@/lib/api/emr-mappers';
-import type { 
-  PatientProfile, 
-  MedicalHistory, 
+import type {
+  PatientProfile,
+  MedicalHistory,
   ClinicalChart,
   PeriodontalRecords,
   AdministrativeDocuments,
   RadiographicRecord,
-  ToothMeasurement
+  ToothMeasurement,
 } from '@/lib/types/dental-record';
 
 // Temporary mock medical history generator (will be moved to mock data file)
@@ -65,7 +70,7 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
         severity: 'severe',
         reaction: 'Hives and difficulty breathing',
         date_identified: '2018-03-15',
-        notes: 'Confirmed by allergist Dr. Smith'
+        notes: 'Confirmed by allergist Dr. Smith',
       },
       {
         id: 'allergy-002',
@@ -73,7 +78,7 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
         severity: 'moderate',
         reaction: 'Skin rash and itching',
         date_identified: '2020-06-22',
-      }
+      },
     ],
     current_medications: [
       {
@@ -83,7 +88,7 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
         frequency: 'Once daily',
         purpose: 'Blood pressure control',
         start_date: '2022-01-15',
-        prescribing_doctor: 'Dr. Johnson'
+        prescribing_doctor: 'Dr. Johnson',
       },
       {
         id: 'med-002',
@@ -92,8 +97,8 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
         frequency: 'Twice daily',
         purpose: 'Type 2 diabetes management',
         start_date: '2021-08-10',
-        prescribing_doctor: 'Dr. Williams'
-      }
+        prescribing_doctor: 'Dr. Williams',
+      },
     ],
     systemic_conditions: [
       {
@@ -102,7 +107,7 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
         diagnosed_date: '2021-07-20',
         status: 'controlled',
         severity: 'moderate',
-        treatment: 'Metformin and diet modification'
+        treatment: 'Metformin and diet modification',
       },
       {
         id: 'cond-002',
@@ -110,8 +115,8 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
         diagnosed_date: '2022-01-05',
         status: 'controlled',
         severity: 'mild',
-        treatment: 'Lisinopril'
-      }
+        treatment: 'Lisinopril',
+      },
     ],
     past_surgeries: [
       {
@@ -119,34 +124,34 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
         procedure: 'Appendectomy',
         date: '2015-06-12',
         hospital: 'San Diego Medical Center',
-        surgeon: 'Dr. Anderson'
-      }
+        surgeon: 'Dr. Anderson',
+      },
     ],
     lifestyle_factors: {
       smoking: {
         status: 'former',
         packs_per_day: 0.5,
         years: 10,
-        quit_date: '2020-01-01'
+        quit_date: '2020-01-01',
       },
       alcohol: {
         frequency: 'occasional',
-        drinks_per_week: 2
+        drinks_per_week: 2,
       },
       diet_notes: 'Low-carb diet for diabetes management',
-      exercise_frequency: '3-4 times per week, moderate intensity'
+      exercise_frequency: '3-4 times per week, moderate intensity',
     },
     family_health_history: [
       {
         id: 'fam-001',
         relation: 'Mother',
-        conditions: ['diabetes', 'osteoporosis']
+        conditions: ['diabetes', 'osteoporosis'],
       },
       {
         id: 'fam-002',
         relation: 'Father',
-        conditions: ['hypertension', 'heart disease']
-      }
+        conditions: ['hypertension', 'heart disease'],
+      },
     ],
     dental_history: {
       last_cleaning_date: '2024-08-15',
@@ -163,7 +168,7 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
           teeth_involved: [],
           dentist_name: 'Dr. Emily Chen',
           cost: 180,
-          insurance_covered: 126
+          insurance_covered: 126,
         },
         {
           id: 'treat-002',
@@ -173,7 +178,7 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
           dentist_name: 'Dr. Emily Chen',
           cost: 350,
           insurance_covered: 245,
-          notes: 'Two posterior fillings completed successfully'
+          notes: 'Two posterior fillings completed successfully',
         },
         {
           id: 'treat-003',
@@ -183,25 +188,28 @@ const getMockMedicalHistory = (patientId: string): MedicalHistory => {
           dentist_name: 'Dr. James Wilson',
           cost: 1200,
           insurance_covered: 840,
-          notes: 'Root canal with crown placement'
-        }
-      ]
-    }
+          notes: 'Root canal with crown placement',
+        },
+      ],
+    },
   };
 };
 
 // Mock Clinical Chart generator
 const getMockClinicalChart = (patientId: string): ClinicalChart => {
-  const toothStatuses: Array<'healthy' | 'decayed' | 'filled' | 'crowned' | 'missing' | 'implant' | 'bridge' | 'root_canal'> = 
-    ['healthy', 'decayed', 'filled', 'crowned', 'missing', 'implant', 'bridge', 'root_canal'];
-  
+  const toothStatuses: Array<
+    'healthy' | 'decayed' | 'filled' | 'crowned' | 'missing' | 'implant' | 'bridge' | 'root_canal'
+  > = ['healthy', 'decayed', 'filled', 'crowned', 'missing', 'implant', 'bridge', 'root_canal'];
+
   const teeth = Array.from({ length: 32 }, (_, i) => {
     const toothNumber = i + 1;
     const hasIssue = Math.random() > 0.7; // 30% chance of having an issue
-    
+
     return {
       tooth_number: toothNumber,
-      status: hasIssue ? toothStatuses[Math.floor(Math.random() * toothStatuses.length)] : 'healthy' as const,
+      status: hasIssue
+        ? toothStatuses[Math.floor(Math.random() * toothStatuses.length)]
+        : ('healthy' as const),
       color_code: hasIssue ? '#ef4444' : '#10b981',
       surfaces_affected: hasIssue ? ['occlusal' as const, 'mesial' as const] : [],
       notes: hasIssue ? 'Requires attention' : undefined,
@@ -284,7 +292,7 @@ const getMockPeriodontalRecords = (patientId: string): PeriodontalRecords => {
     return Array.from({ length: 32 }, (_, i) => {
       const toothNumber = i + 1;
       const healthScore = Math.random();
-      
+
       // Generate 6 pocket depths (MB, B, DB, ML, L, DL)
       const pocketDepths = Array.from({ length: 6 }, () => {
         if (healthScore > 0.7) return Math.floor(Math.random() * 2) + 2; // 2-3mm healthy
@@ -296,8 +304,8 @@ const getMockPeriodontalRecords = (patientId: string): PeriodontalRecords => {
       const bleedingOnProbing = Array.from({ length: 6 }, () => Math.random() > 0.7);
 
       // Generate recession measurements
-      const recessionMm = Array.from({ length: 6 }, () => 
-        Math.random() > 0.8 ? Math.floor(Math.random() * 2) + 1 : 0
+      const recessionMm = Array.from({ length: 6 }, () =>
+        Math.random() > 0.8 ? Math.floor(Math.random() * 2) + 1 : 0,
       );
 
       // Mobility grade (0-3)
@@ -305,9 +313,10 @@ const getMockPeriodontalRecords = (patientId: string): PeriodontalRecords => {
 
       // Furcation involvement (for molars)
       const isMolar = [6, 7, 14, 15, 18, 19, 30, 31].includes(toothNumber);
-      const furcationInvolvement = isMolar && healthScore < 0.4 
-        ? (['class_i', 'class_ii', 'class_iii'] as const)[Math.floor(Math.random() * 3)]
-        : 'none';
+      const furcationInvolvement =
+        isMolar && healthScore < 0.4
+          ? (['class_i', 'class_ii', 'class_iii'] as const)[Math.floor(Math.random() * 3)]
+          : 'none';
 
       return {
         tooth_number: toothNumber,
@@ -343,10 +352,7 @@ const getMockPeriodontalRecords = (patientId: string): PeriodontalRecords => {
         examiner_name: 'Dr. Sarah Miller',
         tooth_measurements: generateToothMeasurements(),
         overall_diagnosis: 'Moderate periodontitis',
-        treatment_recommendations: [
-          'Deep cleaning recommended',
-          'Antibiotic therapy if needed',
-        ],
+        treatment_recommendations: ['Deep cleaning recommended', 'Antibiotic therapy if needed'],
       },
       {
         exam_id: 'perio-exam-001',
@@ -508,7 +514,17 @@ const getMockAdminDocuments = (patientId: string): AdministrativeDocuments => {
   };
 };
 
-type TabType = 'overview' | 'timeline' | 'history' | 'treatments' | 'plans' | 'charting' | 'periodontal' | 'imaging' | 'encounters' | 'documents';
+type TabType =
+  | 'overview'
+  | 'timeline'
+  | 'history'
+  | 'treatments'
+  | 'plans'
+  | 'charting'
+  | 'periodontal'
+  | 'imaging'
+  | 'encounters'
+  | 'documents';
 
 type ApiPatient = {
   id: string;
@@ -613,7 +629,7 @@ function PatientRecordContent() {
   const patientId = searchParams.get('id');
   const isAdminContext = pathname?.startsWith('/admin');
   const apiBaseUrl = resolveApiBase();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [patientRecord, setPatientRecord] = useState<PatientProfile | null>(null);
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistory | null>(null);
@@ -649,7 +665,10 @@ function PatientRecordContent() {
         // in the legacy blob (no EMR model yet); fall back to mock if unavailable.
         let base = getMockMedicalHistory(resolvedPatientId);
         try {
-          const historyRes = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/medical-history`, { credentials: 'include' });
+          const historyRes = await fetch(
+            `${apiBaseUrl}/patients/${resolvedPatientId}/medical-history`,
+            { credentials: 'include' },
+          );
           if (historyRes.ok) {
             const history = (await historyRes.json()) as MedicalHistory | null;
             if (history && typeof history === 'object') base = history;
@@ -669,11 +688,19 @@ function PatientRecordContent() {
 
       const loadRecordSection = async <T,>(
         resolvedPatientId: string,
-        section: 'profile' | 'clinicalChart' | 'periodontalRecords' | 'radiographicRecords' | 'adminDocuments',
-        fallback: T
+        section:
+          | 'profile'
+          | 'clinicalChart'
+          | 'periodontalRecords'
+          | 'radiographicRecords'
+          | 'adminDocuments',
+        fallback: T,
       ): Promise<T> => {
         try {
-          const res = await fetch(`${apiBaseUrl}/patients/${resolvedPatientId}/record-section/${section}`, { credentials: 'include' });
+          const res = await fetch(
+            `${apiBaseUrl}/patients/${resolvedPatientId}/record-section/${section}`,
+            { credentials: 'include' },
+          );
           if (res.ok) {
             const payload = (await res.json()) as T | null;
             if (payload && typeof payload === 'object') {
@@ -699,7 +726,7 @@ function PatientRecordContent() {
       // Overlay EMR periodontal exams onto base PeriodontalRecords.
       const withEmrPerio = async (
         records: PeriodontalRecords,
-        pid: string
+        pid: string,
       ): Promise<PeriodontalRecords> => {
         try {
           const exams = await loadEmrPerioExams(pid);
@@ -712,12 +739,12 @@ function PatientRecordContent() {
       // resolving fresh download URLs. Falls back to the base list on failure.
       const withImagingDocs = async (
         base: RadiographicRecord[],
-        pid: string
+        pid: string,
       ): Promise<RadiographicRecord[]> => {
         try {
           const docs = await documentsApi.listByPatient(pid);
           const imaging = docs.filter(
-            (d) => d.category === 'radiograph' || d.category === 'clinical_photo'
+            (d) => d.category === 'radiograph' || d.category === 'clinical_photo',
           );
           if (!imaging.length) return base;
           return await Promise.all(
@@ -736,7 +763,7 @@ function PatientRecordContent() {
                 date_taken: (d.uploadedAt ?? '').slice(0, 10),
                 dentist_notes: d.fileName,
               } as RadiographicRecord;
-            })
+            }),
           );
         } catch {
           return base;
@@ -749,7 +776,11 @@ function PatientRecordContent() {
           const apiPatient = (await res.json()) as ApiPatient | null;
           if (mounted && apiPatient?.id) {
             const mappedProfile = toPatientProfileFromApi(apiPatient);
-            const persistedProfile = await loadRecordSection(apiPatient.id, 'profile', mappedProfile);
+            const persistedProfile = await loadRecordSection(
+              apiPatient.id,
+              'profile',
+              mappedProfile,
+            );
             setPatientRecord({ ...mappedProfile, ...persistedProfile });
             setMedicalHistory(await loadMedicalHistory(apiPatient.id));
             setClinicalChart(
@@ -757,37 +788,37 @@ function PatientRecordContent() {
                 await loadRecordSection(
                   apiPatient.id,
                   'clinicalChart',
-                  getMockClinicalChart(apiPatient.id)
+                  getMockClinicalChart(apiPatient.id),
                 ),
-                apiPatient.id
-              )
+                apiPatient.id,
+              ),
             );
             setPeriodontalRecords(
               await withEmrPerio(
                 await loadRecordSection(
                   apiPatient.id,
                   'periodontalRecords',
-                  getMockPeriodontalRecords(apiPatient.id)
+                  getMockPeriodontalRecords(apiPatient.id),
                 ),
-                apiPatient.id
-              )
+                apiPatient.id,
+              ),
             );
             setAdminDocuments(
               await loadRecordSection(
                 apiPatient.id,
                 'adminDocuments',
-                getMockAdminDocuments(apiPatient.id)
-              )
+                getMockAdminDocuments(apiPatient.id),
+              ),
             );
             setRadiographicRecords(
               await withImagingDocs(
                 await loadRecordSection(
                   apiPatient.id,
                   'radiographicRecords',
-                  mappedProfile.radiographic_records || []
+                  mappedProfile.radiographic_records || [],
                 ),
-                apiPatient.id
-              )
+                apiPatient.id,
+              ),
             );
             setIsLoading(false);
             return;
@@ -804,27 +835,31 @@ function PatientRecordContent() {
         setClinicalChart(
           await withEmrTeeth(
             await loadRecordSection(patientId, 'clinicalChart', getMockClinicalChart(patientId)),
-            patientId
-          )
+            patientId,
+          ),
         );
         setPeriodontalRecords(
           await withEmrPerio(
             await loadRecordSection(
               patientId,
               'periodontalRecords',
-              getMockPeriodontalRecords(patientId)
+              getMockPeriodontalRecords(patientId),
             ),
-            patientId
-          )
+            patientId,
+          ),
         );
         setAdminDocuments(
-          await loadRecordSection(patientId, 'adminDocuments', getMockAdminDocuments(patientId))
+          await loadRecordSection(patientId, 'adminDocuments', getMockAdminDocuments(patientId)),
         );
         setRadiographicRecords(
           await withImagingDocs(
-            await loadRecordSection(patientId, 'radiographicRecords', record?.radiographic_records || []),
-            patientId
-          )
+            await loadRecordSection(
+              patientId,
+              'radiographicRecords',
+              record?.radiographic_records || [],
+            ),
+            patientId,
+          ),
         );
         setIsLoading(false);
       }
@@ -912,7 +947,7 @@ function PatientRecordContent() {
 
   const persistRecordSection = async (
     section: 'clinicalChart' | 'periodontalRecords' | 'radiographicRecords' | 'adminDocuments',
-    payload: unknown
+    payload: unknown,
   ) => {
     if (!patientRecord) return;
     try {
@@ -1021,9 +1056,7 @@ function PatientRecordContent() {
     setTreatmentSubmitting(true);
     try {
       const practiceId =
-        treatmentForm.practiceId ||
-        process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID ||
-        'demo-practice';
+        treatmentForm.practiceId || process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID || 'demo-practice';
       const record = await treatmentsApi.create(
         {
           practiceId,
@@ -1037,7 +1070,14 @@ function PatientRecordContent() {
         process.env.NEXT_PUBLIC_DEMO_USER_ID,
       );
       setTreatmentRecords((prev) => [record, ...prev]);
-      setTreatmentForm({ procedureCode: '', toothNumber: '', surface: '', notes: '', status: 'planned', practiceId: '' });
+      setTreatmentForm({
+        procedureCode: '',
+        toothNumber: '',
+        surface: '',
+        notes: '',
+        status: 'planned',
+        practiceId: '',
+      });
       setShowTreatmentForm(false);
     } catch {
       // keep form open on error
@@ -1048,7 +1088,11 @@ function PatientRecordContent() {
 
   const handleStatusChange = async (id: string, status: string) => {
     try {
-      const updated = await treatmentsApi.update(id, { status }, process.env.NEXT_PUBLIC_DEMO_USER_ID);
+      const updated = await treatmentsApi.update(
+        id,
+        { status },
+        process.env.NEXT_PUBLIC_DEMO_USER_ID,
+      );
       setTreatmentRecords((prev) => prev.map((r) => (r.id === id ? updated : r)));
     } catch {
       // ignore
@@ -1070,7 +1114,9 @@ function PatientRecordContent() {
 
   if (isLoading) {
     return (
-      <div className={`${isAdminContext ? 'py-16' : 'min-h-screen'} bg-gray-50 flex items-center justify-center`}>
+      <div
+        className={`${isAdminContext ? 'py-16' : 'min-h-screen'} bg-gray-50 flex items-center justify-center`}
+      >
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#87CEEB] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading patient record...</p>
@@ -1081,13 +1127,13 @@ function PatientRecordContent() {
 
   if (!patientRecord) {
     return (
-      <div className={`${isAdminContext ? 'py-16' : 'min-h-screen'} bg-gray-50 flex items-center justify-center`}>
+      <div
+        className={`${isAdminContext ? 'py-16' : 'min-h-screen'} bg-gray-50 flex items-center justify-center`}
+      >
         <div className="text-center">
           <FileText className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Patient Not Found</h1>
-          <p className="text-gray-600 mb-6">
-            The patient record you're looking for doesn't exist.
-          </p>
+          <p className="text-gray-600 mb-6">The patient record you're looking for doesn't exist.</p>
           <button
             onClick={handleGoHome}
             className="px-6 py-3 bg-[#87CEEB] text-white rounded-xl hover:bg-[#6BA8D9] transition-colors"
@@ -1157,7 +1203,7 @@ function PatientRecordContent() {
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              
+
               return (
                 <motion.button
                   key={tab.id}
@@ -1181,11 +1227,7 @@ function PatientRecordContent() {
 
       {/* Main Content */}
       <div
-        className={
-          isAdminContext
-            ? 'w-full py-6'
-            : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'
-        }
+        className={isAdminContext ? 'w-full py-6' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}
       >
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
@@ -1253,7 +1295,9 @@ function PatientRecordContent() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Treatment History</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">Clinical care records linked to this patient</p>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Clinical care records linked to this patient
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowTreatmentForm((v) => !v)}
@@ -1275,34 +1319,46 @@ function PatientRecordContent() {
                   <h3 className="font-semibold text-gray-800">New Treatment Record</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Procedure Code</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Procedure Code
+                      </label>
                       <input
                         type="text"
                         placeholder="e.g. D2140"
                         value={treatmentForm.procedureCode}
-                        onChange={(e) => setTreatmentForm((f) => ({ ...f, procedureCode: e.target.value }))}
+                        onChange={(e) =>
+                          setTreatmentForm((f) => ({ ...f, procedureCode: e.target.value }))
+                        }
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Tooth Number</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Tooth Number
+                      </label>
                       <input
                         type="number"
                         min={1}
                         max={32}
                         placeholder="1–32"
                         value={treatmentForm.toothNumber}
-                        onChange={(e) => setTreatmentForm((f) => ({ ...f, toothNumber: e.target.value }))}
+                        onChange={(e) =>
+                          setTreatmentForm((f) => ({ ...f, toothNumber: e.target.value }))
+                        }
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Surface</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Surface
+                      </label>
                       <input
                         type="text"
                         placeholder="e.g. MOD"
                         value={treatmentForm.surface}
-                        onChange={(e) => setTreatmentForm((f) => ({ ...f, surface: e.target.value }))}
+                        onChange={(e) =>
+                          setTreatmentForm((f) => ({ ...f, surface: e.target.value }))
+                        }
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
                       />
                     </div>
@@ -1310,7 +1366,9 @@ function PatientRecordContent() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                       <select
                         value={treatmentForm.status}
-                        onChange={(e) => setTreatmentForm((f) => ({ ...f, status: e.target.value }))}
+                        onChange={(e) =>
+                          setTreatmentForm((f) => ({ ...f, status: e.target.value }))
+                        }
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
                       >
                         <option value="planned">Planned</option>
@@ -1320,7 +1378,9 @@ function PatientRecordContent() {
                       </select>
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Clinical Notes</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Clinical Notes
+                      </label>
                       <textarea
                         rows={3}
                         placeholder="Clinical notes..."
@@ -1368,7 +1428,9 @@ function PatientRecordContent() {
                     >
                       {/* Status badge */}
                       <div className="pt-0.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[rec.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[rec.status] ?? 'bg-gray-100 text-gray-600'}`}
+                        >
                           {STATUS_LABELS[rec.status] ?? rec.status}
                         </span>
                       </div>
@@ -1377,7 +1439,9 @@ function PatientRecordContent() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           {rec.procedureCode && (
-                            <span className="font-mono text-sm font-semibold text-gray-800">{rec.procedureCode}</span>
+                            <span className="font-mono text-sm font-semibold text-gray-800">
+                              {rec.procedureCode}
+                            </span>
                           )}
                           {rec.toothNumber && (
                             <span className="text-xs text-gray-500">Tooth #{rec.toothNumber}</span>
@@ -1394,7 +1458,8 @@ function PatientRecordContent() {
                         )}
                         <p className="mt-1 text-xs text-gray-400">
                           Created {new Date(rec.createdAt).toLocaleDateString()}
-                          {rec.completedAt && ` · Completed ${new Date(rec.completedAt).toLocaleDateString()}`}
+                          {rec.completedAt &&
+                            ` · Completed ${new Date(rec.completedAt).toLocaleDateString()}`}
                           {rec.createdBy && ` · by ${rec.createdBy}`}
                         </p>
                       </div>
@@ -1475,7 +1540,9 @@ function PatientRecordContent() {
             >
               <RadiographicFilesSection
                 patientId={patientRecord.patient_id}
-                radiographicRecords={radiographicRecords ?? patientRecord.radiographic_records ?? []}
+                radiographicRecords={
+                  radiographicRecords ?? patientRecord.radiographic_records ?? []
+                }
                 onUpload={handleUploadRadiograph}
               />
             </motion.div>
@@ -1503,9 +1570,7 @@ function PatientRecordContent() {
             >
               <AdminDocumentsSection
                 patientId={patientRecord.patient_id}
-                adminDocuments={
-                  adminDocuments ?? getMockAdminDocuments(patientRecord.patient_id)
-                }
+                adminDocuments={adminDocuments ?? getMockAdminDocuments(patientRecord.patient_id)}
                 onUpdate={handleUpdateAdminDocuments}
               />
             </motion.div>
@@ -1523,7 +1588,7 @@ function PatientRecordContent() {
             <Clock className="w-5 h-5 text-[#87CEEB]" />
             <span>Recent Activity</span>
           </h3>
-          
+
           <div className="space-y-4">
             <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
               <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />
@@ -1568,14 +1633,16 @@ function PatientRecordContent() {
 
 export default function PatientRecordPage() {
   return (
-    <Suspense fallback={
-      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mb-4"></div>
-          <p className="text-gray-600">Loading patient record...</p>
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mb-4"></div>
+            <p className="text-gray-600">Loading patient record...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <PatientRecordContent />
     </Suspense>
   );

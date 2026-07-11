@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Headers, Req, RawBodyRequest, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  Req,
+  RawBodyRequest,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { FastifyRequest } from 'fastify';
 import { WebhooksService } from './webhooks.service';
@@ -64,7 +73,12 @@ export class WebhooksController {
     @Headers('x-goog-resource-state') resourceState: string,
     @Headers('x-goog-channel-id') channelId: string,
   ) {
-    await this.webhooksService.handleCalendar(payload, channelToken ?? '', resourceState ?? '', channelId ?? '');
+    await this.webhooksService.handleCalendar(
+      payload,
+      channelToken ?? '',
+      resourceState ?? '',
+      channelId ?? '',
+    );
     return { received: true };
   }
 

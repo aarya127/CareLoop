@@ -17,7 +17,9 @@ export class InvoicesRepository {
     return prisma.invoice.findMany({
       where,
       include: {
-        payments: { select: { id: true, amountCents: true, method: true, status: true, paidAt: true } },
+        payments: {
+          select: { id: true, amountCents: true, method: true, status: true, paidAt: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

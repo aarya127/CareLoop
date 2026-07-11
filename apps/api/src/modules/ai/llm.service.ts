@@ -71,7 +71,9 @@ export class LlmService {
         continue; // retry without response_format
       }
       const detail = await res.text().catch(() => res.statusText);
-      throw new ServiceUnavailableException(`LLM request failed (${res.status}): ${detail.slice(0, 300)}`);
+      throw new ServiceUnavailableException(
+        `LLM request failed (${res.status}): ${detail.slice(0, 300)}`,
+      );
     }
     return '';
   }

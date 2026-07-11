@@ -27,20 +27,24 @@ describe('BillingService tenant isolation', () => {
 
   it('getInvoice 404s for a different practice', async () => {
     const { service } = makeService(INVOICE);
-    await expect(service.getInvoice('practice-B', 'inv-1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.getInvoice('practice-B', 'inv-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('voidInvoice refuses a cross-tenant invoice before writing', async () => {
     const { service, repo } = makeService(INVOICE);
-    await expect(service.voidInvoice('practice-B', 'inv-1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.voidInvoice('practice-B', 'inv-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(repo.update).not.toHaveBeenCalled();
   });
 
   it('updateInvoice refuses a cross-tenant invoice before writing', async () => {
     const { service, repo } = makeService(INVOICE);
-    await expect(service.updateInvoice('practice-B', 'inv-1', { notes: 'x' })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.updateInvoice('practice-B', 'inv-1', { notes: 'x' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.update).not.toHaveBeenCalled();
   });
 });

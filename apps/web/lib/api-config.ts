@@ -1,42 +1,44 @@
 // API Base Configuration
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://careloop-tf2l.onrender.com';
-export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL || 'wss://careloop-tf2l.onrender.com';
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://careloop-tf2l.onrender.com';
+export const WS_BASE_URL =
+  process.env.NEXT_PUBLIC_WS_BASE_URL || 'wss://careloop-tf2l.onrender.com';
 
 // API Endpoints
 export const ENDPOINTS = {
   // Insights & KPIs
   INSIGHTS_TODAY: '/insights/today',
   INSIGHTS_TRENDS: '/insights/trends',
-  
+
   // Queue & Actions
   QUEUE_ACTIONS: '/queue/actions',
-  
+
   // Calls
   CALLS_RECENT: '/calls/recent',
   CALLS_LOGS: '/calls/logs',
   CALL_DETAILS: (id: string) => `/calls/${id}`,
   CALL_RECORDING: (id: string) => `/calls/${id}/recording`,
-  
+
   // Patients
   PATIENTS_RECENT: '/patients/recent',
   PATIENTS_SEARCH: '/patients/search',
   PATIENT_DETAILS: (id: string) => `/patients/${id}`,
   PATIENT_SUMMARY: (id: string) => `/patients/${id}/summary`,
-  
+
   // Insurance
   INSURANCE_ELIGIBILITY: (patientId: string) => `/insurance/${patientId}/eligibility`,
   INSURANCE_COVERAGE: (patientId: string) => `/insurance/${patientId}/coverage`,
-  
+
   // Calendar & Appointments
   CALENDAR: '/calendar',
   APPOINTMENTS: '/appointments',
   APPOINTMENT_DETAILS: (id: string) => `/appointments/${id}`,
   AVAILABILITY: '/appointments/availability',
-  
+
   // Providers & Resources
   PROVIDERS: '/providers',
   ROOMS: '/rooms',
-  
+
   // Billing
   PATIENT_BALANCE: (patientId: string) => `/billing/${patientId}/balance`,
   PAYMENT_HISTORY: (patientId: string) => `/billing/${patientId}/payments`,

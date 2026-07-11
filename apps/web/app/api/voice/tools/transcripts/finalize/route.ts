@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
 
 const schema = z.object({
   callSid: z.string().min(3),
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     if (!existing) {
-      return NextResponse.json({ ok: false, error: "transcript_not_found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: 'transcript_not_found' }, { status: 404 });
     }
 
     const transcript = await prisma.callTranscript.update({
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, transcript });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

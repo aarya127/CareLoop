@@ -34,7 +34,9 @@ export class TwilioService {
         this.logger.error('Twilio authToken not set — rejecting webhook');
         return false;
       }
-      this.logger.warn('Twilio authToken not set — skipping signature validation (non-production only)');
+      this.logger.warn(
+        'Twilio authToken not set — skipping signature validation (non-production only)',
+      );
       return true;
     }
     return Twilio.validateRequest(authToken, signature, url, params);

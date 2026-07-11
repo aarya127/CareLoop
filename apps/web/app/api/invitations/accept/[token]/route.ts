@@ -39,7 +39,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
 
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    return NextResponse.json({ error: data?.message ?? 'Could not accept invitation' }, { status: res.status });
+    return NextResponse.json(
+      { error: data?.message ?? 'Could not accept invitation' },
+      { status: res.status },
+    );
   }
 
   const response = NextResponse.json({ user: data.user });

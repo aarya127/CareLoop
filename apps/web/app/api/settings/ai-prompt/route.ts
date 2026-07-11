@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
-import { CARELOOP_VOICE_SYSTEM_PROMPT } from "@/lib/services/voice-agent";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
+import { CARELOOP_VOICE_SYSTEM_PROMPT } from '@/lib/services/voice-agent';
 
 const createSchema = z.object({
-  practiceId: z.string().default("default-practice"),
+  practiceId: z.string().default('default-practice'),
   systemPrompt: z.string().min(40),
 });
 
 const activateSchema = z.object({
-  practiceId: z.string().default("default-practice"),
+  practiceId: z.string().default('default-practice'),
   version: z.number().int().min(1),
 });
 
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
     const activePrompt = await prisma.aIPromptVersion.findFirst({
       where: { practiceId, isActive: true },
-      orderBy: { version: "desc" },
+      orderBy: { version: 'desc' },
     });
 
     return NextResponse.json({
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const latest = await prisma.aIPromptVersion.findFirst({
       where: { practiceId },
-      orderBy: { version: "desc" },
+      orderBy: { version: 'desc' },
     });
 
     const created = await prisma.aIPromptVersion.create({
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, prompt: created });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
@@ -85,12 +85,12 @@ export async function PUT(req: NextRequest) {
 
     const active = await prisma.aIPromptVersion.findFirst({
       where: { practiceId, isActive: true },
-      orderBy: { version: "desc" },
+      orderBy: { version: 'desc' },
     });
 
     return NextResponse.json({ ok: true, activePrompt: active });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

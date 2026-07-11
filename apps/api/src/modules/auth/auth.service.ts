@@ -114,7 +114,7 @@ export class AuthService {
     store: Map<string, RateLimitRecord>,
     key: string,
     windowMs: number,
-    maxAttempts: number
+    maxAttempts: number,
   ): void {
     const now = this.nowMs();
     const record = this.getOrInitRecord(store, key);
@@ -139,7 +139,7 @@ export class AuthService {
   private registerFailure(
     store: Map<string, RateLimitRecord>,
     key: string,
-    windowMs: number
+    windowMs: number,
   ): void {
     const now = this.nowMs();
     const record = this.getOrInitRecord(store, key);
@@ -195,7 +195,7 @@ export class AuthService {
       if (error.code === 'P2021' || error.code === 'P2022') {
         throw new HttpException(
           'Authentication backend is not initialized. Run database migrations for auth tables.',
-          HttpStatus.SERVICE_UNAVAILABLE
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
     }
@@ -248,13 +248,13 @@ export class AuthService {
         this.ipRateLimit,
         ipKey,
         AUTH_LIMITS.LOGIN_IP_WINDOW_MS,
-        AUTH_LIMITS.LOGIN_IP_MAX_ATTEMPTS
+        AUTH_LIMITS.LOGIN_IP_MAX_ATTEMPTS,
       );
       this.enforceRateLimit(
         this.accountRateLimit,
         email,
         AUTH_LIMITS.LOGIN_ACCOUNT_WINDOW_MS,
-        AUTH_LIMITS.LOGIN_ACCOUNT_MAX_ATTEMPTS
+        AUTH_LIMITS.LOGIN_ACCOUNT_MAX_ATTEMPTS,
       );
 
       const user = await prisma.user.findUnique({
@@ -333,7 +333,9 @@ export class AuthService {
       // latency. No-op once the user is already on the target cost.
       if (passwordNeedsRehash(user.passwordHash)) {
         void hashPassword(dto.password)
-          .then((newHash) => prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } }))
+          .then((newHash) =>
+            prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } }),
+          )
           .catch(() => undefined);
       }
 
@@ -434,7 +436,10 @@ export class AuthService {
     return { sessionToken: rawToken, user: await this.toSafeUser(userId) };
   }
 
-  async logout(sessionToken: string | undefined, context: { userId?: string; ip?: string; userAgent?: string }): Promise<void> {
+  async logout(
+    sessionToken: string | undefined,
+    context: { userId?: string; ip?: string; userAgent?: string },
+  ): Promise<void> {
     if (!sessionToken) return;
 
     await this.sessionService.revokeSession(sessionToken, 'logout');
@@ -515,7 +520,7 @@ export class AuthService {
     const currentMonthStart = this.monthStartFor(now);
     const nextMonthStart = this.monthEndExclusive(currentMonthStart);
     const previousMonthStart = this.monthStartFor(
-      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)),
     );
 
     const [
@@ -568,8 +573,12 @@ export class AuthService {
         },
       }),
       prisma.patient.count({ where: { practiceId } }),
-      prisma.patient.count({ where: { practiceId, createdAt: { gte: currentMonthStart, lt: nextMonthStart } } }),
-      prisma.appointment.count({ where: { practiceId, start: { gte: currentMonthStart, lt: nextMonthStart } } }),
+      prisma.patient.count({
+        where: { practiceId, createdAt: { gte: currentMonthStart, lt: nextMonthStart } },
+      }),
+      prisma.appointment.count({
+        where: { practiceId, start: { gte: currentMonthStart, lt: nextMonthStart } },
+      }),
       prisma.appointment.count({
         where: {
           practiceId,
@@ -577,13 +586,18 @@ export class AuthService {
           status: { in: ['completed'] },
         },
       }),
-      prisma.callTranscript.count({ where: { practiceId, createdAt: { gte: currentMonthStart, lt: nextMonthStart } } }),
-      prisma.conversation.count({ where: { practiceId, createdAt: { gte: currentMonthStart, lt: nextMonthStart } } }),
+      prisma.callTranscript.count({
+        where: { practiceId, createdAt: { gte: currentMonthStart, lt: nextMonthStart } },
+      }),
+      prisma.conversation.count({
+        where: { practiceId, createdAt: { gte: currentMonthStart, lt: nextMonthStart } },
+      }),
     ]);
 
-    const completionRate = appointmentThisMonth > 0
-      ? Number(((appointmentCompletedThisMonth / appointmentThisMonth) * 100).toFixed(2))
-      : 0;
+    const completionRate =
+      appointmentThisMonth > 0
+        ? Number(((appointmentCompletedThisMonth / appointmentThisMonth) * 100).toFixed(2))
+        : 0;
 
     return {
       users: {

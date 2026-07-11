@@ -34,9 +34,6 @@ export async function GET(req: NextRequest) {
     const data = await upstream.json().catch(() => ({}));
     return NextResponse.json(data, { status: upstream.status });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { ok: false, error: String(err) },
-      { status: 502 }
-    );
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 502 });
   }
 }

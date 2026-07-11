@@ -30,14 +30,38 @@ interface ClinicalChartingSectionProps {
 
 // Tooth names for Universal numbering system (1-32)
 const toothNames: Record<number, string> = {
-  1: 'UR Third Molar', 2: 'UR Second Molar', 3: 'UR First Molar', 4: 'UR Second Premolar',
-  5: 'UR First Premolar', 6: 'UR Canine', 7: 'UR Lateral Incisor', 8: 'UR Central Incisor',
-  9: 'UL Central Incisor', 10: 'UL Lateral Incisor', 11: 'UL Canine', 12: 'UL First Premolar',
-  13: 'UL Second Premolar', 14: 'UL First Molar', 15: 'UL Second Molar', 16: 'UL Third Molar',
-  17: 'LL Third Molar', 18: 'LL Second Molar', 19: 'LL First Molar', 20: 'LL Second Premolar',
-  21: 'LL First Premolar', 22: 'LL Canine', 23: 'LL Lateral Incisor', 24: 'LL Central Incisor',
-  25: 'LR Central Incisor', 26: 'LR Lateral Incisor', 27: 'LR Canine', 28: 'LR First Premolar',
-  29: 'LR Second Premolar', 30: 'LR First Molar', 31: 'LR Second Molar', 32: 'LR Third Molar',
+  1: 'UR Third Molar',
+  2: 'UR Second Molar',
+  3: 'UR First Molar',
+  4: 'UR Second Premolar',
+  5: 'UR First Premolar',
+  6: 'UR Canine',
+  7: 'UR Lateral Incisor',
+  8: 'UR Central Incisor',
+  9: 'UL Central Incisor',
+  10: 'UL Lateral Incisor',
+  11: 'UL Canine',
+  12: 'UL First Premolar',
+  13: 'UL Second Premolar',
+  14: 'UL First Molar',
+  15: 'UL Second Molar',
+  16: 'UL Third Molar',
+  17: 'LL Third Molar',
+  18: 'LL Second Molar',
+  19: 'LL First Molar',
+  20: 'LL Second Premolar',
+  21: 'LL First Premolar',
+  22: 'LL Canine',
+  23: 'LL Lateral Incisor',
+  24: 'LL Central Incisor',
+  25: 'LR Central Incisor',
+  26: 'LR Lateral Incisor',
+  27: 'LR Canine',
+  28: 'LR First Premolar',
+  29: 'LR Second Premolar',
+  30: 'LR First Molar',
+  31: 'LR Second Molar',
+  32: 'LR Third Molar',
 };
 
 export default function ClinicalChartingSection({
@@ -82,14 +106,62 @@ export default function ClinicalChartingSection({
 
   // Tooth status colors and icons
   const statusConfig = {
-    healthy: { color: 'bg-green-500', bgLight: 'bg-green-100', textColor: 'text-green-800', icon: CheckCircle2, label: 'Healthy' },
-    decayed: { color: 'bg-red-500', bgLight: 'bg-red-100', textColor: 'text-red-800', icon: AlertCircle, label: 'Decayed' },
-    filled: { color: 'bg-blue-500', bgLight: 'bg-blue-100', textColor: 'text-blue-800', icon: Circle, label: 'Filled' },
-    crowned: { color: 'bg-yellow-500', bgLight: 'bg-yellow-100', textColor: 'text-yellow-800', icon: Crown, label: 'Crowned' },
-    missing: { color: 'bg-gray-400', bgLight: 'bg-gray-100', textColor: 'text-gray-800', icon: XCircle, label: 'Missing' },
-    implant: { color: 'bg-purple-500', bgLight: 'bg-purple-100', textColor: 'text-purple-800', icon: Zap, label: 'Implant' },
-    bridge: { color: 'bg-indigo-500', bgLight: 'bg-indigo-100', textColor: 'text-indigo-800', icon: Circle, label: 'Bridge' },
-    root_canal: { color: 'bg-orange-500', bgLight: 'bg-orange-100', textColor: 'text-orange-800', icon: Zap, label: 'Root Canal' },
+    healthy: {
+      color: 'bg-green-500',
+      bgLight: 'bg-green-100',
+      textColor: 'text-green-800',
+      icon: CheckCircle2,
+      label: 'Healthy',
+    },
+    decayed: {
+      color: 'bg-red-500',
+      bgLight: 'bg-red-100',
+      textColor: 'text-red-800',
+      icon: AlertCircle,
+      label: 'Decayed',
+    },
+    filled: {
+      color: 'bg-blue-500',
+      bgLight: 'bg-blue-100',
+      textColor: 'text-blue-800',
+      icon: Circle,
+      label: 'Filled',
+    },
+    crowned: {
+      color: 'bg-yellow-500',
+      bgLight: 'bg-yellow-100',
+      textColor: 'text-yellow-800',
+      icon: Crown,
+      label: 'Crowned',
+    },
+    missing: {
+      color: 'bg-gray-400',
+      bgLight: 'bg-gray-100',
+      textColor: 'text-gray-800',
+      icon: XCircle,
+      label: 'Missing',
+    },
+    implant: {
+      color: 'bg-purple-500',
+      bgLight: 'bg-purple-100',
+      textColor: 'text-purple-800',
+      icon: Zap,
+      label: 'Implant',
+    },
+    bridge: {
+      color: 'bg-indigo-500',
+      bgLight: 'bg-indigo-100',
+      textColor: 'text-indigo-800',
+      icon: Circle,
+      label: 'Bridge',
+    },
+    root_canal: {
+      color: 'bg-orange-500',
+      bgLight: 'bg-orange-100',
+      textColor: 'text-orange-800',
+      icon: Zap,
+      label: 'Root Canal',
+    },
   };
 
   // Urgency colors
@@ -108,10 +180,10 @@ export default function ClinicalChartingSection({
       LL: [17, 18, 19, 20, 21, 22, 23, 24],
       LR: [25, 26, 27, 28, 29, 30, 31, 32],
     };
-    return ranges[quadrant].map(num => {
-      const found = clinicalChart.teeth.find(t => t.tooth_number === num);
+    return ranges[quadrant].map((num) => {
+      const found = clinicalChart.teeth.find((t) => t.tooth_number === num);
       if (found) return found;
-      
+
       return {
         tooth_number: num,
         status: 'healthy' as const,
@@ -122,17 +194,18 @@ export default function ClinicalChartingSection({
   };
 
   // Filter teeth
-  const filteredTeeth = filterStatus === 'all'
-    ? clinicalChart.teeth
-    : clinicalChart.teeth.filter(t => t.status === filterStatus);
+  const filteredTeeth =
+    filterStatus === 'all'
+      ? clinicalChart.teeth
+      : clinicalChart.teeth.filter((t) => t.status === filterStatus);
 
   // Stats
   const stats = {
-    healthy: clinicalChart.teeth.filter(t => t.status === 'healthy').length,
-    decayed: clinicalChart.teeth.filter(t => t.status === 'decayed').length,
-    filled: clinicalChart.teeth.filter(t => t.status === 'filled').length,
-    missing: clinicalChart.teeth.filter(t => t.status === 'missing').length,
-    needsTreatment: clinicalChart.teeth.filter(t => t.treatment_recommended).length,
+    healthy: clinicalChart.teeth.filter((t) => t.status === 'healthy').length,
+    decayed: clinicalChart.teeth.filter((t) => t.status === 'decayed').length,
+    filled: clinicalChart.teeth.filter((t) => t.status === 'filled').length,
+    missing: clinicalChart.teeth.filter((t) => t.status === 'missing').length,
+    needsTreatment: clinicalChart.teeth.filter((t) => t.treatment_recommended).length,
   };
 
   const openToothEditor = () => {
@@ -162,8 +235,8 @@ export default function ClinicalChartingSection({
     setSelectedTooth(nextTooth);
     commitClinicalChart({
       ...clinicalChart,
-      teeth: clinicalChart.teeth.map(tooth =>
-        tooth.tooth_number === nextTooth.tooth_number ? nextTooth : tooth
+      teeth: clinicalChart.teeth.map((tooth) =>
+        tooth.tooth_number === nextTooth.tooth_number ? nextTooth : tooth,
       ),
       last_updated: new Date().toISOString().slice(0, 10),
     });
@@ -191,7 +264,9 @@ export default function ClinicalChartingSection({
   };
 
   const removeTreatmentPlan = (planId: string) => {
-    const nextPlans = (clinicalChart.treatment_plans || []).filter((plan: any) => plan.id !== planId);
+    const nextPlans = (clinicalChart.treatment_plans || []).filter(
+      (plan: any) => plan.id !== planId,
+    );
     commitClinicalChart({
       ...clinicalChart,
       treatment_plans: nextPlans,
@@ -295,7 +370,10 @@ export default function ClinicalChartingSection({
 
         <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
           <p className="font-medium">How to edit</p>
-          <p className="mt-1">Tap a tooth in chart view to open details, then use Edit Details. All saves update this patient&apos;s clinical chart immediately.</p>
+          <p className="mt-1">
+            Tap a tooth in chart view to open details, then use Edit Details. All saves update this
+            patient&apos;s clinical chart immediately.
+          </p>
         </div>
 
         {lastUpdateMessage && (
@@ -329,8 +407,16 @@ export default function ClinicalChartingSection({
                           key={tooth.tooth_number}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
-                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
+                          animate={
+                            selectedTooth?.tooth_number === tooth.tooth_number
+                              ? { scale: [1, 1.08, 1] }
+                              : { scale: 1 }
+                          }
+                          transition={
+                            selectedTooth?.tooth_number === tooth.tooth_number
+                              ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }
+                              : { duration: 0.15 }
+                          }
                           onClick={() => setSelectedTooth(tooth)}
                           className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
                           title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
@@ -360,8 +446,16 @@ export default function ClinicalChartingSection({
                           key={tooth.tooth_number}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
-                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
+                          animate={
+                            selectedTooth?.tooth_number === tooth.tooth_number
+                              ? { scale: [1, 1.08, 1] }
+                              : { scale: 1 }
+                          }
+                          transition={
+                            selectedTooth?.tooth_number === tooth.tooth_number
+                              ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }
+                              : { duration: 0.15 }
+                          }
                           onClick={() => setSelectedTooth(tooth)}
                           className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
                           title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
@@ -392,30 +486,40 @@ export default function ClinicalChartingSection({
                 <div className="order-2 md:order-1">
                   <p className="text-xs text-gray-500 text-center mb-2">Left</p>
                   <div className="grid grid-cols-8 gap-1">
-                    {getQuadrantTeeth('LL').reverse().map((tooth) => {
-                      const config = statusConfig[tooth.status];
-                      const Icon = config.icon;
-                      return (
-                        <motion.button
-                          key={tooth.tooth_number}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
-                          onClick={() => setSelectedTooth(tooth)}
-                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
-                          title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
-                        >
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                            <span className="text-xs font-bold">{tooth.tooth_number}</span>
-                            <Icon className="w-4 h-4 mt-0.5" />
-                          </div>
-                          {tooth.treatment_recommended && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-                          )}
-                        </motion.button>
-                      );
-                    })}
+                    {getQuadrantTeeth('LL')
+                      .reverse()
+                      .map((tooth) => {
+                        const config = statusConfig[tooth.status];
+                        const Icon = config.icon;
+                        return (
+                          <motion.button
+                            key={tooth.tooth_number}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            animate={
+                              selectedTooth?.tooth_number === tooth.tooth_number
+                                ? { scale: [1, 1.08, 1] }
+                                : { scale: 1 }
+                            }
+                            transition={
+                              selectedTooth?.tooth_number === tooth.tooth_number
+                                ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }
+                                : { duration: 0.15 }
+                            }
+                            onClick={() => setSelectedTooth(tooth)}
+                            className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
+                            title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
+                          >
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                              <span className="text-xs font-bold">{tooth.tooth_number}</span>
+                              <Icon className="w-4 h-4 mt-0.5" />
+                            </div>
+                            {tooth.treatment_recommended && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+                            )}
+                          </motion.button>
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -423,30 +527,40 @@ export default function ClinicalChartingSection({
                 <div className="order-1 md:order-2">
                   <p className="text-xs text-gray-500 text-center mb-2">Right</p>
                   <div className="grid grid-cols-8 gap-1">
-                    {getQuadrantTeeth('LR').reverse().map((tooth) => {
-                      const config = statusConfig[tooth.status];
-                      const Icon = config.icon;
-                      return (
-                        <motion.button
-                          key={tooth.tooth_number}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          animate={selectedTooth?.tooth_number === tooth.tooth_number ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                          transition={selectedTooth?.tooth_number === tooth.tooth_number ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.15 }}
-                          onClick={() => setSelectedTooth(tooth)}
-                          className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
-                          title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
-                        >
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                            <span className="text-xs font-bold">{tooth.tooth_number}</span>
-                            <Icon className="w-4 h-4 mt-0.5" />
-                          </div>
-                          {tooth.treatment_recommended && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-                          )}
-                        </motion.button>
-                      );
-                    })}
+                    {getQuadrantTeeth('LR')
+                      .reverse()
+                      .map((tooth) => {
+                        const config = statusConfig[tooth.status];
+                        const Icon = config.icon;
+                        return (
+                          <motion.button
+                            key={tooth.tooth_number}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            animate={
+                              selectedTooth?.tooth_number === tooth.tooth_number
+                                ? { scale: [1, 1.08, 1] }
+                                : { scale: 1 }
+                            }
+                            transition={
+                              selectedTooth?.tooth_number === tooth.tooth_number
+                                ? { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }
+                                : { duration: 0.15 }
+                            }
+                            onClick={() => setSelectedTooth(tooth)}
+                            className={`aspect-square rounded-lg ${config.color} hover:opacity-80 transition-all relative group ${selectedTooth?.tooth_number === tooth.tooth_number ? 'ring-4 ring-sky-300 ring-offset-1' : ''}`}
+                            title={`#${tooth.tooth_number}: ${tooth.tooth_name || toothNames[tooth.tooth_number]}`}
+                          >
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                              <span className="text-xs font-bold">{tooth.tooth_number}</span>
+                              <Icon className="w-4 h-4 mt-0.5" />
+                            </div>
+                            {tooth.treatment_recommended && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+                            )}
+                          </motion.button>
+                        );
+                      })}
                   </div>
                 </div>
               </div>
@@ -461,7 +575,9 @@ export default function ClinicalChartingSection({
                 const Icon = config.icon;
                 return (
                   <div key={key} className="flex items-center space-x-2">
-                    <div className={`w-6 h-6 ${config.color} rounded flex items-center justify-center`}>
+                    <div
+                      className={`w-6 h-6 ${config.color} rounded flex items-center justify-center`}
+                    >
                       <Icon className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-sm text-gray-700">{config.label}</span>
@@ -488,13 +604,15 @@ export default function ClinicalChartingSection({
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4 flex-1">
-                      <div className={`w-12 h-12 ${config.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <div
+                        className={`w-12 h-12 ${config.color} rounded-lg flex items-center justify-center flex-shrink-0`}
+                      >
                         <div className="text-center text-white">
                           <p className="text-xs font-bold">{tooth.tooth_number}</p>
                           <Icon className="w-5 h-5 mx-auto" />
                         </div>
                       </div>
-                      
+
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900 mb-1">
                           {tooth.tooth_name || toothNames[tooth.tooth_number]}
@@ -502,13 +620,13 @@ export default function ClinicalChartingSection({
                         <p className={`text-sm font-medium mb-2 ${config.textColor}`}>
                           Status: {config.label}
                         </p>
-                        
+
                         {tooth.surfaces_affected && tooth.surfaces_affected.length > 0 && (
                           <p className="text-sm text-gray-600 mb-1">
                             Surfaces: {tooth.surfaces_affected.join(', ')}
                           </p>
                         )}
-                        
+
                         {tooth.treatment_recommended && (
                           <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
                             <p className="text-sm font-medium text-orange-900">
@@ -552,7 +670,9 @@ export default function ClinicalChartingSection({
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Treatment Plans</h3>
-                <p className="text-sm text-gray-500">{clinicalChart.treatment_plans.length} active plans</p>
+                <p className="text-sm text-gray-500">
+                  {clinicalChart.treatment_plans.length} active plans
+                </p>
               </div>
             </div>
             <button
@@ -574,14 +694,18 @@ export default function ClinicalChartingSection({
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h4 className="font-semibold text-gray-900">{plan.title || 'Treatment Plan'}</h4>
+                    <h4 className="font-semibold text-gray-900">
+                      {plan.title || 'Treatment Plan'}
+                    </h4>
                     <p className="text-sm text-gray-600">{plan.description}</p>
                   </div>
                   <div className="text-right space-y-2">
                     {plan.total_cost && (
                       <div>
-                      <p className="text-sm text-gray-600">Estimated Cost</p>
-                      <p className="text-lg font-bold text-purple-600">${plan.total_cost.toFixed(2)}</p>
+                        <p className="text-sm text-gray-600">Estimated Cost</p>
+                        <p className="text-lg font-bold text-purple-600">
+                          ${plan.total_cost.toFixed(2)}
+                        </p>
                       </div>
                     )}
                     <button
@@ -593,13 +717,18 @@ export default function ClinicalChartingSection({
                     </button>
                   </div>
                 </div>
-                
+
                 {plan.procedures && (
                   <div className="space-y-2">
                     {plan.procedures.map((proc: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white rounded">
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-sm p-2 bg-white rounded"
+                      >
                         <span className="text-gray-700">{proc.name}</span>
-                        {proc.cost && <span className="text-gray-600 font-medium">${proc.cost.toFixed(2)}</span>}
+                        {proc.cost && (
+                          <span className="text-gray-600 font-medium">${proc.cost.toFixed(2)}</span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -660,7 +789,9 @@ export default function ClinicalChartingSection({
               <div className="space-y-4">
                 <div className={`p-3 rounded-lg ${statusConfig[selectedTooth.status].bgLight}`}>
                   <p className="text-sm font-medium text-gray-700">Status</p>
-                  <p className={`text-lg font-bold ${statusConfig[selectedTooth.status].textColor}`}>
+                  <p
+                    className={`text-lg font-bold ${statusConfig[selectedTooth.status].textColor}`}
+                  >
                     {statusConfig[selectedTooth.status].label}
                   </p>
                 </div>
@@ -669,8 +800,11 @@ export default function ClinicalChartingSection({
                   <div>
                     <p className="text-sm font-medium text-gray-700 mb-2">Affected Surfaces</p>
                     <div className="flex space-x-2">
-                      {selectedTooth.surfaces_affected.map(surface => (
-                        <span key={surface} className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
+                      {selectedTooth.surfaces_affected.map((surface) => (
+                        <span
+                          key={surface}
+                          className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium"
+                        >
                           {surface}
                         </span>
                       ))}
@@ -681,10 +815,13 @@ export default function ClinicalChartingSection({
                 {selectedTooth.treatment_recommended && (
                   <div className="p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
                     <p className="text-sm font-medium text-gray-700 mb-1">Recommended Treatment</p>
-                    <p className="text-base font-semibold text-orange-900">{selectedTooth.treatment_recommended}</p>
+                    <p className="text-base font-semibold text-orange-900">
+                      {selectedTooth.treatment_recommended}
+                    </p>
                     {selectedTooth.urgency && (
                       <p className="text-sm text-orange-700 mt-2">
-                        Urgency: <span className="font-bold uppercase">{selectedTooth.urgency}</span>
+                        Urgency:{' '}
+                        <span className="font-bold uppercase">{selectedTooth.urgency}</span>
                       </p>
                     )}
                   </div>
@@ -699,7 +836,7 @@ export default function ClinicalChartingSection({
                   </button>
                   <button
                     onClick={() => {
-                      setToothForm(prev => ({ ...prev, notes: `${prev.notes} `.trim() }));
+                      setToothForm((prev) => ({ ...prev, notes: `${prev.notes} `.trim() }));
                       openToothEditor();
                     }}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -726,34 +863,37 @@ export default function ClinicalChartingSection({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl p-6 w-full max-w-xl"
             >
               <h4 className="text-lg font-bold text-gray-900 mb-4">
                 Edit Tooth #{selectedTooth.tooth_number}
               </h4>
               <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                Saving here updates tooth status and treatment details immediately in the clinical chart.
+                Saving here updates tooth status and treatment details immediately in the clinical
+                chart.
               </div>
               <div className="space-y-3">
                 <select
                   value={toothForm.status}
-                  onChange={e => setToothForm(prev => ({ ...prev, status: e.target.value }))}
+                  onChange={(e) => setToothForm((prev) => ({ ...prev, status: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
-                  {Object.keys(statusConfig).map(status => (
-                    <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                  {Object.keys(statusConfig).map((status) => (
+                    <option key={status} value={status}>
+                      {status.replace('_', ' ')}
+                    </option>
                   ))}
                 </select>
                 <input
                   value={toothForm.treatment}
-                  onChange={e => setToothForm(prev => ({ ...prev, treatment: e.target.value }))}
+                  onChange={(e) => setToothForm((prev) => ({ ...prev, treatment: e.target.value }))}
                   placeholder="Recommended treatment"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <select
                   value={toothForm.urgency}
-                  onChange={e => setToothForm(prev => ({ ...prev, urgency: e.target.value }))}
+                  onChange={(e) => setToothForm((prev) => ({ ...prev, urgency: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="routine">Routine</option>
@@ -763,7 +903,7 @@ export default function ClinicalChartingSection({
                 </select>
                 <textarea
                   value={toothForm.notes}
-                  onChange={e => setToothForm(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) => setToothForm((prev) => ({ ...prev, notes: e.target.value }))}
                   placeholder="Notes"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]"
                 />
@@ -800,26 +940,28 @@ export default function ClinicalChartingSection({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl p-6 w-full max-w-xl"
             >
               <h4 className="text-lg font-bold text-gray-900 mb-4">Add Treatment Plan</h4>
               <div className="space-y-3">
                 <input
                   value={planForm.title}
-                  onChange={e => setPlanForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => setPlanForm((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="Plan title"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <textarea
                   value={planForm.description}
-                  onChange={e => setPlanForm(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setPlanForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
                   placeholder="Description"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]"
                 />
                 <input
                   value={planForm.totalCost}
-                  onChange={e => setPlanForm(prev => ({ ...prev, totalCost: e.target.value }))}
+                  onChange={(e) => setPlanForm((prev) => ({ ...prev, totalCost: e.target.value }))}
                   placeholder="Estimated total cost"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />

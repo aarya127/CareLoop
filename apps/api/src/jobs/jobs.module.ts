@@ -17,4 +17,3 @@ export class JobsModule implements OnApplicationBootstrap {
     }
   }
 }
-

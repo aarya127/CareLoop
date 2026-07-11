@@ -6,11 +6,7 @@ import { prisma } from '../../config/database';
 export class DocumentsRepository {
   readonly prisma = prisma;
 
-  async findByPatientId(
-    patientId: string,
-    practiceId: string,
-    category?: string,
-  ): Promise<any[]> {
+  async findByPatientId(patientId: string, practiceId: string, category?: string): Promise<any[]> {
     return this.prisma.document.findMany({
       where: {
         patientId,

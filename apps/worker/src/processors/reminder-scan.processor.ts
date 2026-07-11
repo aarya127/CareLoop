@@ -29,9 +29,7 @@ function getRemindersQueue(): Queue<AppointmentReminderJobData> {
  * Idempotency: BullMQ job IDs are set to `reminder:<reminderId>` so a second
  * scan within the same window is a no-op (duplicate job is silently ignored).
  */
-export async function reminderScanProcessor(
-  job: Job<ReminderScanJobData>,
-): Promise<void> {
+export async function reminderScanProcessor(job: Job<ReminderScanJobData>): Promise<void> {
   const scanUpTo = job.data.scanUpTo
     ? new Date(job.data.scanUpTo)
     : (() => {

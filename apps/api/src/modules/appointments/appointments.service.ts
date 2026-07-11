@@ -129,9 +129,7 @@ export class AppointmentsService {
           message: 'Scheduling conflict',
         });
       }
-      throw new ConflictException(
-        'Provider has a conflicting appointment at this time',
-      );
+      throw new ConflictException('Provider has a conflicting appointment at this time');
     }
 
     const appointment = await this.repo.create({
@@ -188,12 +186,7 @@ export class AppointmentsService {
     return appointment;
   }
 
-  async reschedule(
-    practiceId: string,
-    id: string,
-    dto: RescheduleDto,
-    actorUserId?: string,
-  ) {
+  async reschedule(practiceId: string, id: string, dto: RescheduleDto, actorUserId?: string) {
     const appt = await this.getOwnedAppt(practiceId, id);
     if (appt.status === 'cancelled') {
       throw new BadRequestException('Cannot reschedule a cancelled appointment');
@@ -206,16 +199,9 @@ export class AppointmentsService {
     }
     if (newEnd <= newStart) throw new BadRequestException('end must be after start');
 
-    const conflicts = await this.repo.findConflicting(
-      appt.providerId,
-      newStart,
-      newEnd,
-      id,
-    );
+    const conflicts = await this.repo.findConflicting(appt.providerId, newStart, newEnd, id);
     if (conflicts.length > 0) {
-      throw new ConflictException(
-        'Provider has a conflicting appointment at this time',
-      );
+      throw new ConflictException('Provider has a conflicting appointment at this time');
     }
 
     const updated = await this.repo.update(id, {
@@ -281,7 +267,7 @@ export class AppointmentsService {
 
     const notes = dto.reason
       ? `${appt.notes ?? ''}\nCancellation reason: ${dto.reason}`.trim()
-      : appt.notes ?? undefined;
+      : (appt.notes ?? undefined);
 
     const updated = await this.repo.update(id, {
       status: 'cancelled',

@@ -146,7 +146,9 @@ export class SessionService {
     // Evict from cache immediately so subsequent requests re-validate from DB
     try {
       await getRedisClient().del(sessionCacheKey(tokenHash));
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
     await prisma.session.updateMany({
       where: {
         sessionTokenHash: tokenHash,
@@ -186,7 +188,11 @@ export class SessionService {
    * Revoke a specific session by its ID.
    * Only revokes if the session belongs to the given userId (prevents IDOR).
    */
-  async revokeSessionById(sessionId: string, userId: string, reason = 'user_revoked'): Promise<void> {
+  async revokeSessionById(
+    sessionId: string,
+    userId: string,
+    reason = 'user_revoked',
+  ): Promise<void> {
     // Ownership check (id + userId) prevents users from revoking others' sessions.
     const session = await prisma.session.findFirst({
       where: { id: sessionId, userId, revokedAt: null },
@@ -232,32 +238,34 @@ export class SessionService {
     }>
   > {
     const now = new Date();
-    return prisma.session.findMany({
-      where: {
-        userId,
-        revokedAt: null,
-        expiresAt: { gt: now },
-      },
-      select: {
-        id: true,
-        createdAt: true,
-        expiresAt: true,
-        idleExpiresAt: true,
-        lastSeenAt: true,
-        createdByIp: true,
-        createdByUserAgentHash: true,
-      },
-      orderBy: { lastSeenAt: 'desc' },
-    }).then((rows) =>
-      rows.map((r) => ({
-        id: r.id,
-        createdAt: r.createdAt,
-        expiresAt: r.expiresAt,
-        idleExpiresAt: r.idleExpiresAt,
-        lastSeenAt: r.lastSeenAt,
-        createdByIp: r.createdByIp ?? null,
-        userAgentHash: r.createdByUserAgentHash ?? null,
-      }))
-    );
+    return prisma.session
+      .findMany({
+        where: {
+          userId,
+          revokedAt: null,
+          expiresAt: { gt: now },
+        },
+        select: {
+          id: true,
+          createdAt: true,
+          expiresAt: true,
+          idleExpiresAt: true,
+          lastSeenAt: true,
+          createdByIp: true,
+          createdByUserAgentHash: true,
+        },
+        orderBy: { lastSeenAt: 'desc' },
+      })
+      .then((rows) =>
+        rows.map((r) => ({
+          id: r.id,
+          createdAt: r.createdAt,
+          expiresAt: r.expiresAt,
+          idleExpiresAt: r.idleExpiresAt,
+          lastSeenAt: r.lastSeenAt,
+          createdByIp: r.createdByIp ?? null,
+          userAgentHash: r.createdByUserAgentHash ?? null,
+        })),
+      );
   }
 }

@@ -39,8 +39,7 @@ async function refreshForPractice(practiceId: string): Promise<void> {
 
   const noShowRate = totalAppts > 0 ? noShowCount / totalAppts : 0;
   const revenueCents = revenueResult._sum?.totalAmountCents ?? 0;
-  const completedCount =
-    appointmentsByStatus.find((r) => r.status === 'completed')?._count.id ?? 0;
+  const completedCount = appointmentsByStatus.find((r) => r.status === 'completed')?._count.id ?? 0;
 
   const metrics: Array<{ metricName: string; metricValue: number }> = [
     { metricName: 'total_patients', metricValue: totalPatients },
@@ -53,42 +52,42 @@ async function refreshForPractice(practiceId: string): Promise<void> {
   // available for compound-key upserts in Prisma, so we use individual upserts.
   await Promise.all(
     metrics.map((m) =>
-      prisma.practiceKPI.upsert({
-        where: {
-          // PracticeKPI has no unique constraint on (practiceId, kpiDate, metricName)
-          // so we fall back to create/update using findFirst + update or create.
-          // Prisma requires a @unique field for upsert; use findFirst + delete + create.
-          id: -1, // sentinel — will never match, so upsert always creates
-        },
-        update: {},
-        create: {
-          practiceId,
-          kpiDate,
-          metricName: m.metricName,
-          metricValue: m.metricValue,
-        },
-      }).catch(async () => {
-        // Fallback: find and update existing row for today, or create new
-        const existing = await prisma.practiceKPI.findFirst({
-          where: { practiceId, kpiDate, metricName: m.metricName },
-        });
-        if (existing) {
-          return prisma.practiceKPI.update({
-            where: { id: existing.id },
-            data: { metricValue: m.metricValue },
+      prisma.practiceKPI
+        .upsert({
+          where: {
+            // PracticeKPI has no unique constraint on (practiceId, kpiDate, metricName)
+            // so we fall back to create/update using findFirst + update or create.
+            // Prisma requires a @unique field for upsert; use findFirst + delete + create.
+            id: -1, // sentinel — will never match, so upsert always creates
+          },
+          update: {},
+          create: {
+            practiceId,
+            kpiDate,
+            metricName: m.metricName,
+            metricValue: m.metricValue,
+          },
+        })
+        .catch(async () => {
+          // Fallback: find and update existing row for today, or create new
+          const existing = await prisma.practiceKPI.findFirst({
+            where: { practiceId, kpiDate, metricName: m.metricName },
           });
-        }
-        return prisma.practiceKPI.create({
-          data: { practiceId, kpiDate, metricName: m.metricName, metricValue: m.metricValue },
-        });
-      }),
+          if (existing) {
+            return prisma.practiceKPI.update({
+              where: { id: existing.id },
+              data: { metricValue: m.metricValue },
+            });
+          }
+          return prisma.practiceKPI.create({
+            data: { practiceId, kpiDate, metricName: m.metricName, metricValue: m.metricValue },
+          });
+        }),
     ),
   );
 }
 
-export async function analyticsRefreshProcessor(
-  job: Job<AnalyticsRefreshJobData>,
-): Promise<void> {
+export async function analyticsRefreshProcessor(job: Job<AnalyticsRefreshJobData>): Promise<void> {
   const { practiceId } = job.data;
 
   if (practiceId === 'all') {

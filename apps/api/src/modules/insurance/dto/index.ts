@@ -8,31 +8,51 @@ import { IsInt, IsISO8601, IsOptional, Max, Min } from 'class-validator';
  * math are consistent. Percentages are 0–100; money is in cents.
  */
 export class CoverageSummaryDto {
-  @IsOptional() @IsInt() @Min(0)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   annualMaximumCents?: number;
 
-  @IsOptional() @IsInt() @Min(0)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   deductibleCents?: number;
 
-  @IsOptional() @IsInt() @Min(0)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   usedToDateCents?: number;
 
-  @IsOptional() @IsInt() @Min(0) @Max(100)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
   preventivePct?: number;
 
-  @IsOptional() @IsInt() @Min(0) @Max(100)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
   basicPct?: number;
 
-  @IsOptional() @IsInt() @Min(0) @Max(100)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
   majorPct?: number;
 
-  @IsOptional() @IsInt() @Min(0) @Max(100)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
   orthoPct?: number;
 
-  @IsOptional() @IsISO8601()
+  @IsOptional()
+  @IsISO8601()
   effectiveFrom?: string;
 
-  @IsOptional() @IsISO8601()
+  @IsOptional()
+  @IsISO8601()
   effectiveTo?: string;
 }
 

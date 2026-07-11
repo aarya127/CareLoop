@@ -3,9 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { encrypt, decrypt } from '@/lib/crypto/crypto';
 import { randomUUID } from 'crypto';
 
-export const GOOGLE_SCOPES = [
-  'https://www.googleapis.com/auth/calendar',
-];
+export const GOOGLE_SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID!;
@@ -38,7 +36,11 @@ export async function exchangeCode({ code }: { code: string }) {
 export async function upsertConnectionForUser(opts: {
   userId: string;
   calendarId: string; // default 'primary'
-  tokens: { access_token?: string | null; refresh_token?: string | null; expiry_date?: number | null };
+  tokens: {
+    access_token?: string | null;
+    refresh_token?: string | null;
+    expiry_date?: number | null;
+  };
 }) {
   const accessToken = encrypt(String(opts.tokens.access_token || ''));
   const refreshToken = encrypt(String(opts.tokens.refresh_token || ''));

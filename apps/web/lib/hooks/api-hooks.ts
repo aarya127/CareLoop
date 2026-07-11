@@ -6,16 +6,16 @@ import { KPIData, Patient, Appointment, Call, ActionItem } from '@/lib/schemas';
 
 // Mock API client (replace with actual implementation)
 const apiClient = {
-  get: async <T,>(url: string): Promise<T> => {
+  get: async <T>(url: string): Promise<T> => {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {} as T;
   },
-  post: async <T,>(url: string, data: any): Promise<T> => {
+  post: async <T>(url: string, data: any): Promise<T> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {} as T;
   },
-  put: async <T,>(url: string, data: any): Promise<T> => {
+  put: async <T>(url: string, data: any): Promise<T> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {} as T;
   },
@@ -64,7 +64,7 @@ export function useAppointments(filters?: {
 
 export function useCreateAppointment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: Partial<Appointment>) =>
       apiClient.post<Appointment>(ENDPOINTS.APPOINTMENTS, data),
@@ -76,7 +76,7 @@ export function useCreateAppointment() {
 
 export function useUpdateAppointment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, ...data }: Partial<Appointment> & { id: string }) =>
       apiClient.put<Appointment>(ENDPOINTS.APPOINTMENT_DETAILS(id), data),
@@ -106,8 +106,7 @@ export function useActionItems() {
 export function useInsuranceEligibility(patientId: string) {
   return useQuery({
     queryKey: ['insurance', 'eligibility', patientId],
-    queryFn: () =>
-      apiClient.get(ENDPOINTS.INSURANCE_ELIGIBILITY(patientId)),
+    queryFn: () => apiClient.get(ENDPOINTS.INSURANCE_ELIGIBILITY(patientId)),
     enabled: !!patientId,
   });
 }

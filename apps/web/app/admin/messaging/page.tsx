@@ -53,7 +53,12 @@ interface Conversation {
 function generateConversations(): Conversation[] {
   const patients = getAllDemoPatients();
   const conversations: Conversation[] = [];
-  const channels: Array<'sms' | 'email' | 'portal' | 'ai-chat'> = ['sms', 'email', 'portal', 'ai-chat'];
+  const channels: Array<'sms' | 'email' | 'portal' | 'ai-chat'> = [
+    'sms',
+    'email',
+    'portal',
+    'ai-chat',
+  ];
   const statuses: Array<'active' | 'resolved' | 'pending'> = ['active', 'resolved', 'pending'];
   const priorities: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high'];
 
@@ -115,7 +120,8 @@ function generateMessages(conversationId: string): Message[] {
       senderId: 'ai-001',
       senderName: 'AI Assistant',
       senderType: 'ai',
-      content: 'I\'d be happy to help you reschedule. Let me check the available times for next week.',
+      content:
+        "I'd be happy to help you reschedule. Let me check the available times for next week.",
       timestamp: new Date(Date.now() - 3540000),
       status: 'read',
       channel: 'sms',
@@ -126,7 +132,8 @@ function generateMessages(conversationId: string): Message[] {
       senderId: 'ai-001',
       senderName: 'AI Assistant',
       senderType: 'ai',
-      content: 'I have the following times available next week: Monday at 2pm, Tuesday at 10am, or Thursday at 3pm. Which works best for you?',
+      content:
+        'I have the following times available next week: Monday at 2pm, Tuesday at 10am, or Thursday at 3pm. Which works best for you?',
       timestamp: new Date(Date.now() - 3480000),
       status: 'read',
       channel: 'sms',
@@ -148,7 +155,8 @@ function generateMessages(conversationId: string): Message[] {
       senderId: 'ai-001',
       senderName: 'AI Assistant',
       senderType: 'ai',
-      content: 'Great! I\'ve rescheduled your appointment to Tuesday, October 22nd at 10:00 AM with Dr. Chen. You\'ll receive a confirmation SMS shortly.',
+      content:
+        "Great! I've rescheduled your appointment to Tuesday, October 22nd at 10:00 AM with Dr. Chen. You'll receive a confirmation SMS shortly.",
       timestamp: new Date(Date.now() - 3360000),
       status: 'read',
       channel: 'sms',
@@ -334,11 +342,15 @@ export default function AdminMessagingPage() {
                       <p className="text-sm font-medium text-gray-900 truncate">
                         {conv.patientName}
                       </p>
-                      <span className="text-xs text-gray-500">{formatTime(conv.lastMessageTime)}</span>
+                      <span className="text-xs text-gray-500">
+                        {formatTime(conv.lastMessageTime)}
+                      </span>
                     </div>
                     <p className="text-sm text-gray-600 truncate mb-2">{conv.lastMessage}</p>
                     <div className="flex items-center space-x-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getChannelColor(conv.channel)}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getChannelColor(conv.channel)}`}
+                      >
                         {getChannelIcon(conv.channel)}
                         <span className="ml-1 capitalize">{conv.channel}</span>
                       </span>
@@ -354,7 +366,9 @@ export default function AdminMessagingPage() {
                         </span>
                       )}
                       {conv.priority && (
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(conv.priority)}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(conv.priority)}`}
+                        >
                           {conv.priority}
                         </span>
                       )}
@@ -389,7 +403,9 @@ export default function AdminMessagingPage() {
                       {selectedConversation.patientName}
                     </p>
                     <div className="flex items-center space-x-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getChannelColor(selectedConversation.channel)}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getChannelColor(selectedConversation.channel)}`}
+                      >
                         {getChannelIcon(selectedConversation.channel)}
                         <span className="ml-1 capitalize">{selectedConversation.channel}</span>
                       </span>
@@ -426,8 +442,8 @@ export default function AdminMessagingPage() {
                         message.senderType === 'staff'
                           ? 'bg-indigo-600 text-white'
                           : message.senderType === 'ai'
-                          ? 'bg-indigo-100 text-gray-900'
-                          : 'bg-gray-100 text-gray-900'
+                            ? 'bg-indigo-100 text-gray-900'
+                            : 'bg-gray-100 text-gray-900'
                       } rounded-lg p-3`}
                     >
                       {message.senderType !== 'staff' && (
@@ -446,7 +462,9 @@ export default function AdminMessagingPage() {
                       <div className="flex items-center justify-between mt-2 text-xs opacity-70">
                         <span>{formatTime(message.timestamp)}</span>
                         {message.senderType === 'staff' && (
-                          <CheckCheck className={`w-4 h-4 ml-2 ${message.status === 'read' ? 'text-blue-300' : ''}`} />
+                          <CheckCheck
+                            className={`w-4 h-4 ml-2 ${message.status === 'read' ? 'text-blue-300' : ''}`}
+                          />
                         )}
                       </div>
                     </div>

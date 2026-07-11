@@ -8,7 +8,11 @@ import {
 
 describe('notification templates', () => {
   it('renderInvite includes practice, role, and the accept link', () => {
-    const msg = renderInvite({ practiceName: 'Bright Smile', role: 'staff', acceptUrl: 'https://x/join/abc' });
+    const msg = renderInvite({
+      practiceName: 'Bright Smile',
+      role: 'staff',
+      acceptUrl: 'https://x/join/abc',
+    });
     expect(msg.subject).toContain('Bright Smile');
     expect(msg.text).toContain('staff');
     expect(msg.text).toContain('https://x/join/abc');
@@ -34,8 +38,15 @@ describe('notification templates', () => {
   });
 
   it('renderReminder routes by type and falls back for unknown types', () => {
-    expect(renderReminder('recall', { practiceName: 'X' }).subject.toLowerCase()).toContain('check-up');
-    expect(renderReminder('appointment_reminder', { practiceName: 'X', startsAt: new Date('2026-08-01T15:00:00Z') }).subject.toLowerCase()).toContain('appointment');
+    expect(renderReminder('recall', { practiceName: 'X' }).subject.toLowerCase()).toContain(
+      'check-up',
+    );
+    expect(
+      renderReminder('appointment_reminder', {
+        practiceName: 'X',
+        startsAt: new Date('2026-08-01T15:00:00Z'),
+      }).subject.toLowerCase(),
+    ).toContain('appointment');
     // Unknown type still produces a sane, non-empty message.
     const fallback = renderReminder('something_else', { practiceName: 'X' });
     expect(fallback.subject.length).toBeGreaterThan(0);

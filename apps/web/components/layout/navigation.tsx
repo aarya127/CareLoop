@@ -38,9 +38,7 @@ export function Navigation() {
     <motion.nav
       className={cn(
         'sticky top-0 z-50 w-full border-b transition-all duration-200',
-        scrolled
-          ? 'bg-background/80 backdrop-blur-xl shadow-sm'
-          : 'bg-background'
+        scrolled ? 'bg-background/80 backdrop-blur-xl shadow-sm' : 'bg-background',
       )}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
@@ -74,13 +72,9 @@ export function Navigation() {
           <div className="flex items-center gap-4">
             <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition-colors">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-xs font-medium text-primary">
-                  {getInitials('Dr. Smith')}
-                </span>
+                <span className="text-xs font-medium text-primary">{getInitials('Dr. Smith')}</span>
               </div>
-              <span className="hidden md:inline text-sm font-medium">
-                Dr. Smith
-              </span>
+              <span className="hidden md:inline text-sm font-medium">Dr. Smith</span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>

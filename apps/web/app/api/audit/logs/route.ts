@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
 
 const clientLogSchema = z.object({
   action: z.string().min(1).max(120),
@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
       await prisma.auditLog.createMany({
         data: body.logs.map((log) => ({
           eventType: log.action,
-          outcome: log.result ?? "success",
+          outcome: log.result ?? 'success',
           actorUserId: user.id,
           metadata: {
             ...(log.metadata ?? {}),
             patientId: log.patient_id,
-            source: log.source ?? "web_client",
+            source: log.source ?? 'web_client',
             clientTimestamp: log.timestamp,
             practiceId: user.practiceId,
           },
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+      return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
     }
-    console.error("[Audit] Error logging:", error);
-    return NextResponse.json({ error: "Failed to log audit" }, { status: 500 });
+    console.error('[Audit] Error logging:', error);
+    return NextResponse.json({ error: 'Failed to log audit' }, { status: 500 });
   }
 }
 
@@ -62,38 +62,38 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser(request);
-    if (!["admin", "manager"].includes(user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!['admin', 'manager'].includes(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const sp = request.nextUrl.searchParams;
-    const limit = Math.min(parseInt(sp.get("limit") ?? "100", 10) || 100, 500);
-    const offset = parseInt(sp.get("offset") ?? "0", 10) || 0;
+    const limit = Math.min(parseInt(sp.get('limit') ?? '100', 10) || 100, 500);
+    const offset = parseInt(sp.get('offset') ?? '0', 10) || 0;
 
     const where: Record<string, unknown> = {};
-    const action = sp.get("action");
+    const action = sp.get('action');
     if (action) where.eventType = action;
-    const actorId = sp.get("actor_id");
+    const actorId = sp.get('actor_id');
     if (actorId) where.actorUserId = actorId;
-    const result = sp.get("result");
+    const result = sp.get('result');
     if (result) where.outcome = result;
-    const from = sp.get("from");
-    const to = sp.get("to");
+    const from = sp.get('from');
+    const to = sp.get('to');
     if (from || to) {
       where.eventTime = {
         ...(from ? { gte: new Date(from) } : {}),
         ...(to ? { lte: new Date(to) } : {}),
       };
     }
-    const patientId = sp.get("patient_id");
+    const patientId = sp.get('patient_id');
     if (patientId) {
-      where.metadata = { path: ["patientId"], equals: patientId };
+      where.metadata = { path: ['patientId'], equals: patientId };
     }
 
     const [rows, total] = await Promise.all([
       prisma.auditLog.findMany({
         where,
-        orderBy: { eventTime: "desc" },
+        orderBy: { eventTime: 'desc' },
         take: limit,
         skip: offset,
       }),
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
-    console.error("[Audit] Error querying:", error);
-    return NextResponse.json({ error: "Failed to query audit logs" }, { status: 500 });
+    console.error('[Audit] Error querying:', error);
+    return NextResponse.json({ error: 'Failed to query audit logs' }, { status: 500 });
   }
 }

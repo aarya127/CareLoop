@@ -19,12 +19,12 @@ interface CustomWeekViewProps {
 const dayHeaderVariants = {
   default: {
     backgroundColor: 'transparent',
-    transition: { duration: 0.2 }
+    transition: { duration: 0.2 },
   },
   hover: {
     backgroundColor: 'rgba(135,206,235,0.1)',
-    transition: { duration: 0.15 }
-  }
+    transition: { duration: 0.15 },
+  },
 };
 
 const compactCardVariants = {
@@ -34,9 +34,9 @@ const compactCardVariants = {
     scale: 1,
     transition: {
       delay: i * 0.05,
-      duration: 0.2
-    }
-  })
+      duration: 0.2,
+    },
+  }),
 };
 
 export function CustomWeekView({ days, onDayClick, onAppointmentClick }: CustomWeekViewProps) {
@@ -54,21 +54,17 @@ export function CustomWeekView({ days, onDayClick, onAppointmentClick }: CustomW
             className={cn(
               'bg-white p-4 cursor-pointer',
               day.isToday && 'bg-sky-50',
-              day.isWeekend && 'bg-gray-50'
+              day.isWeekend && 'bg-gray-50',
             )}
             onClick={() => onDayClick(day.date)}
           >
             <div className="text-center">
-              <div className="text-sm font-medium text-gray-600 mb-1">
-                {day.dayName}
-              </div>
+              <div className="text-sm font-medium text-gray-600 mb-1">{day.dayName}</div>
               <motion.div
                 whileHover={{ scale: 1.15 }}
                 className={cn(
                   'w-10 h-10 mx-auto rounded-full flex items-center justify-center font-bold',
-                  day.isToday
-                    ? 'bg-sky-400 text-white'
-                    : 'text-gray-900'
+                  day.isToday ? 'bg-sky-400 text-white' : 'text-gray-900',
                 )}
               >
                 {day.dayNumber}
@@ -89,17 +85,13 @@ export function CustomWeekView({ days, onDayClick, onAppointmentClick }: CustomW
             className={cn(
               'bg-white relative overflow-y-auto',
               day.isToday && 'bg-sky-50/50 ring-2 ring-sky-400 ring-inset',
-              day.isWeekend && 'bg-gray-50/50'
+              day.isWeekend && 'bg-gray-50/50',
             )}
           >
             {/* Time grid lines (subtle) */}
             <div className="absolute inset-0 pointer-events-none">
               {Array.from({ length: 14 }, (_, i) => (
-                <div
-                  key={i}
-                  className="border-b border-gray-100"
-                  style={{ height: '100px' }}
-                />
+                <div key={i} className="border-b border-gray-100" style={{ height: '100px' }} />
               ))}
             </div>
 
@@ -138,7 +130,7 @@ function CompactAppointmentCard({ appointment, index, onClick }: CompactAppointm
   const top = calculateAppointmentTop(appointment.startTime, dayStart);
   const height = Math.max(
     calculateAppointmentHeight(appointment.startTime, appointment.endTime),
-    50 // Minimum height
+    50, // Minimum height
   );
 
   return (
@@ -168,13 +160,9 @@ function CompactAppointmentCard({ appointment, index, onClick }: CompactAppointm
         <div className="text-xs font-semibold text-gray-900 truncate">
           {format(appointment.startTime, 'h:mm a')}
         </div>
-        <div className="text-xs text-gray-700 truncate mt-0.5">
-          {appointment.patientName}
-        </div>
+        <div className="text-xs text-gray-700 truncate mt-0.5">{appointment.patientName}</div>
         {height > 60 && (
-          <div className="text-xs text-gray-500 truncate mt-0.5">
-            {appointment.procedure}
-          </div>
+          <div className="text-xs text-gray-500 truncate mt-0.5">{appointment.procedure}</div>
         )}
 
         {/* Hover glow effect */}

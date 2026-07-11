@@ -60,9 +60,7 @@ export function PatientDocuments({ patientId }: PatientDocumentsProps) {
     ]);
 
     const update = (patch: Partial<PendingUpload>) =>
-      setUploads((prev) =>
-        prev.map((u) => (u.id === uploadId ? { ...u, ...patch } : u)),
-      );
+      setUploads((prev) => prev.map((u) => (u.id === uploadId ? { ...u, ...patch } : u)));
 
     try {
       const checksum = await computeSha256Hex(file);
@@ -166,9 +164,7 @@ export function PatientDocuments({ patientId }: PatientDocumentsProps) {
         )}
       >
         <Upload className="w-6 h-6 text-[#86868B]" />
-        <p className="text-sm text-[#1D1D1F] font-medium">
-          Drop files here or click to upload
-        </p>
+        <p className="text-sm text-[#1D1D1F] font-medium">Drop files here or click to upload</p>
         <p className="text-xs text-[#86868B]">PDF, Word, images · max 50 MB</p>
       </div>
       <input
@@ -230,9 +226,7 @@ export function PatientDocuments({ patientId }: PatientDocumentsProps) {
             <Loader2 className="w-5 h-5 animate-spin text-[#86868B]" />
           </div>
         ) : documents.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[#86868B]">
-            No files uploaded yet
-          </div>
+          <div className="p-8 text-center text-sm text-[#86868B]">No files uploaded yet</div>
         ) : (
           <div className="divide-y divide-[#E5E5E7]">
             {documents.map((doc) => (
@@ -242,9 +236,7 @@ export function PatientDocuments({ patientId }: PatientDocumentsProps) {
               >
                 <FileText className="w-8 h-8 text-[#0A84FF] flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#1D1D1F] truncate">
-                    {doc.fileName}
-                  </p>
+                  <p className="text-sm font-medium text-[#1D1D1F] truncate">{doc.fileName}</p>
                   <p className="text-xs text-[#86868B]">
                     {CATEGORY_LABELS[doc.category] ?? doc.category}
                     {doc.sizeBytes ? ` · ${formatBytes(doc.sizeBytes)}` : ''}

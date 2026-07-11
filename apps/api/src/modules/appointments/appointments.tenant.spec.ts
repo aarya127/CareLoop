@@ -34,25 +34,34 @@ describe('AppointmentsService tenant isolation', () => {
 
   it('findById 404s for a different practice (no cross-tenant read)', async () => {
     const { service } = makeService(APPT);
-    await expect(service.findById('practice-B', 'appt-1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.findById('practice-B', 'appt-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('findById 404s for a missing appointment', async () => {
     const { service } = makeService(null);
-    await expect(service.findById('practice-A', 'missing')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.findById('practice-A', 'missing')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('reschedule refuses a cross-tenant appointment before mutating', async () => {
     const { service, repo } = makeService(APPT);
     await expect(
-      service.reschedule('practice-B', 'appt-1', { start: '2026-03-10T09:00:00Z', end: '2026-03-10T09:30:00Z' } as any),
+      service.reschedule('practice-B', 'appt-1', {
+        start: '2026-03-10T09:00:00Z',
+        end: '2026-03-10T09:30:00Z',
+      } as any),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.update).not.toHaveBeenCalled();
   });
 
   it('cancel refuses a cross-tenant appointment before mutating', async () => {
     const { service, repo } = makeService(APPT);
-    await expect(service.cancel('practice-B', 'appt-1', {} as any)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.cancel('practice-B', 'appt-1', {} as any)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(repo.update).not.toHaveBeenCalled();
   });
 });

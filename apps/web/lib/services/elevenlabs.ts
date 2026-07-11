@@ -9,10 +9,10 @@
  * but we keep the raw bytes and let the response Content-Type guide the client.
  */
 
-const ELEVENLABS_API_BASE = "https://api.elevenlabs.io/v1";
+const ELEVENLABS_API_BASE = 'https://api.elevenlabs.io/v1';
 
 // A recognisable public voice that works without any cloning quota.
-const FALLBACK_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // "Bella" (multilingual)
+const FALLBACK_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // "Bella" (multilingual)
 
 export interface SynthesizeOptions {
   text: string;
@@ -33,31 +33,24 @@ export interface SynthesizeOptions {
  * Throws if ELEVENLABS_API_KEY is not set or if the ElevenLabs API returns a non-2xx
  * status, so callers should wrap in try/catch and return a graceful error response.
  */
-export async function synthesizeWithElevenLabs(
-  options: SynthesizeOptions,
-): Promise<ArrayBuffer> {
+export async function synthesizeWithElevenLabs(options: SynthesizeOptions): Promise<ArrayBuffer> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
-    throw new Error(
-      "ELEVENLABS_API_KEY is not set. Add it to your .env file to enable TTS.",
-    );
+    throw new Error('ELEVENLABS_API_KEY is not set. Add it to your .env file to enable TTS.');
   }
 
-  const voiceId =
-    options.voiceId ||
-    process.env.ELEVENLABS_DEFAULT_VOICE_ID ||
-    FALLBACK_VOICE_ID;
+  const voiceId = options.voiceId || process.env.ELEVENLABS_DEFAULT_VOICE_ID || FALLBACK_VOICE_ID;
 
-  const modelId = options.modelId ?? "eleven_multilingual_v2";
+  const modelId = options.modelId ?? 'eleven_multilingual_v2';
 
   const url = `${ELEVENLABS_API_BASE}/text-to-speech/${encodeURIComponent(voiceId)}`;
 
   const response = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "xi-api-key": apiKey,
-      "Content-Type": "application/json",
-      Accept: "audio/mpeg",
+      'xi-api-key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'audio/mpeg',
     },
     body: JSON.stringify({
       text: options.text,
@@ -71,9 +64,7 @@ export async function synthesizeWithElevenLabs(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => response.statusText);
-    throw new Error(
-      `ElevenLabs TTS error ${response.status}: ${detail}`,
-    );
+    throw new Error(`ElevenLabs TTS error ${response.status}: ${detail}`);
   }
 
   return response.arrayBuffer();

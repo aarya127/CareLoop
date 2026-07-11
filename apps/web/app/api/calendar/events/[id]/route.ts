@@ -55,7 +55,9 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     const calendarId = url.searchParams.get('calendarId') || 'primary';
     await deleteEvent(user.id, calendarId, id);
     try {
-      await prisma.appointment.deleteMany({ where: { googleEventId: id, practiceId: user.practiceId } });
+      await prisma.appointment.deleteMany({
+        where: { googleEventId: id, practiceId: user.practiceId },
+      });
     } catch {}
     return NextResponse.json({ ok: true });
   } catch (err: any) {

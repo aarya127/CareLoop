@@ -20,9 +20,7 @@ export interface UploadUrlResponse {
 
 export const documentsApi = {
   listByPatient(patientId: string, practiceId = 'demo-practice'): Promise<DocumentRecord[]> {
-    return api.get<DocumentRecord[]>(
-      `/documents/patient/${patientId}?practiceId=${practiceId}`,
-    );
+    return api.get<DocumentRecord[]>(`/documents/patient/${patientId}?practiceId=${practiceId}`);
   },
 
   getUploadUrl(payload: {
@@ -47,9 +45,7 @@ export const documentsApi = {
   },
 
   getDownloadUrl(documentId: string): Promise<{ url: string; fileName: string }> {
-    return api.get<{ url: string; fileName: string }>(
-      `/documents/${documentId}/download-url`,
-    );
+    return api.get<{ url: string; fileName: string }>(`/documents/${documentId}/download-url`);
   },
 
   delete(documentId: string): Promise<void> {

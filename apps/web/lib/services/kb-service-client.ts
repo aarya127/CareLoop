@@ -40,16 +40,14 @@ class KBServiceClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    retryCount = 0
+    retryCount = 0,
   ): Promise<APIResponse<T>> {
     const requestId = crypto.randomUUID();
     const startTime = Date.now();
 
     try {
       // Get JWT token from localStorage
-      const token = typeof window !== 'undefined' 
-        ? localStorage.getItem('auth_token') 
-        : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
       if (!token) {
         throw new Error('No authentication token found');
@@ -58,7 +56,7 @@ class KBServiceClient {
       const url = `${KB_SERVICE_BASE_URL}${endpoint}`;
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'x-request-id': requestId,
         ...options.headers,
       };
@@ -73,13 +71,7 @@ class KBServiceClient {
 
       // Track successful API call
       if (response.ok) {
-        trackAPICall(
-          endpoint,
-          options.method || 'GET',
-          true,
-          undefined,
-          requestId
-        );
+        trackAPICall(endpoint, options.method || 'GET', true, undefined, requestId);
       }
 
       if (!response.ok) {
@@ -92,7 +84,7 @@ class KBServiceClient {
         // Retry on 5xx errors or network issues
         if (response.status >= 500 && retryCount < MAX_RETRIES) {
           const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return this.request<T>(endpoint, options, retryCount + 1);
         }
 
@@ -101,23 +93,16 @@ class KBServiceClient {
 
       const data: APIResponse<T> = await response.json();
       return data;
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
 
       // Track API error
-      trackAPICall(
-        endpoint,
-        options.method || 'GET',
-        false,
-        error.message,
-        requestId
-      );
+      trackAPICall(endpoint, options.method || 'GET', false, error.message, requestId);
 
       // Retry on network errors
       if (retryCount < MAX_RETRIES && error.name === 'AbortError') {
         const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.request<T>(endpoint, options, retryCount + 1);
       }
 
@@ -131,17 +116,17 @@ class KBServiceClient {
   private async getCached<T>(
     cacheKey: string,
     fetcher: () => Promise<APIResponse<T>>,
-    ttl = this.CACHE_TTL
+    ttl = this.CACHE_TTL,
   ): Promise<T> {
     const cached = this.cache.get(cacheKey);
     const now = Date.now();
 
-    if (cached && (now - cached.timestamp) < cached.ttl) {
+    if (cached && now - cached.timestamp < cached.ttl) {
       return cached.data;
     }
 
     const response = await fetcher();
-    
+
     this.cache.set(cacheKey, {
       data: response.data,
       timestamp: now,
@@ -156,14 +141,14 @@ class KBServiceClient {
    */
   invalidatePatientCache(patientId: string): void {
     const keysToDelete: string[] = [];
-    
+
     this.cache.forEach((_, key) => {
       if (key.includes(patientId)) {
         keysToDelete.push(key);
       }
     });
 
-    keysToDelete.forEach(key => this.cache.delete(key));
+    keysToDelete.forEach((key) => this.cache.delete(key));
   }
 
   /**
@@ -171,7 +156,7 @@ class KBServiceClient {
    */
   async getPatientSummary(patientId: string): Promise<PatientSummary> {
     const cacheKey = `patient_summary_${patientId}`;
-    
+
     return this.getCached(cacheKey, async () => {
       auditLog({
         action: 'view_patient_profile',
@@ -189,7 +174,7 @@ class KBServiceClient {
    */
   async getInsuranceDetails(patientId: string): Promise<InsuranceDetails> {
     const cacheKey = `insurance_${patientId}`;
-    
+
     return this.getCached(cacheKey, async () => {
       auditLog({
         action: 'view_insurance_details',
@@ -207,7 +192,7 @@ class KBServiceClient {
    */
   async getPeriodontalData(patientId: string): Promise<PeriodontalChartingData> {
     const cacheKey = `periodontal_${patientId}`;
-    
+
     return this.getCached(cacheKey, async () => {
       auditLog({
         action: 'view_periodontal_chart',
@@ -225,7 +210,7 @@ class KBServiceClient {
    */
   async getDentalRecords(patientId: string): Promise<DentalRecord[]> {
     const cacheKey = `dental_records_${patientId}`;
-    
+
     return this.getCached(cacheKey, async () => {
       auditLog({
         action: 'view_dental_records',
@@ -241,11 +226,7 @@ class KBServiceClient {
   /**
    * Get X-ray images with signed URLs
    */
-  async getXRays(
-    patientId: string,
-    limit = 20,
-    offset = 0
-  ): Promise<PaginatedResponse<XRayImage>> {
+  async getXRays(patientId: string, limit = 20, offset = 0): Promise<PaginatedResponse<XRayImage>> {
     auditLog({
       action: 'view_xray',
       patient_id: patientId,
@@ -254,7 +235,7 @@ class KBServiceClient {
     });
 
     const response = await this.request<PaginatedResponse<XRayImage>>(
-      `/patients/${patientId}/xrays?limit=${limit}&offset=${offset}`
+      `/patients/${patientId}/xrays?limit=${limit}&offset=${offset}`,
     );
 
     return response.data;
@@ -266,10 +247,10 @@ class KBServiceClient {
   async getVisitHistory(
     patientId: string,
     limit = 50,
-    offset = 0
+    offset = 0,
   ): Promise<PaginatedResponse<VisitRecord>> {
     const cacheKey = `visits_${patientId}_${limit}_${offset}`;
-    
+
     return this.getCached(cacheKey, async () => {
       auditLog({
         action: 'view_patient_profile',
@@ -279,7 +260,7 @@ class KBServiceClient {
       });
 
       return this.request<PaginatedResponse<VisitRecord>>(
-        `/patients/${patientId}/visits?limit=${limit}&offset=${offset}`
+        `/patients/${patientId}/visits?limit=${limit}&offset=${offset}`,
       );
     });
   }
@@ -290,7 +271,7 @@ class KBServiceClient {
   async getDoctorNotes(
     patientId: string,
     limit = 20,
-    offset = 0
+    offset = 0,
   ): Promise<PaginatedResponse<DoctorNote>> {
     auditLog({
       action: 'view_dental_records',
@@ -300,7 +281,7 @@ class KBServiceClient {
     });
 
     const response = await this.request<PaginatedResponse<DoctorNote>>(
-      `/patients/${patientId}/notes?limit=${limit}&offset=${offset}`
+      `/patients/${patientId}/notes?limit=${limit}&offset=${offset}`,
     );
 
     return response.data;
@@ -311,7 +292,7 @@ class KBServiceClient {
    */
   async saveDoctorNote(
     patientId: string,
-    note: Omit<DoctorNote, 'id' | 'created_at' | 'updated_at' | 'version'>
+    note: Omit<DoctorNote, 'id' | 'created_at' | 'updated_at' | 'version'>,
   ): Promise<DoctorNote> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -319,23 +300,20 @@ class KBServiceClient {
       action: 'edit_dental_notes',
       patient_id: patientId,
       source: 'kb_service_client',
-      metadata: { 
+      metadata: {
         endpoint: '/patients/{id}/notes',
         idempotency_key: idempotencyKey,
         visibility: note.visibility,
       },
     });
 
-    const response = await this.request<DoctorNote>(
-      `/patients/${patientId}/notes`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(note),
-      }
-    );
+    const response = await this.request<DoctorNote>(`/patients/${patientId}/notes`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(note),
+    });
 
     // Invalidate notes cache
     this.invalidatePatientCache(patientId);
@@ -349,7 +327,7 @@ class KBServiceClient {
   async updateDoctorNote(
     patientId: string,
     noteId: string,
-    updates: Partial<Pick<DoctorNote, 'text' | 'visibility'>>
+    updates: Partial<Pick<DoctorNote, 'text' | 'visibility'>>,
   ): Promise<DoctorNote> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -359,22 +337,19 @@ class KBServiceClient {
       resource_type: 'doctor_note',
       resource_id: noteId,
       source: 'kb_service_client',
-      metadata: { 
+      metadata: {
         endpoint: '/patients/{id}/notes/{noteId}',
         idempotency_key: idempotencyKey,
       },
     });
 
-    const response = await this.request<DoctorNote>(
-      `/patients/${patientId}/notes/${noteId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(updates),
-      }
-    );
+    const response = await this.request<DoctorNote>(`/patients/${patientId}/notes/${noteId}`, {
+      method: 'PATCH',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(updates),
+    });
 
     // Invalidate notes cache
     this.invalidatePatientCache(patientId);
@@ -392,7 +367,7 @@ class KBServiceClient {
       tooth_number?: string;
       type: XRayImage['type'];
       notes?: string;
-    }
+    },
   ): Promise<XRayImage> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -400,7 +375,7 @@ class KBServiceClient {
       action: 'upload_xray',
       patient_id: patientId,
       source: 'kb_service_client',
-      metadata: { 
+      metadata: {
         endpoint: '/patients/{id}/xrays',
         idempotency_key: idempotencyKey,
         file_name: file.name,
@@ -413,17 +388,14 @@ class KBServiceClient {
     formData.append('file', file);
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await this.request<XRayImage>(
-      `/patients/${patientId}/xrays`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-          // Don't set Content-Type, let browser set it with boundary
-        },
-        body: formData,
-      }
-    );
+    const response = await this.request<XRayImage>(`/patients/${patientId}/xrays`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+        // Don't set Content-Type, let browser set it with boundary
+      },
+      body: formData,
+    });
 
     // Invalidate X-ray cache
     this.invalidatePatientCache(patientId);
@@ -436,22 +408,20 @@ class KBServiceClient {
    */
   async exportPatientData(
     patientId: string,
-    sections: Array<'demographics' | 'insurance' | 'dental' | 'visits' | 'notes'>
+    sections: Array<'demographics' | 'insurance' | 'dental' | 'visits' | 'notes'>,
   ): Promise<Blob> {
     auditLog({
       action: 'export_patient_data',
       patient_id: patientId,
       source: 'kb_service_client',
-      metadata: { 
+      metadata: {
         endpoint: '/patients/{id}/export',
         sections,
         format: 'pdf',
       },
     });
 
-    const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('auth_token') 
-      : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
     if (!token) {
       throw new Error('No authentication token found');
@@ -462,10 +432,10 @@ class KBServiceClient {
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/pdf',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/pdf',
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -510,7 +480,7 @@ export async function getDoctorNotes(patientId: string, limit?: number, offset?:
 
 export async function saveDoctorNote(
   patientId: string,
-  note: Omit<DoctorNote, 'id' | 'created_at' | 'updated_at' | 'version'>
+  note: Omit<DoctorNote, 'id' | 'created_at' | 'updated_at' | 'version'>,
 ) {
   return kbServiceClient.saveDoctorNote(patientId, note);
 }
@@ -518,7 +488,7 @@ export async function saveDoctorNote(
 export async function updateDoctorNote(
   patientId: string,
   noteId: string,
-  updates: Partial<Pick<DoctorNote, 'text' | 'visibility'>>
+  updates: Partial<Pick<DoctorNote, 'text' | 'visibility'>>,
 ) {
   return kbServiceClient.updateDoctorNote(patientId, noteId, updates);
 }
@@ -526,14 +496,14 @@ export async function updateDoctorNote(
 export async function uploadXRay(
   patientId: string,
   file: File,
-  metadata: Parameters<typeof kbServiceClient.uploadXRay>[2]
+  metadata: Parameters<typeof kbServiceClient.uploadXRay>[2],
 ) {
   return kbServiceClient.uploadXRay(patientId, file, metadata);
 }
 
 export async function exportPatientData(
   patientId: string,
-  sections: Parameters<typeof kbServiceClient.exportPatientData>[1]
+  sections: Parameters<typeof kbServiceClient.exportPatientData>[1],
 ) {
   return kbServiceClient.exportPatientData(patientId, sections);
 }

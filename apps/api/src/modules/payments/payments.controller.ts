@@ -41,7 +41,12 @@ export class PaymentsController {
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     // practiceId + actor come from the session, never from client headers/body.
-    return this.paymentsService.createPayment(req.user.practiceId, dto, idempotencyKey, req.user.id);
+    return this.paymentsService.createPayment(
+      req.user.practiceId,
+      dto,
+      idempotencyKey,
+      req.user.id,
+    );
   }
 
   @Patch(':id')

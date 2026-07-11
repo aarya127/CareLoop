@@ -5,17 +5,20 @@ This is the practical setup checklist required to run CareLoop in real environme
 ## 1) Accounts To Create
 
 ### Cloud and Infra
+
 - [ ] Create AWS account: `careloop-prod`
 - [ ] Create AWS account: `careloop-nonprod` (staging/dev)
 - [ ] Create IAM admin users with MFA enabled (no root key usage)
 - [ ] Create Terraform state resources (S3 + DynamoDB lock table)
 
 ### Core Platforms
+
 - [ ] Create Docker registry access (ECR or equivalent)
 - [ ] Create GitHub org/repo secrets for CI/CD
 - [ ] Create domain registrar account access for `careloop.company.com`
 
 ### Required External Services
+
 - [ ] Stripe account (payments)
 - [ ] Twilio account (SMS/voice)
 - [ ] ElevenLabs account (voice synthesis, if AI phone assistant is enabled)
@@ -23,6 +26,7 @@ This is the practical setup checklist required to run CareLoop in real environme
 - [ ] Email delivery provider (SES, SendGrid, or Postmark)
 
 ### Optional but Recommended
+
 - [ ] Sentry account (error tracking)
 - [ ] PagerDuty/Opsgenie account (incident alerting)
 - [ ] Datadog/New Relic account (advanced observability)
@@ -68,6 +72,7 @@ This is the practical setup checklist required to run CareLoop in real environme
 Store all secrets in AWS Secrets Manager or equivalent secret store. Do not commit to git.
 
 ### Mandatory App Secrets
+
 - [ ] `DATABASE_URL`
 - [ ] `REDIS_URL`
 - [ ] `JWT_SECRET`
@@ -76,12 +81,14 @@ Store all secrets in AWS Secrets Manager or equivalent secret store. Do not comm
 - [ ] `BASE_URL`
 
 ### Google Calendar Integration
+
 - [ ] `GOOGLE_CLIENT_ID`
 - [ ] `GOOGLE_CLIENT_SECRET`
 - [ ] `GOOGLE_REDIRECT_URI`
 - [ ] `DEMO_USER_ID` (if demo workflows are used)
 
 ### Twilio / Voice Assistant
+
 - [ ] `TWILIO_ACCOUNT_SID`
 - [ ] `TWILIO_AUTH_TOKEN`
 - [ ] `TWILIO_PHONE_NUMBER`
@@ -89,11 +96,13 @@ Store all secrets in AWS Secrets Manager or equivalent secret store. Do not comm
 - [ ] `ELEVENLABS_VOICE_ID`
 
 ### Payments
+
 - [ ] `STRIPE_SECRET_KEY`
 - [ ] `STRIPE_WEBHOOK_SECRET`
 - [ ] `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (web)
 
 ### General Security/Operations
+
 - [ ] `LOG_LEVEL`
 - [ ] SMTP or provider email API key
 
@@ -104,6 +113,7 @@ Store all secrets in AWS Secrets Manager or equivalent secret store. Do not comm
 If AI features are enabled, decide one primary provider and one fallback provider.
 
 ### Decision Needed
+
 - [ ] Select primary LLM provider (OpenAI / Anthropic / Azure OpenAI)
 - [ ] Select fallback provider for outage resilience
 - [ ] Define approved models per feature:
@@ -113,12 +123,14 @@ If AI features are enabled, decide one primary provider and one fallback provide
   - [ ] Analytics insight model
 
 ### Minimum Model Governance
+
 - [ ] Set token/cost budgets per feature
 - [ ] Configure PII redaction before model calls
 - [ ] Disable provider data retention where available
 - [ ] Add model/version pinning in config
 
 ### Typical Secrets (Provider-dependent)
+
 - [ ] `OPENAI_API_KEY` or equivalent
 - [ ] `ANTHROPIC_API_KEY` or equivalent
 - [ ] `AZURE_OPENAI_ENDPOINT` + `AZURE_OPENAI_KEY` (if Azure)

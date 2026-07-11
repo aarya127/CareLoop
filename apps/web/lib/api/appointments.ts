@@ -63,9 +63,10 @@ export const appointmentsApi = {
     status?: string;
   }): Promise<AppointmentRecord[]> {
     const q = new URLSearchParams(
-      Object.fromEntries(
-        Object.entries(params).filter(([, v]) => v !== undefined),
-      ) as Record<string, string>,
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined)) as Record<
+        string,
+        string
+      >,
     );
     return apiFetch<AppointmentRecord[]>(`/appointments?${q}`);
   },
@@ -102,8 +103,8 @@ export const appointmentsApi = {
   getSlots(params: {
     practiceId: string;
     providerId: string;
-    date: string;      // YYYY-MM-DD
-    duration: number;  // minutes
+    date: string; // YYYY-MM-DD
+    duration: number; // minutes
   }): Promise<TimeSlot[]> {
     const q = new URLSearchParams({
       practiceId: params.practiceId,

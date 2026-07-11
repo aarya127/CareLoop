@@ -7,6 +7,7 @@ This folder contains synthetic patient data for testing the ElevenLabs dental as
 - Primary test patient ID: `ai-test-001`
 
 Sample prompt ideas:
+
 - "When is my next check-up?"
 - "What records do you have for ai-test-001?"
 - "What are my next available slots?"

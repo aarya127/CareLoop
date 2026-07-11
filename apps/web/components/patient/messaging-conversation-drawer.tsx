@@ -193,7 +193,7 @@ export default function MessagingConversationDrawer({
             sender: 'ai',
             sender_id: 'ai-assistant-1',
             sender_name: 'CareLoop AI',
-            text: "Perfect! I have availability on Tuesday, October 22nd at 2:00 PM or Wednesday, October 23rd at 3:30 PM. Both are with Dr. Smith. Which time works better for you?",
+            text: 'Perfect! I have availability on Tuesday, October 22nd at 2:00 PM or Wednesday, October 23rd at 3:30 PM. Both are with Dr. Smith. Which time works better for you?',
             timestamp: '2025-10-17T09:47:00Z',
             read_at: '2025-10-17T09:48:00Z',
           },
@@ -218,8 +218,8 @@ export default function MessagingConversationDrawer({
             prev.map((conv) =>
               conv.conversation_id === selectedConversation.conversation_id
                 ? { ...conv, unread_count: 0 }
-                : conv
-            )
+                : conv,
+            ),
           );
         }
       } catch (error) {
@@ -285,7 +285,7 @@ export default function MessagingConversationDrawer({
         text: messageText.trim(),
         attachments: attachments.map((file) => ({
           id: `attach-${Date.now()}-${Math.random()}`,
-          type: file.type.startsWith('image/') ? 'image' as const : 'document' as const,
+          type: file.type.startsWith('image/') ? ('image' as const) : ('document' as const),
           filename: file.name,
           url: URL.createObjectURL(file),
         })),
@@ -354,13 +354,17 @@ export default function MessagingConversationDrawer({
       });
 
       // Update local state
-      setSelectedConversation({ ...selectedConversation, status: 'escalated', assigned_to: user?.id || undefined });
+      setSelectedConversation({
+        ...selectedConversation,
+        status: 'escalated',
+        assigned_to: user?.id || undefined,
+      });
       setConversations((prev) =>
         prev.map((conv) =>
           conv.conversation_id === selectedConversation.conversation_id
             ? { ...conv, status: 'escalated', assigned_to: user?.id || undefined }
-            : conv
-        )
+            : conv,
+        ),
       );
 
       alert('Conversation escalated to human agent successfully!');
@@ -384,7 +388,9 @@ export default function MessagingConversationDrawer({
 
     // In production: Extract datetime/procedure from messages using AI
     // POST /appointments/convert { conversation_id, suggested_datetime, procedure }
-    alert('In production, this would:\n1. Analyze conversation for appointment details\n2. Extract date/time preferences\n3. Open booking form with prefilled data\n4. Link appointment to conversation');
+    alert(
+      'In production, this would:\n1. Analyze conversation for appointment details\n2. Extract date/time preferences\n3. Open booking form with prefilled data\n4. Link appointment to conversation',
+    );
   };
 
   // Handle ESC key
@@ -445,7 +451,7 @@ export default function MessagingConversationDrawer({
                       'px-2 py-1 text-xs rounded transition-colors',
                       statusFilter === status
                         ? 'bg-white text-[#87CEEB] font-medium'
-                        : 'bg-white/20 text-white hover:bg-white/30'
+                        : 'bg-white/20 text-white hover:bg-white/30',
                     )}
                   >
                     {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -489,7 +495,9 @@ export default function MessagingConversationDrawer({
                       <div>
                         <h2 className="font-semibold text-gray-900">{patientName}</h2>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span className="capitalize">{selectedConversation.channel.replace('_', ' ')}</span>
+                          <span className="capitalize">
+                            {selectedConversation.channel.replace('_', ' ')}
+                          </span>
                           <span>•</span>
                           <StatusBadge status={selectedConversation.status} />
                         </div>
@@ -551,7 +559,9 @@ export default function MessagingConversationDrawer({
                             className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm"
                           >
                             <File className="w-4 h-4 text-gray-500" />
-                            <span className="text-gray-700 max-w-[150px] truncate">{file.name}</span>
+                            <span className="text-gray-700 max-w-[150px] truncate">
+                              {file.name}
+                            </span>
                             <button
                               onClick={() => removeAttachment(index)}
                               className="text-gray-400 hover:text-gray-600"
@@ -614,7 +624,9 @@ export default function MessagingConversationDrawer({
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Select a conversation</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    Select a conversation
+                  </h3>
                   <p className="text-sm text-gray-600">Choose a conversation to view messages</p>
                 </div>
               </div>
@@ -643,7 +655,7 @@ function ConversationItem({
       onClick={onClick}
       className={cn(
         'w-full px-4 py-3 text-left transition-colors',
-        isSelected ? 'bg-white border-l-4 border-[#87CEEB]' : 'hover:bg-white'
+        isSelected ? 'bg-white border-l-4 border-[#87CEEB]' : 'hover:bg-white',
       )}
     >
       <div className="flex items-start justify-between mb-1">
@@ -658,7 +670,9 @@ function ConversationItem({
           )}
         </div>
         <span className="text-xs text-gray-500">
-          {isToday(lastMessageDate) ? format(lastMessageDate, 'h:mm a') : format(lastMessageDate, 'MMM d')}
+          {isToday(lastMessageDate)
+            ? format(lastMessageDate, 'h:mm a')
+            : format(lastMessageDate, 'MMM d')}
         </span>
       </div>
       <StatusBadge status={conversation.status} />
@@ -723,7 +737,7 @@ function MessageBubble({
         <div
           className={cn(
             'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-            message.sender === 'ai' ? 'bg-sky-100 text-sky-600' : 'bg-purple-100 text-purple-600'
+            message.sender === 'ai' ? 'bg-sky-100 text-sky-600' : 'bg-purple-100 text-purple-600',
           )}
         >
           {message.sender === 'ai' ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
@@ -746,7 +760,7 @@ function MessageBubble({
               ? message.sender === 'ai'
                 ? 'bg-sky-50 text-gray-900'
                 : 'bg-purple-50 text-gray-900'
-              : 'bg-[#87CEEB] text-white'
+              : 'bg-[#87CEEB] text-white',
           )}
         >
           <p className="text-sm whitespace-pre-wrap">{message.text}</p>
@@ -805,7 +819,13 @@ function MessagesSkeleton() {
       {[...Array(4)].map((_, i) => (
         <div key={i} className={cn('flex gap-3', i % 2 === 0 ? 'justify-start' : 'justify-end')}>
           {i % 2 === 0 && <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0" />}
-          <div className={cn('max-w-[70%]', i % 2 === 0 ? 'items-start' : 'items-end', 'flex flex-col')}>
+          <div
+            className={cn(
+              'max-w-[70%]',
+              i % 2 === 0 ? 'items-start' : 'items-end',
+              'flex flex-col',
+            )}
+          >
             <div className="h-3 w-24 bg-gray-200 rounded mb-2" />
             <div className={cn('h-16 bg-gray-200 rounded-2xl', i % 3 === 0 ? 'w-64' : 'w-48')} />
           </div>

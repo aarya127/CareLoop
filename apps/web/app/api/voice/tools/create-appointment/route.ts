@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
 
 const schema = z.object({
   patientId: z.string().optional(),
@@ -34,16 +34,16 @@ export async function POST(req: NextRequest) {
         roomId: body.roomId,
         procedureCode: body.procedureCode,
         calendarId: body.calendarId,
-        source: "ai_voice",
-        createdBy: "ai_voice_agent",
-        status: "scheduled",
+        source: 'ai_voice',
+        createdBy: 'ai_voice_agent',
+        status: 'scheduled',
         extended: body.callSid ? { callSid: body.callSid } : undefined,
       },
     });
 
     return NextResponse.json({ ok: true, appointment: created });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

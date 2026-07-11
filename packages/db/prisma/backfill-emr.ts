@@ -120,7 +120,8 @@ async function backfillSections() {
     if (!practiceId) continue;
 
     if (row.section === 'clinicalChart') {
-      if ((await prisma.toothChartEntry.count({ where: { patientId: row.patientId } })) > 0) continue;
+      if ((await prisma.toothChartEntry.count({ where: { patientId: row.patientId } })) > 0)
+        continue;
       const teeth = row.payload?.teeth ?? [];
       for (const tooth of teeth) {
         const n = Number(tooth?.tooth_number);
@@ -141,7 +142,8 @@ async function backfillSections() {
     }
 
     if (row.section === 'periodontalRecords') {
-      if ((await prisma.periodontalExam.count({ where: { patientId: row.patientId } })) > 0) continue;
+      if ((await prisma.periodontalExam.count({ where: { patientId: row.patientId } })) > 0)
+        continue;
       await prisma.periodontalExam.create({
         data: {
           practiceId,

@@ -16,12 +16,7 @@ import {
 import { AppointmentsService } from './appointments.service';
 import { APPT_EVENTS_CHANNEL } from './appointments.service';
 import { getRedisClient } from '../../config/redis';
-import type {
-  CreateAppointmentDto,
-  RescheduleDto,
-  CancelDto,
-  GetSlotsDto,
-} from './dto';
+import type { CreateAppointmentDto, RescheduleDto, CancelDto, GetSlotsDto } from './dto';
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -51,19 +46,16 @@ export class AppointmentsController {
    * and X-Accel-Buffering: no to prevent response buffering.
    */
   @Get('events')
-  async streamEvents(
-    @Req() req: any,
-    @Res() reply: any,
-  ): Promise<void> {
+  async streamEvents(@Req() req: any, @Res() reply: any): Promise<void> {
     // Tenancy from the authenticated session — never a client-supplied query param,
     // otherwise any user could subscribe to another practice's live stream.
     const practiceId: string = req.user.practiceId;
     const res: import('http').ServerResponse = reply.raw;
 
     res.writeHead(200, {
-      'Content-Type':  'text/event-stream',
+      'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection':    'keep-alive',
+      Connection: 'keep-alive',
       'X-Accel-Buffering': 'no', // tells nginx NOT to buffer this response
     });
     // Flush headers immediately

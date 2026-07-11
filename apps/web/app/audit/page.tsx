@@ -31,8 +31,10 @@ function Skeleton({ className }: { className?: string }) {
 
 function OutcomeBadge({ outcome }: { outcome: string }) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium';
-  if (outcome === 'success') return <span className={`${base} bg-emerald-50 text-emerald-700`}>success</span>;
-  if (outcome === 'failure') return <span className={`${base} bg-rose-50 text-rose-700`}>failure</span>;
+  if (outcome === 'success')
+    return <span className={`${base} bg-emerald-50 text-emerald-700`}>success</span>;
+  if (outcome === 'failure')
+    return <span className={`${base} bg-rose-50 text-rose-700`}>failure</span>;
   return <span className={`${base} bg-muted text-muted-foreground`}>{outcome}</span>;
 }
 
@@ -207,12 +209,24 @@ export default function AuditPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Time</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Event Type</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Outcome</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Actor</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">IP</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Details</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                  Time
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                  Event Type
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                  Outcome
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                  Actor
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                  IP
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                  Details
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -255,23 +269,44 @@ export default function AuditPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {row.sessionId ? (
-                          <span className="font-mono truncate max-w-[120px] inline-block">{row.sessionId}</span>
-                        ) : '—'}
+                          <span className="font-mono truncate max-w-[120px] inline-block">
+                            {row.sessionId}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                     </tr>
                     {expanded === row.id && (
                       <tr key={`${row.id}-detail`}>
                         <td colSpan={6} className="px-6 py-4 bg-muted/20">
                           <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-xs">
-                            <div><span className="text-muted-foreground">ID:</span> <span className="font-mono">{row.id}</span></div>
-                            <div><span className="text-muted-foreground">Auth method:</span> {row.authMethod ?? '—'}</div>
-                            <div><span className="text-muted-foreground">Session:</span> <span className="font-mono">{row.sessionId ?? '—'}</span></div>
-                            <div><span className="text-muted-foreground">Request ID:</span> <span className="font-mono">{row.requestId ?? '—'}</span></div>
-                            <div><span className="text-muted-foreground">Target user:</span> <span className="font-mono">{row.targetUserId ?? '—'}</span></div>
+                            <div>
+                              <span className="text-muted-foreground">ID:</span>{' '}
+                              <span className="font-mono">{row.id}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Auth method:</span>{' '}
+                              {row.authMethod ?? '—'}
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Session:</span>{' '}
+                              <span className="font-mono">{row.sessionId ?? '—'}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Request ID:</span>{' '}
+                              <span className="font-mono">{row.requestId ?? '—'}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Target user:</span>{' '}
+                              <span className="font-mono">{row.targetUserId ?? '—'}</span>
+                            </div>
                           </div>
                           {row.metadata && Object.keys(row.metadata).length > 0 && (
                             <details className="mt-2">
-                              <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Metadata</summary>
+                              <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                                Metadata
+                              </summary>
                               <pre className="mt-1 rounded bg-muted p-2 text-xs overflow-x-auto">
                                 {JSON.stringify(row.metadata, null, 2)}
                               </pre>

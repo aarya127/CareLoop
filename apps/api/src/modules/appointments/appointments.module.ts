@@ -9,12 +9,7 @@ import { IdempotencyService } from '../../common/services/idempotency.service';
 @Module({
   imports: [AuditModule],
   controllers: [AppointmentsController],
-  providers: [
-    AppointmentsService,
-    AppointmentsRepository,
-    AvailabilityService,
-    IdempotencyService,
-  ],
+  providers: [AppointmentsService, AppointmentsRepository, AvailabilityService, IdempotencyService],
   exports: [AppointmentsService, AvailabilityService],
 })
 export class AppointmentsModule {}

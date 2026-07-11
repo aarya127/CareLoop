@@ -1,10 +1,6 @@
 // BullMQ recurring job schedulers
 // All schedules are in UTC. Each call to upsertJobScheduler is idempotent.
-import {
-  analyticsQueue,
-  documentCleanupQueue,
-  schedulerQueue,
-} from '../queues';
+import { analyticsQueue, documentCleanupQueue, schedulerQueue } from '../queues';
 
 export async function setupSchedulers(): Promise<void> {
   // ── Nightly analytics rollup — 02:00 UTC ────────────────────────────────
@@ -31,4 +27,3 @@ export async function setupSchedulers(): Promise<void> {
     { name: 'reminder-scan', data: {} },
   );
 }
-

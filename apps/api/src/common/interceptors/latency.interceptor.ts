@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 
 /** Warn threshold in milliseconds — log any request slower than this. */
@@ -45,15 +39,9 @@ export class LatencyInterceptor implements NestInterceptor {
     );
   }
 
-  private record(
-    method: string,
-    path: string,
-    startMs: number,
-    ctx: ExecutionContext,
-  ): void {
+  private record(method: string, path: string, startMs: number, ctx: ExecutionContext): void {
     const elapsed = Math.round(performance.now() - startMs);
-    const status =
-      ctx.switchToHttp().getResponse<{ statusCode?: number }>().statusCode ?? 0;
+    const status = ctx.switchToHttp().getResponse<{ statusCode?: number }>().statusCode ?? 0;
     const msg = `${method} ${path} → ${status} in ${elapsed} ms`;
 
     if (elapsed >= SLOW_REQUEST_THRESHOLD_MS) {

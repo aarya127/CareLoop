@@ -168,7 +168,10 @@ export class CreateTreatmentPlanDto {
   @IsOptional() @IsString() providerId?: string;
   @IsOptional() @IsString() notes?: string;
   @IsOptional() @IsInt() @Min(0) insuranceEstimateCents?: number;
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => TreatmentPlanItemInputDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TreatmentPlanItemInputDto)
   items?: TreatmentPlanItemInputDto[];
 }
 

@@ -167,7 +167,9 @@ function buildQs(params: Record<string, string | undefined>): string {
 
 export const invoicesApi = {
   list: (filter: InvoiceFilter) =>
-    apiFetch<Invoice[]>(`/billing/invoices${buildQs(filter as Record<string, string | undefined>)}`),
+    apiFetch<Invoice[]>(
+      `/billing/invoices${buildQs(filter as Record<string, string | undefined>)}`,
+    ),
 
   getById: (id: string) => apiFetch<Invoice>(`/billing/invoices/${id}`),
 
@@ -243,7 +245,11 @@ export const paymentsApi = {
       },
     }),
 
-  update: (id: string, dto: { status?: PaymentStatus; transactionRef?: string }, actorUserId?: string) =>
+  update: (
+    id: string,
+    dto: { status?: PaymentStatus; transactionRef?: string },
+    actorUserId?: string,
+  ) =>
     apiFetch<PaymentRecord>(`/payments/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(dto),

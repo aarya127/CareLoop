@@ -20,7 +20,11 @@ function resolveApiBase(): string {
   const configured = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
   if (!configured) return 'http://localhost:3001';
   const normalized = configured.replace(/\/$/, '');
-  if (normalized.includes('localhost:3000') || normalized.includes('127.0.0.1:3000') || normalized === '/') {
+  if (
+    normalized.includes('localhost:3000') ||
+    normalized.includes('127.0.0.1:3000') ||
+    normalized === '/'
+  ) {
     return 'http://localhost:3001';
   }
   return normalized;
@@ -92,15 +96,21 @@ export default function LeaveUserPage() {
         animate={{ opacity: 1, y: 0 }}
         className="rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.06)] backdrop-blur"
       >
-        <Link href="/admin/users" className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900">
+        <Link
+          href="/admin/users"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to users
         </Link>
         <div className="mt-4 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Remove User</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{displayName}</h1>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+              {displayName}
+            </h1>
             <p className="mt-3 max-w-2xl text-slate-600">
-              Capture an optional reason before removing this user from the practice and revoking their sessions.
+              Capture an optional reason before removing this user from the practice and revoking
+              their sessions.
             </p>
           </div>
           <div className="rounded-2xl bg-rose-50 p-3 text-rose-700">
@@ -109,12 +119,19 @@ export default function LeaveUserPage() {
         </div>
       </motion.section>
 
-      {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="h-64 animate-pulse rounded-3xl border border-white/70 bg-white/80" />
       ) : (
-        <form onSubmit={handleSubmit} className="rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.06)] backdrop-blur"
+        >
           <div className="grid gap-5 md:grid-cols-2">
             <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-slate-500">User</p>
@@ -126,7 +143,10 @@ export default function LeaveUserPage() {
 
             <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Reason</p>
-              <p className="mt-2 text-sm text-slate-600">This field is optional, but it feeds retention analytics when staff want to explain why a user left.</p>
+              <p className="mt-2 text-sm text-slate-600">
+                This field is optional, but it feeds retention analytics when staff want to explain
+                why a user left.
+              </p>
               <textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
@@ -149,7 +169,11 @@ export default function LeaveUserPage() {
               disabled={submitting}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
+              {submitting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserMinus className="h-4 w-4" />
+              )}
               Remove user
             </button>
           </div>

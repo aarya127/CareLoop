@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Calendar, MessageSquare, AlertCircle, Clock, Sparkles, FileText, Loader2 } from 'lucide-react';
+import {
+  Phone,
+  Calendar,
+  MessageSquare,
+  AlertCircle,
+  Clock,
+  Sparkles,
+  FileText,
+  Loader2,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Patient, ViewMode, PatientStatus } from '@/lib/types/patient';
 import type { Appointment } from '@/lib/types/appointment';
@@ -45,11 +54,27 @@ export function PatientCard({
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
   const [isPreloading, setIsPreloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  
-  const { firstName, lastName, age, phone, insurance, visits, billing, allergies, preMedicationNotes } = patient;
-  
+
+  const {
+    firstName,
+    lastName,
+    age,
+    phone,
+    insurance,
+    visits,
+    billing,
+    allergies,
+    preMedicationNotes,
+  } = patient;
+
   const fullName = `${firstName} ${lastName}`;
-  const lastVisit = visits[0]?.date ? new Date(visits[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No visits';
+  const lastVisit = visits[0]?.date
+    ? new Date(visits[0].date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : 'No visits';
   const totalVisits = visits.length;
 
   // Preload profile data when card is near viewport (Intersection Observer)
@@ -67,7 +92,7 @@ export function PatientCard({
       {
         rootMargin: '250px', // Trigger 250px before entering viewport
         threshold: 0,
-      }
+      },
     );
 
     observer.observe(cardRef.current);
@@ -117,18 +142,18 @@ export function PatientCard({
   const canViewCalendar = hasScope('APPT_READ');
   const canCall = hasScope('VOIP_CALL');
   const canMessage = hasScope('COMMS_READ');
-  
+
   // Format appointment date and time
   const formatAppointmentDateTime = (date: Date | string) => {
-    const dateStr = new Date(date).toLocaleDateString('en-US', { 
-      month: 'short', 
+    const dateStr = new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
-    const timeStr = new Date(date).toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+    const timeStr = new Date(date).toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: true 
+      hour12: true,
     });
     return { date: dateStr, time: timeStr };
   };
@@ -139,41 +164,42 @@ export function PatientCard({
         return {
           label: 'AI Booking',
           className: 'bg-[#87CEEB]/10 text-[#0A84FF] border-[#87CEEB]/20',
-          icon: <Sparkles className="w-3 h-3" />
+          icon: <Sparkles className="w-3 h-3" />,
         };
       case 'manual':
         return {
           label: 'Manual',
           className: 'bg-green-500/10 text-green-700 border-green-500/20',
-          icon: null
+          icon: null,
         };
       case 'rescheduled':
         return {
           label: 'Rescheduled',
           className: 'bg-orange-500/10 text-orange-700 border-orange-500/20',
-          icon: null
+          icon: null,
         };
       default:
         return {
           label: 'Scheduled',
           className: 'bg-gray-500/10 text-gray-700 border-gray-500/20',
-          icon: null
+          icon: null,
         };
     }
   };
-  
+
   const statuses: { type: PatientStatus; label: string }[] = [];
   if (allergies.length > 0) statuses.push({ type: 'allergies', label: 'Allergies' });
-  if (billing.outstandingBalance > 0) statuses.push({ type: 'outstanding-balance', label: 'Outstanding Balance' });
+  if (billing.outstandingBalance > 0)
+    statuses.push({ type: 'outstanding-balance', label: 'Outstanding Balance' });
   if (preMedicationNotes) statuses.push({ type: 'pre-medication', label: 'Pre-medication' });
-  
+
   const getCoverageBadgeColor = (coverage: number) => {
     if (coverage >= 80) return 'bg-green-500/10 text-green-700 dark:text-green-400';
     if (coverage >= 50) return 'bg-orange-500/10 text-orange-700 dark:text-orange-400';
     if (coverage > 0) return 'bg-red-500/10 text-red-700 dark:text-red-400';
     return 'bg-gray-500/10 text-gray-700 dark:text-gray-400';
   };
-  
+
   const getStatusColor = (type: PatientStatus) => {
     switch (type) {
       case 'allergies':
@@ -186,11 +212,11 @@ export function PatientCard({
         return 'bg-gray-500/10 text-gray-700 dark:text-gray-400';
     }
   };
-  
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -209,7 +235,7 @@ export function PatientCard({
           'hover:shadow-[0_8px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.08)]',
           'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#0A84FF]/20',
           isSelected ? 'border-[#0A84FF] border-2 bg-[#F5F5F7]' : 'border-[#E5E5E7]',
-          className
+          className,
         )}
         tabIndex={0}
         role="button"
@@ -238,7 +264,12 @@ export function PatientCard({
           {/* Insurance */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-sm font-medium text-[#1D1D1F]">{insurance.provider}</span>
-            <span className={cn('px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide', getCoverageBadgeColor(insurance.coveragePercent))}>
+            <span
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide',
+                getCoverageBadgeColor(insurance.coveragePercent),
+              )}
+            >
               {insurance.coveragePercent}%
             </span>
           </div>
@@ -246,7 +277,9 @@ export function PatientCard({
           {/* Stats */}
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <span className="text-sm text-[#1D1D1F]">Last: {lastVisit}</span>
-            <span className="text-sm text-[#86868B]">{totalVisits} visits • ${billing.lifetimeSpend.toLocaleString()}</span>
+            <span className="text-sm text-[#86868B]">
+              {totalVisits} visits • ${billing.lifetimeSpend.toLocaleString()}
+            </span>
           </div>
 
           {/* Actions */}
@@ -255,8 +288,8 @@ export function PatientCard({
               <button
                 onClick={handleOpenCalendar}
                 className={cn(
-                  "relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-                  "hover:bg-[#F5F5F7]"
+                  'relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                  'hover:bg-[#F5F5F7]',
                 )}
                 aria-label="View calendar"
               >
@@ -273,17 +306,19 @@ export function PatientCard({
                 onClick={handleOpenPhone}
                 disabled={!canCall}
                 className={cn(
-                  "relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-                  canCall ? "hover:bg-[#F5F5F7]" : "opacity-40 cursor-not-allowed"
+                  'relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                  canCall ? 'hover:bg-[#F5F5F7]' : 'opacity-40 cursor-not-allowed',
                 )}
                 aria-label="Call patient"
               >
                 <Phone className="w-5 h-5 text-[#86868B] group-hover:text-[#0A84FF]" />
                 {lastCallTimestamp && (
-                  <span className={cn(
-                    "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-                    lastCallAgent === 'ai' ? 'bg-purple-500' : 'bg-[#0A84FF]'
-                  )} />
+                  <span
+                    className={cn(
+                      'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white',
+                      lastCallAgent === 'ai' ? 'bg-purple-500' : 'bg-[#0A84FF]',
+                    )}
+                  />
                 )}
               </button>
             )}
@@ -292,8 +327,8 @@ export function PatientCard({
                 onClick={handleOpenMessaging}
                 disabled={!canMessage}
                 className={cn(
-                  "relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-                  canMessage ? "hover:bg-[#F5F5F7]" : "opacity-40 cursor-not-allowed"
+                  'relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                  canMessage ? 'hover:bg-[#F5F5F7]' : 'opacity-40 cursor-not-allowed',
                 )}
                 aria-label="Message patient"
               >
@@ -325,8 +360,10 @@ export function PatientCard({
         'shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]',
         'hover:shadow-[0_8px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.08)]',
         'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#0A84FF]/20',
-        isSelected ? 'border-[#0A84FF] border-2 bg-[#F5F5F7] shadow-[0_8px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.08)]' : 'border-[#E5E5E7] hover:border-[#D2D2D7]',
-        className
+        isSelected
+          ? 'border-[#0A84FF] border-2 bg-[#F5F5F7] shadow-[0_8px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.08)]'
+          : 'border-[#E5E5E7] hover:border-[#D2D2D7]',
+        className,
       )}
       tabIndex={0}
       role="button"
@@ -338,9 +375,7 @@ export function PatientCard({
           {getInitials(fullName)}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-[#1D1D1F] mb-1 truncate">
-            {fullName}
-          </h3>
+          <h3 className="text-lg font-semibold text-[#1D1D1F] mb-1 truncate">{fullName}</h3>
           <span className="text-sm text-[#86868B]">{age} years old</span>
         </div>
       </div>
@@ -359,7 +394,12 @@ export function PatientCard({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-[#1D1D1F]">{insurance.provider}</span>
           <span className="text-[#86868B]">•</span>
-          <span className={cn('px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide', getCoverageBadgeColor(insurance.coveragePercent))}>
+          <span
+            className={cn(
+              'px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide',
+              getCoverageBadgeColor(insurance.coveragePercent),
+            )}
+          >
             {insurance.coveragePercent}% Coverage
           </span>
         </div>
@@ -377,7 +417,9 @@ export function PatientCard({
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-[#86868B]">Lifetime Spend</span>
-          <span className="text-[#1D1D1F] font-semibold">${billing.lifetimeSpend.toLocaleString()}</span>
+          <span className="text-[#1D1D1F] font-semibold">
+            ${billing.lifetimeSpend.toLocaleString()}
+          </span>
         </div>
       </div>
 
@@ -389,7 +431,7 @@ export function PatientCard({
               key={status.type}
               className={cn(
                 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
-                getStatusColor(status.type)
+                getStatusColor(status.type),
               )}
             >
               {status.type === 'allergies' && <AlertCircle className="w-3 h-3" />}
@@ -417,10 +459,12 @@ export function PatientCard({
                 {(() => {
                   const badge = getBookingSourceBadge(nextAppointment.bookingSource);
                   return (
-                    <span className={cn(
-                      'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border',
-                      badge.className
-                    )}>
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border',
+                        badge.className,
+                      )}
+                    >
                       {badge.icon}
                       {badge.label}
                     </span>
@@ -431,18 +475,18 @@ export function PatientCard({
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="w-3.5 h-3.5 text-[#86868B]" />
                   <span className="text-[#1D1D1F] font-medium">
-                    {formatAppointmentDateTime(nextAppointment.startTime).date} at {formatAppointmentDateTime(nextAppointment.startTime).time}
+                    {formatAppointmentDateTime(nextAppointment.startTime).date} at{' '}
+                    {formatAppointmentDateTime(nextAppointment.startTime).time}
                   </span>
                 </div>
-                <div className="text-sm text-[#1D1D1F]">
-                  {nextAppointment.procedureType}
-                </div>
+                <div className="text-sm text-[#1D1D1F]">{nextAppointment.procedureType}</div>
               </div>
             </div>
           </div>
           {upcomingAppointmentsCount > 1 && (
             <div className="text-xs text-[#86868B] mt-2 pt-2 border-t border-[#87CEEB]/10">
-              +{upcomingAppointmentsCount - 1} more upcoming {upcomingAppointmentsCount - 1 === 1 ? 'appointment' : 'appointments'}
+              +{upcomingAppointmentsCount - 1} more upcoming{' '}
+              {upcomingAppointmentsCount - 1 === 1 ? 'appointment' : 'appointments'}
             </div>
           )}
         </div>
@@ -478,17 +522,19 @@ export function PatientCard({
             onClick={handleOpenPhone}
             disabled={!canCall}
             className={cn(
-              "relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-              canCall ? "hover:bg-[#F5F5F7]" : "opacity-40 cursor-not-allowed"
+              'relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+              canCall ? 'hover:bg-[#F5F5F7]' : 'opacity-40 cursor-not-allowed',
             )}
             aria-label="Call patient"
           >
             <Phone className="w-5 h-5 text-[#86868B] group-hover:text-[#0A84FF]" />
             {lastCallTimestamp && (
-              <span className={cn(
-                "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-                lastCallAgent === 'ai' ? 'bg-purple-500' : 'bg-[#0A84FF]'
-              )} />
+              <span
+                className={cn(
+                  'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white',
+                  lastCallAgent === 'ai' ? 'bg-purple-500' : 'bg-[#0A84FF]',
+                )}
+              />
             )}
           </button>
         )}
@@ -497,8 +543,8 @@ export function PatientCard({
             onClick={handleOpenMessaging}
             disabled={!canMessage}
             className={cn(
-              "relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-              canMessage ? "hover:bg-[#F5F5F7]" : "opacity-40 cursor-not-allowed"
+              'relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+              canMessage ? 'hover:bg-[#F5F5F7]' : 'opacity-40 cursor-not-allowed',
             )}
             aria-label="Message patient"
           >
@@ -520,7 +566,7 @@ export function PatientCard({
           patientId={patient.id}
         />
       )}
-      
+
       {canViewCalendar && (
         <CalendarMiniModal
           isOpen={isCalendarOpen}
@@ -529,7 +575,7 @@ export function PatientCard({
           patientName={fullName}
         />
       )}
-      
+
       {canCall && (
         <PhoneCallPanel
           isOpen={isPhoneOpen}
@@ -539,7 +585,7 @@ export function PatientCard({
           patientPhone={patient.phone}
         />
       )}
-      
+
       {canMessage && (
         <MessagingConversationDrawer
           isOpen={isMessagingOpen}

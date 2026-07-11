@@ -30,12 +30,47 @@ async function main() {
 
   const demoDefs = [
     // Role names are stored lowercase to match register() and AUTH_ROLES.
-    { id: 'user-admin',       email: 'admin@careloop.demo',       firstName: 'Admin',      lastName: 'User',    roleName: 'admin',    hash: DEMO_PASSWORD_HASH },
-    { id: 'user-doctor',      email: 'doctor@careloop.demo',      firstName: 'Doctor',     lastName: 'Demo',    roleName: 'provider', hash: DEMO_PASSWORD_HASH },
-    { id: 'user-hygienist',   email: 'hygienist@careloop.demo',   firstName: 'Hygienist',  lastName: 'Demo',    roleName: 'hygienist',hash: DEMO_PASSWORD_HASH },
-    { id: 'user-receptionist',email: 'receptionist@careloop.demo',firstName: 'Receptionist',lastName: 'Demo',   roleName: 'staff',    hash: DEMO_PASSWORD_HASH },
+    {
+      id: 'user-admin',
+      email: 'admin@careloop.demo',
+      firstName: 'Admin',
+      lastName: 'User',
+      roleName: 'admin',
+      hash: DEMO_PASSWORD_HASH,
+    },
+    {
+      id: 'user-doctor',
+      email: 'doctor@careloop.demo',
+      firstName: 'Doctor',
+      lastName: 'Demo',
+      roleName: 'provider',
+      hash: DEMO_PASSWORD_HASH,
+    },
+    {
+      id: 'user-hygienist',
+      email: 'hygienist@careloop.demo',
+      firstName: 'Hygienist',
+      lastName: 'Demo',
+      roleName: 'hygienist',
+      hash: DEMO_PASSWORD_HASH,
+    },
+    {
+      id: 'user-receptionist',
+      email: 'receptionist@careloop.demo',
+      firstName: 'Receptionist',
+      lastName: 'Demo',
+      roleName: 'staff',
+      hash: DEMO_PASSWORD_HASH,
+    },
     // Main login page dev hint credentials
-    { id: 'user-dev',         email: 'demo@careloop.dev',         firstName: 'Dev',        lastName: 'Admin',   roleName: 'admin',    hash: DEMO2_PASSWORD_HASH },
+    {
+      id: 'user-dev',
+      email: 'demo@careloop.dev',
+      firstName: 'Dev',
+      lastName: 'Admin',
+      roleName: 'admin',
+      hash: DEMO2_PASSWORD_HASH,
+    },
   ];
 
   const users = await Promise.all(
@@ -53,8 +88,8 @@ async function main() {
           passwordAlgo: 'bcrypt',
           status: 'active',
         },
-      })
-    )
+      }),
+    ),
   );
 
   // Keep backward compat reference used by appointments below
@@ -195,9 +230,7 @@ async function main() {
   ];
 
   const patients = await Promise.all(
-    patientDefs.map((p) =>
-      prisma.patient.upsert({ where: { id: p.id }, update: {}, create: p })
-    )
+    patientDefs.map((p) => prisma.patient.upsert({ where: { id: p.id }, update: {}, create: p })),
   );
 
   // ── 7. Patient insurance ──────────────────────────────────────────────────
@@ -281,8 +314,8 @@ async function main() {
 
   const appointments = await Promise.all(
     apptDefs.map((a) =>
-      prisma.appointment.upsert({ where: { id: a.id }, update: {}, create: a as any })
-    )
+      prisma.appointment.upsert({ where: { id: a.id }, update: {}, create: a as any }),
+    ),
   );
 
   // ── 9. AI prompt version ──────────────────────────────────────────────────
@@ -323,8 +356,8 @@ async function main() {
         where: { practiceId_patientType: { practiceId: practice.id, patientType: p.patientType } },
         update: {},
         create: { practiceId: practice.id, ...p },
-      })
-    )
+      }),
+    ),
   );
 
   // ── 12. Practice KPIs (last 7 days, daily) ────────────────────────────────
@@ -361,7 +394,7 @@ async function main() {
   // ── Summary ───────────────────────────────────────────────────────────────
   console.log('✅  Seed complete');
   console.log(`    Practice:     ${practice.name}`);
-  console.log(`    Users:        ${users.length}  (${demoDefs.map(u => u.email).join(', ')})`);
+  console.log(`    Users:        ${users.length}  (${demoDefs.map((u) => u.email).join(', ')})`);
   console.log(`    Password:     demo123`);
   console.log(`    Providers:    ${providers.length}`);
   console.log(`    Rooms:        ${rooms.length}`);

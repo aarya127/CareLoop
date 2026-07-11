@@ -18,18 +18,18 @@ const dayCellVariants = {
     y: 0,
     scale: 1,
     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] as any }
+    transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] as any },
   },
   hover: {
     y: -2,
     scale: 1.02,
     boxShadow: '0 4px 12px rgba(135,206,235,0.15), 0 0 0 2px rgba(135,206,235,0.2)',
-    transition: { duration: 0.15, ease: [0.4, 0, 0.2, 1] as any }
+    transition: { duration: 0.15, ease: [0.4, 0, 0.2, 1] as any },
   },
   tap: {
     scale: 0.98,
-    transition: { duration: 0.1 }
-  }
+    transition: { duration: 0.1 },
+  },
 };
 
 const dotVariants = {
@@ -41,13 +41,13 @@ const dotVariants = {
       delay: i * 0.05,
       type: 'spring' as const,
       stiffness: 500,
-      damping: 15
-    }
+      damping: 15,
+    },
   }),
   hover: {
     scale: 1.5,
-    transition: { duration: 0.2 }
-  }
+    transition: { duration: 0.2 },
+  },
 };
 
 export function MonthView({ days, onDayClick, onAppointmentClick, selectedDate }: MonthViewProps) {
@@ -77,7 +77,12 @@ export function MonthView({ days, onDayClick, onAppointmentClick, selectedDate }
               index={index}
               onDayClick={onDayClick}
               onAppointmentClick={onAppointmentClick}
-              isSelected={!!(selectedDate && format(day.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))}
+              isSelected={
+                !!(
+                  selectedDate &&
+                  format(day.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                )
+              }
             />
           ))}
         </AnimatePresence>
@@ -109,7 +114,7 @@ function DayCell({ day, index, onDayClick, onAppointmentClick, isSelected }: Day
         !day.isCurrentMonth && 'bg-gray-50 text-gray-400',
         day.isToday && 'ring-2 ring-sky-400 ring-inset',
         day.isWeekend && 'bg-sky-50/30',
-        isSelected && 'ring-2 ring-sky-500 ring-inset bg-sky-50'
+        isSelected && 'ring-2 ring-sky-500 ring-inset bg-sky-50',
       )}
       onClick={() => onDayClick(day.date)}
     >
@@ -119,7 +124,7 @@ function DayCell({ day, index, onDayClick, onAppointmentClick, isSelected }: Day
         className={cn(
           'text-sm font-semibold mb-2 w-8 h-8 rounded-full flex items-center justify-center',
           day.isToday && 'bg-sky-400 text-white',
-          !day.isCurrentMonth && 'text-gray-400'
+          !day.isCurrentMonth && 'text-gray-400',
         )}
       >
         {day.dayNumber}
@@ -127,7 +132,7 @@ function DayCell({ day, index, onDayClick, onAppointmentClick, isSelected }: Day
 
       {/* Appointment dots */}
       {day.appointments.length > 0 && (
-        <motion.div 
+        <motion.div
           className="flex flex-wrap gap-1 mt-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -173,7 +178,8 @@ function DayCell({ day, index, onDayClick, onAppointmentClick, isSelected }: Day
             className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl p-3 z-20 min-w-[200px] pointer-events-none"
           >
             <div className="text-xs font-semibold text-gray-700 mb-2">
-              {day.appointments.length} {day.appointments.length === 1 ? 'appointment' : 'appointments'}
+              {day.appointments.length}{' '}
+              {day.appointments.length === 1 ? 'appointment' : 'appointments'}
             </div>
             <div className="space-y-1">
               {day.appointments.slice(0, 3).map((apt) => (

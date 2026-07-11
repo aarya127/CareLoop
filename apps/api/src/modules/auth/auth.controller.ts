@@ -31,7 +31,7 @@ const COOKIE_OPTS = {
   sameSite: (process.env.SESSION_COOKIE_SAME_SITE ?? 'lax') as 'lax' | 'strict' | 'none',
   path: '/',
   // Secure must be true for SameSite=None. Also set in production.
-  secure: process.env.NODE_ENV === 'production' || (process.env.SESSION_COOKIE_SAME_SITE === 'none'),
+  secure: process.env.NODE_ENV === 'production' || process.env.SESSION_COOKIE_SAME_SITE === 'none',
   maxAge: 8 * 60 * 60, // 8 hours in seconds
   // domain may be undefined (default), but can be set via SESSION_COOKIE_DOMAIN
   domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
@@ -48,12 +48,21 @@ export class AuthController {
     // Use configured cookie options but ensure TTL/domain come from auth config.
     // Cookie NAME must be SESSION_COOKIE (cl_session) — the same name login/me/logout
     // read and the web app expects — not authConfig.sessionCookieName.
-    const opts = { ...COOKIE_OPTS, maxAge: authConfig.sessionTtlSeconds, domain: authConfig.cookieDomain };
+    const opts = {
+      ...COOKIE_OPTS,
+      maxAge: authConfig.sessionTtlSeconds,
+      domain: authConfig.cookieDomain,
+    };
     res.setCookie(SESSION_COOKIE, token, opts);
   }
 
   private clearSessionCookie(res: any): void {
-    const opts = { ...COOKIE_OPTS, domain: authConfig.cookieDomain, expires: new Date(0), maxAge: 0 } as any;
+    const opts = {
+      ...COOKIE_OPTS,
+      domain: authConfig.cookieDomain,
+      expires: new Date(0),
+      maxAge: 0,
+    } as any;
     res.setCookie(SESSION_COOKIE, '', opts);
   }
 
@@ -62,11 +71,7 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(
-    @Body() dto: LoginDto,
-    @Req() req: any,
-    @Res({ passthrough: true }) res: any
-  ) {
+  async login(@Body() dto: LoginDto, @Req() req: any, @Res({ passthrough: true }) res: any) {
     const data = await this.authService.login(dto, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
@@ -85,11 +90,7 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  async signup(
-    @Body() dto: SignupDto,
-    @Req() req: any,
-    @Res({ passthrough: true }) res: any,
-  ) {
+  async signup(@Body() dto: SignupDto, @Req() req: any, @Res({ passthrough: true }) res: any) {
     const data = await this.authService.signup(dto, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
@@ -113,10 +114,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(
-    @Req() req: any,
-    @Res({ passthrough: true }) res: any
-  ) {
+  async logout(@Req() req: any, @Res({ passthrough: true }) res: any) {
     const token = req.cookies?.[SESSION_COOKIE];
 
     await this.authService.logout(token, {
@@ -150,10 +148,7 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(
-    @Req() req: any,
-    @Res({ passthrough: true }) res: any
-  ) {
+  async refresh(@Req() req: any, @Res({ passthrough: true }) res: any) {
     if (req.user) return { user: req.user };
     const token = req.cookies?.[SESSION_COOKIE];
     const data = await this.authService.getSession(token);
@@ -195,7 +190,7 @@ export class AuthController {
     const others = active.filter((s) => s.id !== currentSessionId);
 
     await Promise.all(
-      others.map((s) => this.sessionService.revokeSessionById(s.id, userId, 'revoke_all_others'))
+      others.map((s) => this.sessionService.revokeSessionById(s.id, userId, 'revoke_all_others')),
     );
 
     return { revokedCount: others.length };
@@ -222,4 +217,3 @@ export class AuthController {
     return this.authService.getAdminOverview(req.user.practiceId);
   }
 }
-

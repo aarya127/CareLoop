@@ -3,12 +3,18 @@ import { prisma } from '@careloop/db';
 import type { Prisma } from '@careloop/db';
 import type { ExportDataJobData } from '@careloop/shared';
 
-async function auditExport(eventType: string, outcome: string, meta: Prisma.InputJsonValue): Promise<void> {
+async function auditExport(
+  eventType: string,
+  outcome: string,
+  meta: Prisma.InputJsonValue,
+): Promise<void> {
   try {
     await prisma.auditLog.create({
       data: { eventType, outcome, authMethod: 'system', metadata: meta },
     });
-  } catch { /* never crash the worker */ }
+  } catch {
+    /* never crash the worker */
+  }
 }
 
 // ── CSV helpers ──────────────────────────────────────────────────────────────
@@ -47,7 +53,11 @@ async function exportPatients(practiceId: string) {
     },
     orderBy: { lastName: 'asc' },
   });
-  return rows.map((r) => ({ ...r, dateOfBirth: r.dateOfBirth?.toISOString().slice(0, 10), createdAt: r.createdAt.toISOString() }));
+  return rows.map((r) => ({
+    ...r,
+    dateOfBirth: r.dateOfBirth?.toISOString().slice(0, 10),
+    createdAt: r.createdAt.toISOString(),
+  }));
 }
 
 async function exportAppointments(practiceId: string) {
@@ -65,7 +75,12 @@ async function exportAppointments(practiceId: string) {
     orderBy: { start: 'desc' },
     take: 5000, // cap to avoid memory issues
   });
-  return rows.map((r) => ({ ...r, start: r.start.toISOString(), end: r.end.toISOString(), createdAt: r.createdAt.toISOString() }));
+  return rows.map((r) => ({
+    ...r,
+    start: r.start.toISOString(),
+    end: r.end.toISOString(),
+    createdAt: r.createdAt.toISOString(),
+  }));
 }
 
 async function exportBilling(practiceId: string) {
@@ -98,7 +113,9 @@ export async function exportsProcessor(
   job: Job<ExportDataJobData>,
 ): Promise<{ rowCount: number; preview: string }> {
   const { resource, format, requestedBy, practiceId } = job.data;
-  job.log(`Export started: resource=${resource} format=${format} requestedBy=${requestedBy} practice=${practiceId}`);
+  job.log(
+    `Export started: resource=${resource} format=${format} requestedBy=${requestedBy} practice=${practiceId}`,
+  );
 
   let rows: Record<string, unknown>[];
   if (resource === 'patients') rows = await exportPatients(practiceId);

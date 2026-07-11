@@ -48,7 +48,9 @@ export class EmailService {
         this.logger.error('SENDGRID_WEBHOOK_SECRET not set — rejecting webhook');
         return false;
       }
-      this.logger.warn('SENDGRID_WEBHOOK_SECRET not set — skipping signature validation (non-production only)');
+      this.logger.warn(
+        'SENDGRID_WEBHOOK_SECRET not set — skipping signature validation (non-production only)',
+      );
       return true;
     }
     const crypto = require('crypto') as typeof import('crypto');

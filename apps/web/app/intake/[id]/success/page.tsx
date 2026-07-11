@@ -29,8 +29,8 @@ export default async function SuccessPage({ params }: Props) {
 
         <h1 className="text-2xl font-semibold mb-2">You&apos;re all set!</h1>
         <p className="text-muted-foreground mb-8">
-          Your intake form has been submitted successfully. Our team will be in
-          touch to confirm your appointment.
+          Your intake form has been submitted successfully. Our team will be in touch to confirm
+          your appointment.
         </p>
 
         <p className="text-xs text-muted-foreground mb-6">

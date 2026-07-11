@@ -12,9 +12,7 @@ export default function IntakePage() {
   }, []);
 
   // Carry the practice through so the clinic's link routes patients to the right office.
-  const newHref = practice
-    ? `/intake/new?practice=${encodeURIComponent(practice)}`
-    : '/intake/new';
+  const newHref = practice ? `/intake/new?practice=${encodeURIComponent(practice)}` : '/intake/new';
 
   return (
     <main className="p-6 max-w-2xl mx-auto">

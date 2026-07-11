@@ -3,7 +3,10 @@ import { prisma } from '@careloop/db';
 import type { DocumentCleanupJobData } from '@careloop/shared';
 import { deleteStorageObjects } from '../services/storage';
 
-async function cleanupForPractice(practiceId: string, olderThanDays: number): Promise<{ stale: number; deleted: number }> {
+async function cleanupForPractice(
+  practiceId: string,
+  olderThanDays: number,
+): Promise<{ stale: number; deleted: number }> {
   const staleThreshold = new Date();
   staleThreshold.setHours(staleThreshold.getHours() - olderThanDays * 24);
 
@@ -40,9 +43,7 @@ async function cleanupForPractice(practiceId: string, olderThanDays: number): Pr
   return { stale: staleResult.count, deleted: deletedResult.count };
 }
 
-export async function documentCleanupProcessor(
-  job: Job<DocumentCleanupJobData>,
-): Promise<void> {
+export async function documentCleanupProcessor(job: Job<DocumentCleanupJobData>): Promise<void> {
   const { practiceId, olderThanDays } = job.data;
 
   if (practiceId === 'all') {

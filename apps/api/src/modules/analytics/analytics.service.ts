@@ -80,7 +80,10 @@ export class AnalyticsService {
     });
   }
 
-  private async getCachedMetrics(practiceId: string, rangeDays: number): Promise<CoreMetrics | null> {
+  private async getCachedMetrics(
+    practiceId: string,
+    rangeDays: number,
+  ): Promise<CoreMetrics | null> {
     const local = this.getLocalCachedMetrics(practiceId, rangeDays);
     if (local) return local;
 
@@ -96,7 +99,11 @@ export class AnalyticsService {
     }
   }
 
-  private async setCachedMetrics(practiceId: string, rangeDays: number, value: CoreMetrics): Promise<void> {
+  private async setCachedMetrics(
+    practiceId: string,
+    rangeDays: number,
+    value: CoreMetrics,
+  ): Promise<void> {
     this.setLocalCachedMetrics(practiceId, rangeDays, value);
 
     try {
@@ -105,7 +112,7 @@ export class AnalyticsService {
         this.redisMetricsCacheKey(practiceId, rangeDays),
         JSON.stringify(value),
         'EX',
-        this.metricsCacheTtlSeconds
+        this.metricsCacheTtlSeconds,
       );
     } catch {
       // Keep local cache as resilience fallback when Redis is unavailable.
@@ -143,11 +150,17 @@ export class AnalyticsService {
               patientId: true,
             },
           }),
-        [] as Array<{ id: string; status: string; start: Date; source: string; patientId: string | null }>
+        [] as Array<{
+          id: string;
+          status: string;
+          start: Date;
+          source: string;
+          patientId: string | null;
+        }>,
       ),
       this.safe(
         () => prisma.conversation.count({ where: { practiceId, createdAt: { gte: since } } }),
-        0
+        0,
       ),
       this.safe(() => prisma.patient.count({ where: { practiceId } }), 0),
       this.safe(
@@ -160,7 +173,7 @@ export class AnalyticsService {
             },
             select: { treatmentAcceptance: true },
           }),
-        [] as Array<{ treatmentAcceptance: boolean | null }>
+        [] as Array<{ treatmentAcceptance: boolean | null }>,
       ),
     ]);
 
@@ -180,7 +193,7 @@ export class AnalyticsService {
     const patientsWithRecentVisit = new Set(
       appointments
         .filter((a) => a.patientId && a.start >= recallWindow && a.status === 'completed')
-        .map((a) => a.patientId as string)
+        .map((a) => a.patientId as string),
     ).size;
 
     const treatmentAccepted = treatmentSignals.filter((s) => s.treatmentAcceptance === true).length;
@@ -223,7 +236,7 @@ export class AnalyticsService {
             },
             orderBy: { kpiDate: 'asc' },
           }),
-        [] as Array<{ id: number; kpiDate: Date; metricName: string; metricValue: number }>
+        [] as Array<{ id: number; kpiDate: Date; metricName: string; metricValue: number }>,
       ),
       this.safe(
         () =>
@@ -248,7 +261,7 @@ export class AnalyticsService {
           sentimentScore: number | null;
           treatmentAcceptance: boolean | null;
           createdAt: Date;
-        }>
+        }>,
       ),
     ]);
 
@@ -402,7 +415,7 @@ export class AnalyticsService {
             start: { gte: new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000) },
           },
         }),
-      0
+      0,
     );
 
     const estimatedRevenue = round2(completedCount * 180);
@@ -426,7 +439,7 @@ export class AnalyticsService {
             createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
           },
         }),
-      0
+      0,
     );
 
     return {
@@ -468,7 +481,9 @@ export class AnalyticsService {
       const redis = getRedisClient();
       const cached = await redis.get(cacheKey);
       if (cached) return JSON.parse(cached);
-    } catch { /* Redis unavailable — continue */ }
+    } catch {
+      /* Redis unavailable — continue */
+    }
 
     const [invoicesByStatus, revenueByDay, paymentsThisPeriod] = await Promise.all([
       // Total amounts grouped by invoice status
@@ -480,7 +495,11 @@ export class AnalyticsService {
             _sum: { totalAmountCents: true },
             _count: { id: true },
           }),
-        [] as Array<{ status: string; _sum: { totalAmountCents: number | null }; _count: { id: number } }>,
+        [] as Array<{
+          status: string;
+          _sum: { totalAmountCents: number | null };
+          _count: { id: number };
+        }>,
       ),
       // Daily paid revenue for trend chart — bucket by paidAt day
       this.safe(
@@ -521,7 +540,11 @@ export class AnalyticsService {
     }
     const dailyTrend = Array.from(dailyMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, amountCents]) => ({ date, amountCents, amountDollars: round2(amountCents / 100) }));
+      .map(([date, amountCents]) => ({
+        date,
+        amountCents,
+        amountDollars: round2(amountCents / 100),
+      }));
 
     const byStatus = Object.fromEntries(
       invoicesByStatus.map((r) => [
@@ -530,8 +553,9 @@ export class AnalyticsService {
       ]),
     );
 
-    const totalPaidCents = (byStatus['paid']?.amountCents ?? 0);
-    const totalOutstandingCents = (byStatus['sent']?.amountCents ?? 0) + (byStatus['overdue']?.amountCents ?? 0);
+    const totalPaidCents = byStatus['paid']?.amountCents ?? 0;
+    const totalOutstandingCents =
+      (byStatus['sent']?.amountCents ?? 0) + (byStatus['overdue']?.amountCents ?? 0);
 
     const result = {
       rangeDays,
@@ -550,7 +574,9 @@ export class AnalyticsService {
     try {
       const redis = getRedisClient();
       await redis.set(cacheKey, JSON.stringify(result), 'EX', this.metricsCacheTtlSeconds);
-    } catch { /* ok */ }
+    } catch {
+      /* ok */
+    }
 
     return result;
   }
@@ -571,7 +597,9 @@ export class AnalyticsService {
       const redis = getRedisClient();
       const cached = await redis.get(cacheKey);
       if (cached) return JSON.parse(cached);
-    } catch { /* ok */ }
+    } catch {
+      /* ok */
+    }
 
     const [appts, byStatus] = await Promise.all([
       this.safe(
@@ -613,9 +641,7 @@ export class AnalyticsService {
         ratePct: pct(noShow, total),
       }));
 
-    const statusBreakdown = Object.fromEntries(
-      byStatus.map((r) => [r.status, r._count.status]),
-    );
+    const statusBreakdown = Object.fromEntries(byStatus.map((r) => [r.status, r._count.status]));
 
     const totalAppts = appts.length;
     const totalNoShows = appts.filter((a) => a.status === 'no_show').length;
@@ -633,7 +659,9 @@ export class AnalyticsService {
     try {
       const redis = getRedisClient();
       await redis.set(cacheKey, JSON.stringify(result), 'EX', this.metricsCacheTtlSeconds);
-    } catch { /* ok */ }
+    } catch {
+      /* ok */
+    }
 
     return result;
   }
@@ -683,7 +711,7 @@ export class AnalyticsService {
               start: { gte: now, lte: next24h },
             },
           }),
-        0
+        0,
       );
 
       return {
@@ -705,7 +733,7 @@ export class AnalyticsService {
               OR: [{ updatedAt: { lte: overdueDate } }, { createdAt: { lte: overdueDate } }],
             },
           }),
-        0
+        0,
       );
 
       return {
@@ -727,7 +755,7 @@ export class AnalyticsService {
               status: { in: ['scheduled', 'confirmed'] },
             },
           }),
-        0
+        0,
       );
 
       return {
@@ -759,7 +787,7 @@ export class AnalyticsService {
               createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
             },
           }),
-        0
+        0,
       );
 
       return {

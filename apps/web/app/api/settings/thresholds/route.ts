@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/auth/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db/prisma';
+import { requireUser } from '@/lib/auth/server';
 
 const schema = z.object({
-  practiceId: z.string().default("default-practice"),
+  practiceId: z.string().default('default-practice'),
   sentimentMin: z.number().int().min(1).max(10),
   escalateOnTreatmentDecline: z.boolean(),
   notifyChannel: z.object({
-    type: z.enum(["in_app", "email", "sms"]),
+    type: z.enum(['in_app', 'email', 'sms']),
     target: z.string().optional(),
   }),
 });
@@ -16,10 +16,12 @@ const schema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const config = await prisma.alertThreshold.findUnique({ where: { practiceId: user.practiceId } });
+    const config = await prisma.alertThreshold.findUnique({
+      where: { practiceId: user.practiceId },
+    });
     return NextResponse.json({ ok: true, config });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
@@ -47,7 +49,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ ok: true, config });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "failed";
+    const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

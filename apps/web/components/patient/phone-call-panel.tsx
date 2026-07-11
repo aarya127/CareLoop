@@ -97,12 +97,17 @@ export default function PhoneCallPanel({
             agent_name: 'CareLoop AI',
             duration_sec: 245,
             status: 'completed',
-            summary: 'Confirmed upcoming appointment on Oct 20. Patient has no questions or concerns.',
+            summary:
+              'Confirmed upcoming appointment on Oct 20. Patient has no questions or concerns.',
             transcript_available: true,
             recording_url: 'https://cdn.example.com/recordings/call-1.mp3',
             consent_to_record: true,
             created_at: '2025-10-15T14:30:00Z',
-            metadata: { ai_confidence: 0.94, sentiment: 'positive', ended_at: '2025-10-15T14:34:05Z' },
+            metadata: {
+              ai_confidence: 0.94,
+              sentiment: 'positive',
+              ended_at: '2025-10-15T14:34:05Z',
+            },
           },
           {
             call_id: 'call-2',
@@ -151,7 +156,8 @@ export default function PhoneCallPanel({
             agent_name: 'Dr. Robert Smith',
             duration_sec: 420,
             status: 'completed',
-            summary: 'Discussed periodontal treatment plan. Patient agreed to 3-month maintenance schedule.',
+            summary:
+              'Discussed periodontal treatment plan. Patient agreed to 3-month maintenance schedule.',
             transcript_available: true,
             recording_url: 'https://cdn.example.com/recordings/call-4.mp3',
             consent_to_record: true,
@@ -221,7 +227,9 @@ export default function PhoneCallPanel({
 
       // In production: telephonyGatewayClient.initiateCall(request)
       // Returns call_id, then WebSocket sends call_completed event when done
-      alert(`Call initiated to ${patientPhone}\n\nIn production, this would:\n1. Connect to VoIP gateway\n2. Ring patient's phone\n3. Show live call interface\n4. Record if consent given`);
+      alert(
+        `Call initiated to ${patientPhone}\n\nIn production, this would:\n1. Connect to VoIP gateway\n2. Ring patient's phone\n3. Show live call interface\n4. Record if consent given`,
+      );
     } catch (error) {
       console.error('Failed to initiate call:', error);
       alert('Failed to initiate call. Please try again.');
@@ -307,11 +315,7 @@ export default function PhoneCallPanel({
                       className="p-1 hover:bg-white/20 rounded transition-colors"
                       title="Copy phone number"
                     >
-                      {copiedPhone ? (
-                        <Check className="w-3 h-3" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
+                      {copiedPhone ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                     </button>
                   </div>
                 </div>
@@ -338,7 +342,7 @@ export default function PhoneCallPanel({
                     'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
                     filter === filterType
                       ? 'bg-[#87CEEB] text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300',
                   )}
                 >
                   {filterType === 'all' && 'All Calls'}
@@ -471,15 +475,35 @@ function CallCard({
   const getStatusBadge = () => {
     switch (call.status) {
       case 'completed':
-        return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Completed</span>;
+        return (
+          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+            Completed
+          </span>
+        );
       case 'no_answer':
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">No Answer</span>;
+        return (
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
+            No Answer
+          </span>
+        );
       case 'busy':
-        return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">Busy</span>;
+        return (
+          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+            Busy
+          </span>
+        );
       case 'failed':
-        return <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Failed</span>;
+        return (
+          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+            Failed
+          </span>
+        );
       case 'voicemail':
-        return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Voicemail</span>;
+        return (
+          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+            Voicemail
+          </span>
+        );
     }
   };
 
@@ -496,7 +520,7 @@ function CallCard({
         <div
           className={cn(
             'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-            call.agent === 'ai' ? 'bg-sky-100 text-sky-600' : 'bg-purple-100 text-purple-600'
+            call.agent === 'ai' ? 'bg-sky-100 text-sky-600' : 'bg-purple-100 text-purple-600',
           )}
         >
           {call.agent === 'ai' ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
@@ -603,7 +627,7 @@ function CallDetailModal({
             },
             {
               speaker: 'patient',
-              text: "Yes, this is Sarah.",
+              text: 'Yes, this is Sarah.',
               timestamp_sec: 3.5,
               timestamp: 3.5,
               confidence: 0.94,
@@ -624,14 +648,14 @@ function CallDetailModal({
             },
             {
               speaker: 'agent',
-              text: "Just your insurance card and photo ID. If you have any questions before your appointment, feel free to call us at 310-555-0100. We look forward to seeing you!",
+              text: 'Just your insurance card and photo ID. If you have any questions before your appointment, feel free to call us at 310-555-0100. We look forward to seeing you!',
               timestamp_sec: 16.5,
               timestamp: 16.5,
               confidence: 0.97,
             },
             {
               speaker: 'patient',
-              text: "Perfect, thank you!",
+              text: 'Perfect, thank you!',
               timestamp_sec: 27.2,
               timestamp: 27.2,
               confidence: 0.95,
@@ -643,9 +667,7 @@ function CallDetailModal({
             'Patient will bring insurance card and ID',
             'No additional questions or concerns',
           ],
-          action_items: [
-            'Patient confirmed - no further action needed',
-          ],
+          action_items: ['Patient confirmed - no further action needed'],
         };
 
         setTranscript(mockTranscript);
@@ -710,19 +732,19 @@ function CallDetailModal({
             <div
               className={cn(
                 'w-12 h-12 rounded-full flex items-center justify-center',
-                call.agent === 'ai' ? 'bg-sky-100 text-sky-600' : 'bg-purple-100 text-purple-600'
+                call.agent === 'ai' ? 'bg-sky-100 text-sky-600' : 'bg-purple-100 text-purple-600',
               )}
             >
               {call.agent === 'ai' ? <Bot className="w-6 h-6" /> : <User className="w-6 h-6" />}
             </div>
             <div>
               <h4 className="font-semibold text-gray-900">{call.agent_name}</h4>
-              <p className="text-sm text-gray-600 capitalize">{call.agent} • {call.direction}</p>
+              <p className="text-sm text-gray-600 capitalize">
+                {call.agent} • {call.direction}
+              </p>
             </div>
           </div>
-          {call.summary && (
-            <p className="text-sm text-gray-700 leading-relaxed">{call.summary}</p>
-          )}
+          {call.summary && <p className="text-sm text-gray-700 leading-relaxed">{call.summary}</p>}
         </div>
 
         {/* Call Stats */}
@@ -735,7 +757,9 @@ function CallDetailModal({
           </div>
           <div className="p-3 bg-gray-50 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Status</div>
-            <div className="text-sm font-medium text-gray-900 capitalize">{call.status.replace('_', ' ')}</div>
+            <div className="text-sm font-medium text-gray-900 capitalize">
+              {call.status.replace('_', ' ')}
+            </div>
           </div>
         </div>
 
@@ -803,7 +827,7 @@ function CallDetailModal({
                           key={idx}
                           className={cn(
                             'p-3 rounded-lg',
-                            segment.speaker === 'agent' ? 'bg-blue-50' : 'bg-gray-100'
+                            segment.speaker === 'agent' ? 'bg-blue-50' : 'bg-gray-100',
                           )}
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -822,7 +846,9 @@ function CallDetailModal({
                     {/* Key Points */}
                     {transcript.key_points && transcript.key_points.length > 0 && (
                       <div className="pt-3 border-t border-gray-200">
-                        <h5 className="text-xs font-semibold text-gray-700 uppercase mb-2">Key Points</h5>
+                        <h5 className="text-xs font-semibold text-gray-700 uppercase mb-2">
+                          Key Points
+                        </h5>
                         <ul className="space-y-1">
                           {transcript.key_points.map((point, idx) => (
                             <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">

@@ -44,4 +44,3 @@ export async function getUser(req: NextRequest): Promise<SessionUser | null> {
     return null;
   }
 }
-

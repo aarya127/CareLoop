@@ -23,11 +23,7 @@ export class IntakeRepository {
     });
   }
 
-  async markSubmitted(
-    id: string,
-    patientId: string,
-    idempotencyKey: string,
-  ): Promise<any> {
+  async markSubmitted(id: string, patientId: string, idempotencyKey: string): Promise<any> {
     return this.prisma.intakeDraft.update({
       where: { id },
       data: {

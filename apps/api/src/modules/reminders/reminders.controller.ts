@@ -15,7 +15,13 @@ export class RemindersController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.remindersService.getHistory(req.user.practiceId, { patientId, channel, status, from, to });
+    return this.remindersService.getHistory(req.user.practiceId, {
+      patientId,
+      channel,
+      status,
+      from,
+      to,
+    });
   }
 
   @Get('patient/:patientId')

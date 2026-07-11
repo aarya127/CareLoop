@@ -51,14 +51,17 @@ describe('ClaimsService.create', () => {
   it('404s when the patient is not in the caller practice', async () => {
     state.patient = null;
     await expect(
-      svc.create('practice-A', 'user-1', { patientId: 'pX', lines: [{ procedureCode: 'D', chargedCents: 1 }] }),
+      svc.create('practice-A', 'user-1', {
+        patientId: 'pX',
+        lines: [{ procedureCode: 'D', chargedCents: 1 }],
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('rejects a claim with no line items', async () => {
-    await expect(svc.create('practice-A', 'user-1', { patientId: 'p1', lines: [] })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      svc.create('practice-A', 'user-1', { patientId: 'p1', lines: [] }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
 
@@ -73,7 +76,9 @@ describe('ClaimsService state machine', () => {
     await expect(svc.submit('practice-A', 'c1', 'u1')).rejects.toBeInstanceOf(BadRequestException);
 
     state.claim = { id: 'c1', status: 'draft', lines: [], events: [] };
-    await expect(svc.submit('practice-A', 'c1', 'u1')).resolves.toMatchObject({ status: 'submitted' });
+    await expect(svc.submit('practice-A', 'c1', 'u1')).resolves.toMatchObject({
+      status: 'submitted',
+    });
   });
 
   it('cannot adjudicate a draft claim (must submit first)', async () => {
@@ -93,7 +98,10 @@ describe('ClaimsService state machine', () => {
   it('records an adjudication outcome on a submitted claim', async () => {
     state.claim = { id: 'c1', status: 'submitted', lines: [], events: [] };
     await expect(
-      svc.updateStatus('practice-A', 'c1', 'u1', { status: 'accepted', approvedAmountCents: 15300 }),
+      svc.updateStatus('practice-A', 'c1', 'u1', {
+        status: 'accepted',
+        approvedAmountCents: 15300,
+      }),
     ).resolves.toMatchObject({ status: 'accepted' });
   });
 });

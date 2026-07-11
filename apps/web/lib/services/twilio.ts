@@ -3,7 +3,7 @@
  * Uses plain string construction to avoid adding the twilio SDK as a dependency.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 /**
  * Verify Twilio's X-Twilio-Signature header per their documented scheme:
@@ -23,12 +23,12 @@ export function validateTwilioSignature(
     Object.keys(params)
       .sort()
       .map((key) => key + params[key])
-      .join("");
+      .join('');
 
-  const expected = createHmac("sha1", authToken).update(data, "utf8").digest();
+  const expected = createHmac('sha1', authToken).update(data, 'utf8').digest();
   let provided: Buffer;
   try {
-    provided = Buffer.from(signature, "base64");
+    provided = Buffer.from(signature, 'base64');
   } catch {
     return false;
   }
@@ -48,30 +48,32 @@ export function requireTwilioRequest(
 ): Response | null {
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   if (!authToken) {
-    if (process.env.NODE_ENV === "production") {
-      return new Response(JSON.stringify({ error: "twilio_webhook_not_configured" }), {
+    if (process.env.NODE_ENV === 'production') {
+      return new Response(JSON.stringify({ error: 'twilio_webhook_not_configured' }), {
         status: 403,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       });
     }
-    console.warn("[twilio] TWILIO_AUTH_TOKEN not set — skipping signature check (non-production only)");
+    console.warn(
+      '[twilio] TWILIO_AUTH_TOKEN not set — skipping signature check (non-production only)',
+    );
     return null;
   }
 
   // Reconstruct the public URL Twilio signed. Behind a proxy the request URL's
   // host is not the public one, so anchor on the configured base URL.
-  const baseUrl = process.env.BASE_URL ?? process.env.APP_BASE_URL ?? "http://localhost:3000";
-  const url = `${baseUrl.replace(/\/$/, "")}${requestUrl.pathname}${requestUrl.search}`;
+  const baseUrl = process.env.BASE_URL ?? process.env.APP_BASE_URL ?? 'http://localhost:3000';
+  const url = `${baseUrl.replace(/\/$/, '')}${requestUrl.pathname}${requestUrl.search}`;
 
   const params: Record<string, string> = {};
   formData.forEach((value, key) => {
-    if (typeof value === "string") params[key] = value;
+    if (typeof value === 'string') params[key] = value;
   });
 
-  if (!validateTwilioSignature(url, params, signatureHeader ?? "", authToken)) {
-    return new Response(JSON.stringify({ error: "invalid_twilio_signature" }), {
+  if (!validateTwilioSignature(url, params, signatureHeader ?? '', authToken)) {
+    return new Response(JSON.stringify({ error: 'invalid_twilio_signature' }), {
       status: 403,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
   return null;
@@ -84,13 +86,13 @@ function twimlResponse(body: string): string {
 export interface PlayAndGatherOptions {
   audioUrl: string;
   gatherUrl: string;
-  speechTimeout?: number | "auto";
+  speechTimeout?: number | 'auto';
   timeoutSeconds?: number;
 }
 
 export function buildPlayAndGatherTwiml(opts: PlayAndGatherOptions): string {
   const timeout = opts.speechTimeout ?? 3;
-  const gatherTimeout = opts.timeoutSeconds != null ? ` timeout="${opts.timeoutSeconds}"` : "";
+  const gatherTimeout = opts.timeoutSeconds != null ? ` timeout="${opts.timeoutSeconds}"` : '';
   return twimlResponse(
     `<Gather input="speech" action="${opts.gatherUrl}" speechTimeout="${timeout}"${gatherTimeout} method="POST">` +
       `<Play>${opts.audioUrl}</Play>` +
@@ -101,7 +103,7 @@ export function buildPlayAndGatherTwiml(opts: PlayAndGatherOptions): string {
 export interface SayAndGatherOptions {
   text: string;
   gatherUrl: string;
-  speechTimeout?: number | "auto";
+  speechTimeout?: number | 'auto';
 }
 
 export function buildSayAndGatherTwiml(opts: SayAndGatherOptions): string {

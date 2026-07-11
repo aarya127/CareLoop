@@ -39,7 +39,7 @@ const drawerVariants = {
       type: 'spring' as const,
       stiffness: 300,
       damping: 30,
-    }
+    },
   },
   open: {
     x: 0,
@@ -50,8 +50,8 @@ const drawerVariants = {
       damping: 30,
       staggerChildren: 0.07,
       delayChildren: 0.1,
-    }
-  }
+    },
+  },
 };
 
 const drawerContentVariants = {
@@ -59,13 +59,13 @@ const drawerContentVariants = {
   open: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3 }
-  }
+    transition: { duration: 0.3 },
+  },
 };
 
 const backgroundBlurVariants = {
   closed: { opacity: 0 },
-  open: { opacity: 1 }
+  open: { opacity: 1 },
 };
 
 export function PatientDetailDrawer({ isOpen, onClose, data }: PatientDetailDrawerProps) {
@@ -165,16 +165,16 @@ export function PatientDetailDrawer({ isOpen, onClose, data }: PatientDetailDraw
             {/* Content */}
             <div className="px-6 py-6 space-y-6">
               {/* Contact Information */}
-              <Section
-                icon={User}
-                title="Contact Information"
-              >
+              <Section icon={User} title="Contact Information">
                 <div className="grid grid-cols-2 gap-4">
                   <InfoField label="Full Name" value={`${patient.firstName} ${patient.lastName}`} />
                   <InfoField label="Age" value={`${patient.age} years old`} />
                   <InfoField label="Email" value={patient.email} icon={Mail} />
                   <InfoField label="Phone" value={patient.phone} icon={Phone} />
-                  <InfoField label="Date of Birth" value={format(patient.dateOfBirth, 'MMM d, yyyy')} />
+                  <InfoField
+                    label="Date of Birth"
+                    value={format(patient.dateOfBirth, 'MMM d, yyyy')}
+                  />
                   <InfoField
                     label="Address"
                     value={`${patient.address.city}, ${patient.address.state}`}
@@ -183,34 +183,22 @@ export function PatientDetailDrawer({ isOpen, onClose, data }: PatientDetailDraw
               </Section>
 
               {/* Insurance Coverage */}
-              <Section
-                icon={Shield}
-                title="Insurance Coverage"
-              >
+              <Section icon={Shield} title="Insurance Coverage">
                 <InsuranceCoverage insurance={insurance} appointment={appointment} />
               </Section>
 
               {/* Dental & Clinical Data */}
-              <Section
-                icon={FileText}
-                title="Dental Records & Clinical Data"
-              >
+              <Section icon={FileText} title="Dental Records & Clinical Data">
                 <DentalRecords data={data} />
               </Section>
 
               {/* Visit History */}
-              <Section
-                icon={Calendar}
-                title="Visit History"
-              >
+              <Section icon={Calendar} title="Visit History">
                 <VisitHistory visits={data.visitHistory} />
               </Section>
 
               {/* Doctor Notes */}
-              <Section
-                icon={FileEdit}
-                title="Doctor Notes & Findings"
-              >
+              <Section icon={FileEdit} title="Doctor Notes & Findings">
                 <DoctorNotes appointmentId={appointment.id} notes={data.notes} />
               </Section>
             </div>
@@ -238,10 +226,7 @@ interface SectionProps {
 
 function Section({ icon: Icon, title, children }: SectionProps) {
   return (
-    <motion.section
-      variants={drawerContentVariants}
-      className="space-y-3"
-    >
+    <motion.section variants={drawerContentVariants} className="space-y-3">
       <div className="flex items-center gap-2">
         <Icon className="w-5 h-5 text-sky-400" />
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -283,15 +268,11 @@ function InsuranceCoverage({ insurance, appointment }: InsuranceCoverageProps) {
     <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-lg font-semibold text-gray-900">
-            {insurance.provider}
-          </div>
+          <div className="text-lg font-semibold text-gray-900">{insurance.provider}</div>
           <div className="text-sm text-gray-600">{insurance.planName}</div>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-sky-600">
-            {insurance.coveragePercent}%
-          </div>
+          <div className="text-3xl font-bold text-sky-600">{insurance.coveragePercent}%</div>
           <div className="text-xs text-gray-500">Coverage</div>
         </div>
       </div>
@@ -330,9 +311,7 @@ function InsuranceCoverage({ insurance, appointment }: InsuranceCoverageProps) {
         </div>
         <div>
           <div className="text-gray-500">Policy Expiry</div>
-          <div className="font-medium">
-            {format(insurance.policyExpiry, 'MMM d, yyyy')}
-          </div>
+          <div className="font-medium">{format(insurance.policyExpiry, 'MMM d, yyyy')}</div>
         </div>
       </div>
     </div>
@@ -346,9 +325,7 @@ function DentalRecords({ data }: { data: PatientDrawerData }) {
       {/* X-rays */}
       {data.xrays && data.xrays.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">
-            Radiographs & X-rays
-          </h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Radiographs & X-rays</h4>
           <div className="grid grid-cols-3 gap-3">
             {data.xrays.map((xray, idx) => (
               <motion.div
@@ -378,14 +355,14 @@ function DentalRecords({ data }: { data: PatientDrawerData }) {
       )}
 
       {/* Periodontal Data */}
-        {/* Periodontal Charting Diagram */}
-        <div className="mt-6">
-          <PeriodontalChartDiagram 
-            readings={mildGingivitisProfile}
-            showLegend={true}
-            interactive={true}
-          />
-        </div>
+      {/* Periodontal Charting Diagram */}
+      <div className="mt-6">
+        <PeriodontalChartDiagram
+          readings={mildGingivitisProfile}
+          showLegend={true}
+          interactive={true}
+        />
+      </div>
     </div>
   );
 }
@@ -414,9 +391,7 @@ function VisitHistory({ visits }: { visits: PatientDrawerData['visitHistory'] })
               </div>
             </div>
             <div className="text-right">
-              <div className="text-lg font-bold text-gray-900">
-                ${visit.totalCost}
-              </div>
+              <div className="text-lg font-bold text-gray-900">${visit.totalCost}</div>
               <div className="text-xs text-gray-500">Paid: ${visit.patientPaid}</div>
             </div>
           </div>
@@ -450,9 +425,7 @@ function DoctorNotes({
       {/* Previous Notes */}
       {notes.length > 0 && (
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">
-            Previous Notes
-          </label>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Previous Notes</label>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {notes.slice(0, 3).map((note, idx) => (
               <motion.div

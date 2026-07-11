@@ -52,15 +52,17 @@ export interface NewPlanItem {
 }
 
 export const treatmentPlansApi = {
-  list: (patientId: string) =>
-    apiFetch<TreatmentPlan[]>(`/patients/${patientId}/treatment-plans`),
+  list: (patientId: string) => apiFetch<TreatmentPlan[]>(`/patients/${patientId}/treatment-plans`),
   get: (id: string) => apiFetch<TreatmentPlan>(`/treatment-plans/${id}`),
   create: (patientId: string, dto: { title?: string; notes?: string; items?: NewPlanItem[] }) =>
     apiFetch<TreatmentPlan>(`/patients/${patientId}/treatment-plans`, {
       method: 'POST',
       body: JSON.stringify(dto),
     }),
-  update: (id: string, dto: Partial<Pick<TreatmentPlan, 'title' | 'status' | 'notes' | 'insuranceEstimateCents'>>) =>
+  update: (
+    id: string,
+    dto: Partial<Pick<TreatmentPlan, 'title' | 'status' | 'notes' | 'insuranceEstimateCents'>>,
+  ) =>
     apiFetch<TreatmentPlan>(`/treatment-plans/${id}`, { method: 'PUT', body: JSON.stringify(dto) }),
   accept: (id: string) =>
     apiFetch<TreatmentPlan>(`/treatment-plans/${id}/accept`, { method: 'POST' }),

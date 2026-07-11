@@ -3,7 +3,10 @@
 import dynamic from 'next/dynamic';
 
 const PracticeKpiDashboard = dynamic(
-  () => import('@/components/analytics/practice-kpi-dashboard').then((m) => ({ default: m.PracticeKpiDashboard })),
+  () =>
+    import('@/components/analytics/practice-kpi-dashboard').then((m) => ({
+      default: m.PracticeKpiDashboard,
+    })),
   {
     ssr: false,
     loading: () => (
@@ -11,7 +14,7 @@ const PracticeKpiDashboard = dynamic(
         Loading analytics…
       </div>
     ),
-  }
+  },
 );
 
 export default function AdminAnalyticsPage() {

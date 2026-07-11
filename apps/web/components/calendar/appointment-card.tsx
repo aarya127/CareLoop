@@ -166,12 +166,11 @@ export default function AppointmentCard({
               appointment.status === 'completed'
                 ? 'text-green-600'
                 : appointment.status === 'canceled'
-                ? 'text-gray-500'
-                : 'text-orange-600'
+                  ? 'text-gray-500'
+                  : 'text-orange-600'
             }`}
           >
-            {appointment.status.charAt(0).toUpperCase() +
-              appointment.status.slice(1)}
+            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
           </div>
         )}
       </div>

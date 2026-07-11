@@ -63,9 +63,7 @@ export function CalendarControls({
 
         <div className="flex items-center gap-2 px-3">
           <CalendarIcon className="w-4 h-4 text-gray-500" />
-          <span className="text-lg font-semibold text-gray-900">
-            {displayText}
-          </span>
+          <span className="text-lg font-semibold text-gray-900">{displayText}</span>
         </div>
       </div>
 
@@ -81,7 +79,7 @@ export function CalendarControls({
               'px-4 py-2 rounded-md text-sm font-medium transition-all',
               viewMode === mode.value
                 ? 'bg-white text-sky-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                : 'text-gray-600 hover:text-gray-900',
             )}
           >
             {mode.label}

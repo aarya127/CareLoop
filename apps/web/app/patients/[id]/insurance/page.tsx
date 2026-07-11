@@ -26,7 +26,9 @@ interface Props {
 }
 
 const money = (cents?: number | null) =>
-  typeof cents === 'number' ? `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—';
+  typeof cents === 'number'
+    ? `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+    : '—';
 const pct = (v?: number) => (typeof v === 'number' ? `${v}%` : '—');
 
 function Stat({ label, value }: { label: string; value: string }) {

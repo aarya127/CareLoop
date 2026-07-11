@@ -78,12 +78,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Slight bone loss evident in posterior regions',
         ai_analysis: {
           summary: 'Automated screening identified conditions requiring review',
-          detected_issues: []
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 4.46
-        }
+          file_size_mb: 4.46,
+        },
       },
       {
         id: 'xr-001-02',
@@ -94,12 +94,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Healthy tooth structure, no abnormalities detected',
         ai_analysis: {
           summary: 'Automated screening identified conditions requiring review',
-          detected_issues: []
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 3.0
-        }
+          file_size_mb: 3.0,
+        },
       },
       {
         id: 'xr-001-03',
@@ -115,15 +115,15 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'cavity',
               location: 'Tooth #14, distal surface',
               confidence_score: 92,
-              severity: 'medium'
-            }
-          ]
+              severity: 'medium',
+            },
+          ],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 3.91
-        }
-      }
+          file_size_mb: 3.91,
+        },
+      },
     ],
   },
 
@@ -204,20 +204,20 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'cavity',
               location: 'Tooth #14, distal surface',
               confidence_score: 92,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'calculus',
               location: 'Lower anterior teeth',
               confidence_score: 95,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 4.42
-        }
+          file_size_mb: 4.42,
+        },
       },
       {
         id: 'xr-002-02',
@@ -233,14 +233,14 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'impacted_tooth',
               location: 'Tooth #32, horizontal impaction',
               confidence_score: 91,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 2.93
-        }
+          file_size_mb: 2.93,
+        },
       },
     ],
   },
@@ -317,8 +317,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Slight bone loss evident in posterior regions',
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 4.58
-        }
+          file_size_mb: 4.58,
+        },
       },
       {
         id: 'xr-003-02',
@@ -329,13 +329,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Minor calculus buildup visible',
         ai_analysis: {
           summary: 'AI analysis detected potential areas of concern',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 4.12
-        }
+          file_size_mb: 4.12,
+        },
       },
     ],
   },
@@ -412,13 +411,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Minor calculus buildup visible',
         ai_analysis: {
           summary: 'AI analysis complete: No significant issues detected',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 3.7
-        }
+          file_size_mb: 3.7,
+        },
       },
       {
         id: 'xr-004-02',
@@ -429,8 +427,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'No significant pathology detected',
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 2.55
-        }
+          file_size_mb: 2.55,
+        },
       },
     ],
   },
@@ -512,26 +510,26 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'impacted_tooth',
               location: 'Tooth #32, horizontal impaction',
               confidence_score: 91,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'periapical_lesion',
               location: 'Tooth #19 apex',
               confidence_score: 88,
-              severity: 'high'
+              severity: 'high',
             },
             {
               type: 'bone_loss',
               location: 'Posterior mandible',
               confidence_score: 85,
-              severity: 'high'
+              severity: 'high',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 2.49
-        }
+          file_size_mb: 2.49,
+        },
       },
       {
         id: 'xr-005-02',
@@ -547,26 +545,26 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'decay',
               location: 'Tooth #3, occlusal',
               confidence_score: 78,
-              severity: 'low'
+              severity: 'low',
             },
             {
               type: 'periapical_lesion',
               location: 'Tooth #19 apex',
               confidence_score: 88,
-              severity: 'high'
+              severity: 'high',
             },
             {
               type: 'impacted_tooth',
               location: 'Tooth #32, horizontal impaction',
               confidence_score: 91,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 3.91
-        }
+          file_size_mb: 3.91,
+        },
       },
       {
         id: 'xr-005-03',
@@ -577,8 +575,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Slight bone loss evident in posterior regions',
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 3.94
-        }
+          file_size_mb: 3.94,
+        },
       },
     ],
   },
@@ -655,8 +653,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Root canal filling appears adequate',
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 2.23
-        }
+          file_size_mb: 2.23,
+        },
       },
       {
         id: 'xr-006-02',
@@ -672,14 +670,14 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'bone_loss',
               location: 'Anterior maxilla',
               confidence_score: 79,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 2.72
-        }
+          file_size_mb: 2.72,
+        },
       },
     ],
   },
@@ -756,8 +754,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Crown margins appear well-adapted',
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 2.22
-        }
+          file_size_mb: 2.22,
+        },
       },
       {
         id: 'xr-007-02',
@@ -773,20 +771,20 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'cavity',
               location: 'Tooth #18, mesial surface',
               confidence_score: 87,
-              severity: 'high'
+              severity: 'high',
             },
             {
               type: 'bone_loss',
               location: 'Anterior maxilla',
               confidence_score: 79,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 1.96
-        }
+          file_size_mb: 1.96,
+        },
       },
       {
         id: 'xr-007-03',
@@ -797,8 +795,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Clear bilateral bitewings showing no interproximal decay',
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 3.16
-        }
+          file_size_mb: 3.16,
+        },
       },
     ],
   },
@@ -880,20 +878,20 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'periapical_lesion',
               location: 'Tooth #19 apex',
               confidence_score: 88,
-              severity: 'high'
+              severity: 'high',
             },
             {
               type: 'impacted_tooth',
               location: 'Tooth #32, horizontal impaction',
               confidence_score: 91,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 2.13
-        }
+          file_size_mb: 2.13,
+        },
       },
       {
         id: 'xr-008-02',
@@ -904,8 +902,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Some marginal bone resorption present',
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 2.36
-        }
+          file_size_mb: 2.36,
+        },
       },
       {
         id: 'xr-008-03',
@@ -916,8 +914,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Slight bone loss evident in posterior regions',
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 4.28
-        }
+          file_size_mb: 4.28,
+        },
       },
       {
         id: 'xr-008-04',
@@ -928,13 +926,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Well-defined periapical radiolucency noted',
         ai_analysis: {
           summary: 'AI screening complete: Recommend follow-up examination',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 3.93
-        }
+          file_size_mb: 3.93,
+        },
       },
     ],
   },
@@ -1016,26 +1013,26 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'impacted_tooth',
               location: 'Tooth #32, horizontal impaction',
               confidence_score: 91,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'cavity',
               location: 'Tooth #18, mesial surface',
               confidence_score: 87,
-              severity: 'high'
+              severity: 'high',
             },
             {
               type: 'bone_loss',
               location: 'Posterior mandible',
               confidence_score: 85,
-              severity: 'high'
+              severity: 'high',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 3.37
-        }
+          file_size_mb: 3.37,
+        },
       },
       {
         id: 'xr-009-02',
@@ -1046,13 +1043,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Some marginal bone resorption present',
         ai_analysis: {
           summary: 'Automated screening identified conditions requiring review',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 1.28
-        }
+          file_size_mb: 1.28,
+        },
       },
       {
         id: 'xr-009-03',
@@ -1063,13 +1059,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Root canal filling appears adequate',
         ai_analysis: {
           summary: 'AI analysis complete: No significant issues detected',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 3.14
-        }
+          file_size_mb: 3.14,
+        },
       },
     ],
   },
@@ -1146,13 +1141,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Healthy tooth structure, no abnormalities detected',
         ai_analysis: {
           summary: 'AI screening complete: Recommend follow-up examination',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 2.27
-        }
+          file_size_mb: 2.27,
+        },
       },
       {
         id: 'xr-010-02',
@@ -1163,8 +1157,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'No significant pathology detected',
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 2.13
-        }
+          file_size_mb: 2.13,
+        },
       },
     ],
   },
@@ -1241,8 +1235,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Minor calculus buildup visible',
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 4.29
-        }
+          file_size_mb: 4.29,
+        },
       },
       {
         id: 'xr-011-02',
@@ -1253,8 +1247,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Slight bone loss evident in posterior regions',
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 4.34
-        }
+          file_size_mb: 4.34,
+        },
       },
       {
         id: 'xr-011-03',
@@ -1265,13 +1259,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Excellent bone density throughout',
         ai_analysis: {
           summary: 'Automated screening identified conditions requiring review',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 4.29
-        }
+          file_size_mb: 4.29,
+        },
       },
     ],
   },
@@ -1353,20 +1346,20 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'impacted_tooth',
               location: 'Tooth #32, horizontal impaction',
               confidence_score: 91,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'calculus',
               location: 'Lower anterior teeth',
               confidence_score: 95,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 2.61
-        }
+          file_size_mb: 2.61,
+        },
       },
       {
         id: 'xr-012-02',
@@ -1382,20 +1375,20 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'cavity',
               location: 'Tooth #14, distal surface',
               confidence_score: 92,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'decay',
               location: 'Tooth #3, occlusal',
               confidence_score: 78,
-              severity: 'low'
+              severity: 'low',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 2.99
-        }
+          file_size_mb: 2.99,
+        },
       },
       {
         id: 'xr-012-03',
@@ -1411,14 +1404,14 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'periapical_lesion',
               location: 'Tooth #19 apex',
               confidence_score: 88,
-              severity: 'high'
+              severity: 'high',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 3.05
-        }
+          file_size_mb: 3.05,
+        },
       },
       {
         id: 'xr-012-04',
@@ -1434,26 +1427,26 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'cavity',
               location: 'Tooth #18, mesial surface',
               confidence_score: 87,
-              severity: 'high'
+              severity: 'high',
             },
             {
               type: 'cavity',
               location: 'Tooth #14, distal surface',
               confidence_score: 92,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'calculus',
               location: 'Lower anterior teeth',
               confidence_score: 95,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 2.31
-        }
+          file_size_mb: 2.31,
+        },
       },
     ],
   },
@@ -1535,14 +1528,14 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'impacted_tooth',
               location: 'Tooth #32, horizontal impaction',
               confidence_score: 91,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Kodak 8000C',
-          file_size_mb: 4.66
-        }
+          file_size_mb: 4.66,
+        },
       },
       {
         id: 'xr-013-02',
@@ -1553,13 +1546,12 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Root canal filling appears adequate',
         ai_analysis: {
           summary: 'Comprehensive AI analysis shows healthy structures',
-          detected_issues: [
-          ]
+          detected_issues: [],
         },
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 4.34
-        }
+          file_size_mb: 4.34,
+        },
       },
       {
         id: 'xr-013-03',
@@ -1575,20 +1567,20 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'calculus',
               location: 'Lower anterior teeth',
               confidence_score: 95,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'decay',
               location: 'Tooth #3, occlusal',
               confidence_score: 78,
-              severity: 'low'
+              severity: 'low',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 4.63
-        }
+          file_size_mb: 4.63,
+        },
       },
     ],
   },
@@ -1665,8 +1657,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Well-defined periapical radiolucency noted',
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 3.3
-        }
+          file_size_mb: 3.3,
+        },
       },
       {
         id: 'xr-014-02',
@@ -1677,8 +1669,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'No significant pathology detected',
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 1.97
-        }
+          file_size_mb: 1.97,
+        },
       },
       {
         id: 'xr-014-03',
@@ -1694,26 +1686,26 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'cavity',
               location: 'Tooth #18, mesial surface',
               confidence_score: 87,
-              severity: 'high'
+              severity: 'high',
             },
             {
               type: 'cavity',
               location: 'Tooth #14, distal surface',
               confidence_score: 92,
-              severity: 'medium'
+              severity: 'medium',
             },
             {
               type: 'periapical_lesion',
               location: 'Tooth #19 apex',
               confidence_score: 88,
-              severity: 'high'
+              severity: 'high',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 4.43
-        }
+          file_size_mb: 4.43,
+        },
       },
       {
         id: 'xr-014-04',
@@ -1729,14 +1721,14 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'cavity',
               location: 'Tooth #18, mesial surface',
               confidence_score: 87,
-              severity: 'high'
+              severity: 'high',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 2.48
-        }
+          file_size_mb: 2.48,
+        },
       },
     ],
   },
@@ -1813,8 +1805,8 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Excellent bone density throughout',
         metadata: {
           equipment: 'Dentsply Sirona ORTHOPHOS',
-          file_size_mb: 4.42
-        }
+          file_size_mb: 4.42,
+        },
       },
       {
         id: 'xr-015-02',
@@ -1830,20 +1822,20 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
               type: 'decay',
               location: 'Tooth #3, occlusal',
               confidence_score: 78,
-              severity: 'low'
+              severity: 'low',
             },
             {
               type: 'bone_loss',
               location: 'Anterior maxilla',
               confidence_score: 79,
-              severity: 'medium'
+              severity: 'medium',
             },
-          ]
+          ],
         },
         metadata: {
           equipment: 'Planmeca ProMax 3D',
-          file_size_mb: 3.08
-        }
+          file_size_mb: 3.08,
+        },
       },
       {
         id: 'xr-015-03',
@@ -1854,12 +1846,11 @@ export const mockDentalRecords: Record<string, PatientProfile> = {
         dentist_notes: 'Crown margins appear well-adapted',
         metadata: {
           equipment: 'Carestream CS 8100',
-          file_size_mb: 3.9
-        }
+          file_size_mb: 3.9,
+        },
       },
     ],
   },
-
 };
 
 /**
@@ -1880,10 +1871,13 @@ export function getDentalRecordById(patientId: string): PatientProfile | undefin
  */
 export function getAllDentalRecords(): PatientProfile[] {
   // Return shallow copies with radiographic records removed
-  return Object.values(mockDentalRecords).map((r) => ({
-    ...r,
-    radiographic_records: [],
-  } as PatientProfile));
+  return Object.values(mockDentalRecords).map(
+    (r) =>
+      ({
+        ...r,
+        radiographic_records: [],
+      }) as PatientProfile,
+  );
 }
 
 /**
@@ -1892,4 +1886,3 @@ export function getAllDentalRecords(): PatientProfile[] {
 export function hasDentalRecord(patientId: string): boolean {
   return patientId in mockDentalRecords;
 }
-

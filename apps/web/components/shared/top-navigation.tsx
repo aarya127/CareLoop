@@ -2,7 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Users, MessageSquare, Sparkles, Settings, User, Search, Bell } from 'lucide-react';
+import {
+  Calendar,
+  Users,
+  MessageSquare,
+  Sparkles,
+  Settings,
+  User,
+  Search,
+  Bell,
+} from 'lucide-react';
 import { useState } from 'react';
 
 type NotificationItem = {
@@ -36,7 +45,9 @@ export default function TopNavigation() {
     setNotificationsLoading(true);
     setNotificationError('');
     try {
-      const res = await fetch('http://localhost:3001/analytics/decision-actions?practiceId=demo-practice&rangeDays=30');
+      const res = await fetch(
+        'http://localhost:3001/analytics/decision-actions?practiceId=demo-practice&rangeDays=30',
+      );
       const json = (await res.json()) as {
         ok?: boolean;
         actions?: Array<{ actionKey: string; title: string; why: string; expectedImpact: string }>;
@@ -91,7 +102,7 @@ export default function TopNavigation() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
-              
+
               if (item.comingSoon) {
                 return (
                   <div
@@ -113,9 +124,10 @@ export default function TopNavigation() {
                   href={item.href}
                   className={`
                     relative px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2
-                    ${active 
-                      ? 'text-sky-400 bg-sky-50' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ${
+                      active
+                        ? 'text-sky-400 bg-sky-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                     }
                   `}
                 >
@@ -172,21 +184,30 @@ export default function TopNavigation() {
 
                     <div className="max-h-96 overflow-y-auto">
                       {notificationsLoading && (
-                        <div className="px-4 py-4 text-sm text-gray-500">Loading notifications...</div>
+                        <div className="px-4 py-4 text-sm text-gray-500">
+                          Loading notifications...
+                        </div>
                       )}
 
                       {!notificationsLoading && notificationError && (
                         <div className="px-4 py-4 text-sm text-red-600">{notificationError}</div>
                       )}
 
-                      {!notificationsLoading && !notificationError && notifications.length === 0 && (
-                        <div className="px-4 py-4 text-sm text-gray-500">No notifications yet.</div>
-                      )}
+                      {!notificationsLoading &&
+                        !notificationError &&
+                        notifications.length === 0 && (
+                          <div className="px-4 py-4 text-sm text-gray-500">
+                            No notifications yet.
+                          </div>
+                        )}
 
                       {!notificationsLoading &&
                         !notificationError &&
                         notifications.map((item) => (
-                          <div key={item.id} className="px-4 py-3 border-b border-gray-100 last:border-b-0">
+                          <div
+                            key={item.id}
+                            className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                          >
                             <p className="text-sm font-medium text-gray-900">{item.title}</p>
                             <p className="text-xs text-gray-600 mt-1">{item.subtitle}</p>
                             <p className="text-xs text-sky-700 mt-1">{item.impact}</p>
@@ -226,16 +247,13 @@ export default function TopNavigation() {
               {/* Dropdown Menu */}
               {showProfileMenu && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowProfileMenu(false)}
-                  />
+                  <div className="fixed inset-0 z-10" onClick={() => setShowProfileMenu(false)} />
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <div className="text-sm font-medium text-gray-900">Dr. Sarah Smith</div>
                       <div className="text-xs text-gray-500">smith@careloop.com</div>
                     </div>
-                    
+
                     <Link
                       href="/settings"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -244,7 +262,7 @@ export default function TopNavigation() {
                       <Settings className="w-4 h-4" />
                       Settings
                     </Link>
-                    
+
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -268,7 +286,7 @@ export default function TopNavigation() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
-            
+
             if (item.comingSoon) {
               return (
                 <div
@@ -290,17 +308,12 @@ export default function TopNavigation() {
                 href={item.href}
                 className={`
                   flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-w-fit
-                  ${active 
-                    ? 'text-sky-400 bg-sky-50' 
-                    : 'text-gray-600'
-                  }
+                  ${active ? 'text-sky-400 bg-sky-50' : 'text-gray-600'}
                 `}
               >
                 <Icon className="w-5 h-5" />
                 <span className="text-xs font-medium">{item.label}</span>
-                {active && (
-                  <div className="w-full h-0.5 bg-sky-400 rounded-full" />
-                )}
+                {active && <div className="w-full h-0.5 bg-sky-400 rounded-full" />}
               </Link>
             );
           })}
@@ -330,7 +343,8 @@ export default function TopNavigation() {
               </button>
             </div>
             <div className="mt-3 text-xs text-gray-500">
-              Press <kbd className="px-2 py-1 bg-gray-100 rounded">⌘</kbd> + <kbd className="px-2 py-1 bg-gray-100 rounded">K</kbd> to search anytime
+              Press <kbd className="px-2 py-1 bg-gray-100 rounded">⌘</kbd> +{' '}
+              <kbd className="px-2 py-1 bg-gray-100 rounded">K</kbd> to search anytime
             </div>
           </div>
         </div>
@@ -338,7 +352,7 @@ export default function TopNavigation() {
 
       {/* Backdrop for search */}
       {showSearchBar && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-20"
           onClick={() => setShowSearchBar(false)}
         />

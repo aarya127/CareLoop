@@ -65,9 +65,17 @@ export const remindersApi = {
   forAppointment: (appointmentId: string) =>
     apiFetch<Reminder[]>(`/reminders/appointment/${appointmentId}`),
 
-  history: (params: { practiceId: string; patientId?: string; channel?: string; status?: string }) => {
+  history: (params: {
+    practiceId: string;
+    patientId?: string;
+    channel?: string;
+    status?: string;
+  }) => {
     const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined)) as Record<string, string>,
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined)) as Record<
+        string,
+        string
+      >,
     );
     return apiFetch<Reminder[]>(`/reminders/history?${qs}`);
   },
@@ -78,9 +86,7 @@ export const remindersApi = {
       body: JSON.stringify(dto),
     }),
 
-  sendNow: (id: string) =>
-    apiFetch<Reminder>(`/reminders/${id}/send`, { method: 'POST' }),
+  sendNow: (id: string) => apiFetch<Reminder>(`/reminders/${id}/send`, { method: 'POST' }),
 
-  cancel: (id: string) =>
-    apiFetch<Reminder>(`/reminders/${id}/cancel`, { method: 'PATCH' }),
+  cancel: (id: string) => apiFetch<Reminder>(`/reminders/${id}/cancel`, { method: 'PATCH' }),
 };

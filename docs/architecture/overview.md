@@ -6,6 +6,7 @@
 ---
 
 ## Table of Contents
+
 1. [Overview](#1-overview)
 2. [Architecture Diagram](#2-architecture-diagram)
 3. [Frontend](#3-frontend)
@@ -28,14 +29,14 @@
 
 CareLoop is a multi-tenant SaaS platform for dental practices. It unifies:
 
-| Capability | Description |
-|---|---|
-| **AI Voice Receptionist** | Answers inbound calls, detects intent, books appointments via Twilio + ElevenLabs |
-| **Appointment Scheduling** | Provider/room availability engine synced bidirectionally with Google Calendar |
-| **Patient Management** | HIPAA-encrypted records, insurance, periodontal charting, X-rays |
-| **Call Analytics** | Sentiment scoring, treatment-acceptance tracking, per-practice KPI dashboards |
-| **Omni-Channel Messaging** | Conversations between staff and patients (SMS/web — in progress) |
-| **RBAC Admin Portal** | Role-scoped dashboards for Admin, Doctor, Hygienist, Receptionist, Billing |
+| Capability                 | Description                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------- |
+| **AI Voice Receptionist**  | Answers inbound calls, detects intent, books appointments via Twilio + ElevenLabs |
+| **Appointment Scheduling** | Provider/room availability engine synced bidirectionally with Google Calendar     |
+| **Patient Management**     | HIPAA-encrypted records, insurance, periodontal charting, X-rays                  |
+| **Call Analytics**         | Sentiment scoring, treatment-acceptance tracking, per-practice KPI dashboards     |
+| **Omni-Channel Messaging** | Conversations between staff and patients (SMS/web — in progress)                  |
+| **RBAC Admin Portal**      | Role-scoped dashboards for Admin, Doctor, Hygienist, Receptionist, Billing        |
 
 ---
 
@@ -92,6 +93,7 @@ Side services (same process):
 ## 3. Frontend
 
 ### Tech
+
 - **Next.js 15** App Router — all pages under `app/`
 - **React 19** with `'use client'` components throughout
 - **TanStack React Query 5** for server state / cache
@@ -114,11 +116,13 @@ Side services (same process):
 ```
 
 ### Performance Strategy
+
 - **FullCalendar** (~300 KB) lazy-loaded via `next/dynamic` with `ssr: false`
 - **Recharts** analytics dashboard lazy-loaded via `next/dynamic` with `ssr: false`
 - `lucide-react`, `recharts`, `framer-motion` in `optimizePackageImports` for tree-shaking
 
 ### Auth Flow
+
 `AuthProvider` wraps the entire app (in `Providers`). On load it reads a mock JWT from `localStorage`, decodes it, and hydrates `user` state. `AdminLayout` redirects to `/login` if `user` is null after hydration completes.
 
 ---
@@ -129,64 +133,66 @@ All routes live under `app/api/` and run as **Next.js Route Handlers** (Node.js 
 
 ### Calendar
 
-| Route | Method | Description |
-|---|---|---|
-| `/api/calendar/events` | GET | Fetch events from connected Google Calendar for a date range |
-| `/api/calendar/events` | POST | Create appointment in DB + insert Google Calendar event |
-| `/api/calendar/events/[id]` | PATCH | Update appointment + sync to Google |
-| `/api/calendar/list` | GET | List user's available Google calendars |
-| `/api/calendar/freebusy` | POST | Query provider free/busy windows |
-| `/api/calendar/watch` | POST | Register Google push-notification watch channel |
-| `/api/calendar/webhook` | POST | Receive incremental sync notifications from Google |
+| Route                       | Method | Description                                                  |
+| --------------------------- | ------ | ------------------------------------------------------------ |
+| `/api/calendar/events`      | GET    | Fetch events from connected Google Calendar for a date range |
+| `/api/calendar/events`      | POST   | Create appointment in DB + insert Google Calendar event      |
+| `/api/calendar/events/[id]` | PATCH  | Update appointment + sync to Google                          |
+| `/api/calendar/list`        | GET    | List user's available Google calendars                       |
+| `/api/calendar/freebusy`    | POST   | Query provider free/busy windows                             |
+| `/api/calendar/watch`       | POST   | Register Google push-notification watch channel              |
+| `/api/calendar/webhook`     | POST   | Receive incremental sync notifications from Google           |
 
 ### Availability
 
-| Route | Method | Description |
-|---|---|---|
-| `/api/availability/slots` | GET | Compute open slots: schedule − appointments − blocks − holds |
+| Route                     | Method | Description                                                  |
+| ------------------------- | ------ | ------------------------------------------------------------ |
+| `/api/availability/slots` | GET    | Compute open slots: schedule − appointments − blocks − holds |
 
 ### Voice (AI Receptionist)
 
-| Route | Method | Description |
-|---|---|---|
-| `/api/voice/telephony/webhook` | POST | Twilio inbound call entry point (TwiML) |
-| `/api/voice/telephony/gather` | POST | Process speech → intent → AI response |
-| `/api/voice/telephony/audio/[id]` | GET | Serve synthesized TTS audio |
-| `/api/voice/elevenlabs/tts` | POST | Convert text to speech |
-| `/api/voice/elevenlabs/assistant` | POST | Intent detection + response generation |
-| `/api/voice/tools/calendar-availability` | POST | Tool: get next open slots (called by AI) |
-| `/api/voice/tools/patient-context` | POST | Tool: get patient summary for AI context |
-| `/api/voice/tools/create-appointment` | POST | Tool: book appointment from voice call |
-| `/api/voice/tools/transcripts/segment` | POST | Store per-utterance transcript segment |
-| `/api/voice/tools/transcripts/finalize` | POST | Finalize transcript + extract KPIs |
-| `/api/voice/webhook` | POST | Post-call webhook (analytics trigger) |
-| `/api/voice/calls/start` | POST | Initiate outbound call |
-| `/api/voice/overtake/control` | POST | Switch AI → human (and back) |
-| `/api/voice/overtake/state/[callId]` | GET | Query live call state |
+| Route                                    | Method | Description                              |
+| ---------------------------------------- | ------ | ---------------------------------------- |
+| `/api/voice/telephony/webhook`           | POST   | Twilio inbound call entry point (TwiML)  |
+| `/api/voice/telephony/gather`            | POST   | Process speech → intent → AI response    |
+| `/api/voice/telephony/audio/[id]`        | GET    | Serve synthesized TTS audio              |
+| `/api/voice/elevenlabs/tts`              | POST   | Convert text to speech                   |
+| `/api/voice/elevenlabs/assistant`        | POST   | Intent detection + response generation   |
+| `/api/voice/tools/calendar-availability` | POST   | Tool: get next open slots (called by AI) |
+| `/api/voice/tools/patient-context`       | POST   | Tool: get patient summary for AI context |
+| `/api/voice/tools/create-appointment`    | POST   | Tool: book appointment from voice call   |
+| `/api/voice/tools/transcripts/segment`   | POST   | Store per-utterance transcript segment   |
+| `/api/voice/tools/transcripts/finalize`  | POST   | Finalize transcript + extract KPIs       |
+| `/api/voice/webhook`                     | POST   | Post-call webhook (analytics trigger)    |
+| `/api/voice/calls/start`                 | POST   | Initiate outbound call                   |
+| `/api/voice/overtake/control`            | POST   | Switch AI → human (and back)             |
+| `/api/voice/overtake/state/[callId]`     | GET    | Query live call state                    |
 
 ### Analytics
 
-| Route | Method | Description |
-|---|---|---|
-| `/api/analytics/overview` | GET | Aggregate KPIs + transcript counts by date range |
+| Route                     | Method | Description                                      |
+| ------------------------- | ------ | ------------------------------------------------ |
+| `/api/analytics/overview` | GET    | Aggregate KPIs + transcript counts by date range |
 
 ### Settings
 
-| Route | Method | Description |
-|---|---|---|
-| `/api/settings/ai-prompt` | GET / POST | Read / create versioned AI system prompts |
-| `/api/settings/routing-policies` | GET / POST | Call routing rules by patient type |
-| `/api/settings/thresholds` | GET / POST | Alert thresholds (sentiment floor, escalation rules) |
+| Route                            | Method     | Description                                          |
+| -------------------------------- | ---------- | ---------------------------------------------------- |
+| `/api/settings/ai-prompt`        | GET / POST | Read / create versioned AI system prompts            |
+| `/api/settings/routing-policies` | GET / POST | Call routing rules by patient type                   |
+| `/api/settings/thresholds`       | GET / POST | Alert thresholds (sentiment floor, escalation rules) |
 
 ---
 
 ## 5. Authentication & Authorization
 
 ### Mechanism
-Currently a **mock JWT** system (production-ready structure, mock signature):  
-1. User submits email/password → `login()` in `auth-context.tsx`  
-2. Role inferred from email domain (`admin@`, `doctor@`, …)  
-3. JWT constructed client-side with 24-hour expiry → stored in `localStorage`  
+
+Currently a **mock JWT** system (production-ready structure, mock signature):
+
+1. User submits email/password → `login()` in `auth-context.tsx`
+2. Role inferred from email domain (`admin@`, `doctor@`, …)
+3. JWT constructed client-side with 24-hour expiry → stored in `localStorage`
 4. On reload: JWT decoded → user hydrated → `AdminLayout` enforces auth guard
 
 > **Production TODO:** Replace with server-issued signed JWTs (e.g. via `jose`) and HTTP-only cookie storage.
@@ -241,14 +247,14 @@ Practice
 
 ### Key Design Decisions
 
-| Decision | Rationale |
-|---|---|
-| `memberIdEnc` / `groupNumberEnc` encrypted at rest | HIPAA PHI protection for insurance identifiers |
-| `transcriptEmbedding` on `CallTranscript` | Enables vector similarity search without a separate vector DB |
-| `googleEventId` + `calendarId` on `Appointment` | Idempotent upsert on Google webhook sync |
-| `AppointmentHold` with `expiresAt` | Prevents double-booking during concurrent voice + web sessions |
-| `syncToken` + `resourceId` on `GoogleCalendarConnection` | Incremental sync (only delta changes, not full re-fetch) |
-| Separate `CallTranscriptSegment` table | Enables per-speaker analytics and partial streaming writes |
+| Decision                                                 | Rationale                                                      |
+| -------------------------------------------------------- | -------------------------------------------------------------- |
+| `memberIdEnc` / `groupNumberEnc` encrypted at rest       | HIPAA PHI protection for insurance identifiers                 |
+| `transcriptEmbedding` on `CallTranscript`                | Enables vector similarity search without a separate vector DB  |
+| `googleEventId` + `calendarId` on `Appointment`          | Idempotent upsert on Google webhook sync                       |
+| `AppointmentHold` with `expiresAt`                       | Prevents double-booking during concurrent voice + web sessions |
+| `syncToken` + `resourceId` on `GoogleCalendarConnection` | Incremental sync (only delta changes, not full re-fetch)       |
+| Separate `CallTranscriptSegment` table                   | Enables per-speaker analytics and partial streaming writes     |
 
 ---
 
@@ -289,16 +295,18 @@ POST /api/voice/tools/transcripts/finalize  (on call end)
 ```
 
 ### Orchestrator Support
+
 CareLoop is designed to swap between four voice AI orchestrators:
 
-| Orchestrator | Mode | Status |
-|---|---|---|
+| Orchestrator   | Mode                            | Status           |
+| -------------- | ------------------------------- | ---------------- |
 | **ElevenLabs** | TTS + intent within Twilio flow | Active (primary) |
-| **Vapi** | Managed voice pipeline | Stubbed |
-| **Retell** | Managed voice pipeline | Stubbed |
-| **Pipecat** | Self-hosted pipeline | Stubbed |
+| **Vapi**       | Managed voice pipeline          | Stubbed          |
+| **Retell**     | Managed voice pipeline          | Stubbed          |
+| **Pipecat**    | Self-hosted pipeline            | Stubbed          |
 
 ### Human Overtake
+
 `/api/voice/overtake/control` allows a logged-in staff member to take over an active AI call. State is tracked per `callId` on `CallTranscript`.
 
 ---
@@ -326,11 +334,11 @@ GET /api/oauth/google/callback
 
 ### Bidirectional Sync
 
-| Direction | Mechanism |
-|---|---|
-| **Write** | On appointment create/update → `google.calendar.insertEvent()` / `updateEvent()` |
-| **Read** | `/api/calendar/events` proxies `google.calendar.listEvents()` |
-| **Push** | Google calls `/api/calendar/webhook` on any calendar change → upserts local Appointment |
+| Direction | Mechanism                                                                               |
+| --------- | --------------------------------------------------------------------------------------- |
+| **Write** | On appointment create/update → `google.calendar.insertEvent()` / `updateEvent()`        |
+| **Read**  | `/api/calendar/events` proxies `google.calendar.listEvents()`                           |
+| **Push**  | Google calls `/api/calendar/webhook` on any calendar change → upserts local Appointment |
 
 Incremental sync uses `syncToken` (stored on `GoogleCalendarConnection`) — only changed events are fetched, not the full calendar.
 
@@ -392,9 +400,11 @@ Frontend: PracticeKpiDashboard (Recharts)
 `lib/services/audit-service.ts` provides HIPAA/PHIPA-compliant activity logging.
 
 ### Tracked Actions (30+)
+
 `user_login`, `user_logout`, `session_restored`, `view_patient`, `create_appointment`, `update_appointment`, `cancel_appointment`, `view_dental_record`, `view_xray`, `view_insurance`, `reveal_pii`, `send_message`, `initiate_call`, `export_data`, …
 
 ### Log Entry Structure
+
 ```ts
 {
   timestamp:  ISO8601,
@@ -522,6 +532,7 @@ npm run dev           # Start dev server
 ```
 
 ### Production Checklist
+
 - [ ] Replace mock JWT with server-signed tokens (e.g. `jose`) in HTTP-only cookies
 - [ ] Move vector index from local JSON → pgvector extension on PostgreSQL
 - [ ] Implement real audit log table (not console)
@@ -535,14 +546,14 @@ npm run dev           # Start dev server
 
 ## 15. Known Gaps & Roadmap
 
-| Area | Current State | Production Path |
-|---|---|---|
-| **Auth** | Mock JWT in localStorage | Server-signed JWT in HTTP-only cookie, refresh token rotation |
-| **Vector Search** | In-process JSON file | pgvector or Pinecone for concurrent access |
-| **Audit Logs** | Console output + memory buffer | Dedicated `audit_logs` DB table or SIEM sink |
-| **Messaging** | Schema + UI exist, no API wiring | Implement conversation CRUD API, add websocket for real-time |
-| **Voice Orchestrators** | ElevenLabs active, Vapi/Retell/Pipecat stubbed | Implement adapter pattern per orchestrator |
-| **Billing / Billing role** | Role defined, no billing UI | Add billing dashboard, procedure code pricing, EOB parsing |
-| **Twilio Security** | No webhook signature check | Add `twilio.validateRequest()` on all `/api/voice/telephony/*` |
-| **Multi-practice** | Schema ready, demo uses `prac_001` | Add practice selection post-login, tenant provisioning flow |
-| **Test Coverage** | `tests/` directory empty | Unit tests for availability engine + analytics pipeline |
+| Area                       | Current State                                  | Production Path                                                |
+| -------------------------- | ---------------------------------------------- | -------------------------------------------------------------- |
+| **Auth**                   | Mock JWT in localStorage                       | Server-signed JWT in HTTP-only cookie, refresh token rotation  |
+| **Vector Search**          | In-process JSON file                           | pgvector or Pinecone for concurrent access                     |
+| **Audit Logs**             | Console output + memory buffer                 | Dedicated `audit_logs` DB table or SIEM sink                   |
+| **Messaging**              | Schema + UI exist, no API wiring               | Implement conversation CRUD API, add websocket for real-time   |
+| **Voice Orchestrators**    | ElevenLabs active, Vapi/Retell/Pipecat stubbed | Implement adapter pattern per orchestrator                     |
+| **Billing / Billing role** | Role defined, no billing UI                    | Add billing dashboard, procedure code pricing, EOB parsing     |
+| **Twilio Security**        | No webhook signature check                     | Add `twilio.validateRequest()` on all `/api/voice/telephony/*` |
+| **Multi-practice**         | Schema ready, demo uses `prac_001`             | Add practice selection post-login, tenant provisioning flow    |
+| **Test Coverage**          | `tests/` directory empty                       | Unit tests for availability engine + analytics pipeline        |

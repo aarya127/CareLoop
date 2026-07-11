@@ -43,7 +43,7 @@ import type {
 export function generateDayViewSlots(
   date: Date,
   appointments: CalendarAppointment[],
-  workingHours: { start: number; end: number } = { start: 6, end: 20 }
+  workingHours: { start: number; end: number } = { start: 6, end: 20 },
 ): DayViewSlot[] {
   const slots: DayViewSlot[] = [];
   const currentTime = new Date();
@@ -62,8 +62,7 @@ export function generateDayViewSlots(
       hour,
       minute: 0,
       appointments: slotAppointments,
-      isCurrentHour:
-        isToday(date) && hour === currentTime.getHours(),
+      isCurrentHour: isToday(date) && hour === currentTime.getHours(),
       isPast: isBefore(slotTime, currentTime),
     });
   }
@@ -77,7 +76,7 @@ export function generateDayViewSlots(
 export function generateWeekViewDays(
   date: Date,
   appointments: CalendarAppointment[],
-  firstDayOfWeek: 0 | 1 = 1 // 1 = Monday
+  firstDayOfWeek: 0 | 1 = 1, // 1 = Monday
 ): WeekViewDay[] {
   const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek });
   const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek });
@@ -99,19 +98,17 @@ export function generateWeekViewDays(
 export function generateMonthViewDays(
   date: Date,
   appointments: CalendarAppointment[],
-  firstDayOfWeek: 0 | 1 = 1
+  firstDayOfWeek: 0 | 1 = 1,
 ): MonthViewDay[] {
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: firstDayOfWeek });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: firstDayOfWeek });
-  
+
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   return days.map((day) => {
-    const dayAppointments = appointments.filter((apt) =>
-      isSameDay(apt.startTime, day)
-    );
+    const dayAppointments = appointments.filter((apt) => isSameDay(apt.startTime, day));
 
     return {
       date: day,
@@ -130,22 +127,22 @@ export function generateMonthViewDays(
  * Calculate current time position (for red line indicator)
  */
 export function calculateCurrentTimePosition(
-  workingHours: { start: number; end: number } = { start: 6, end: 20 }
+  workingHours: { start: number; end: number } = { start: 6, end: 20 },
 ): number {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
-  
+
   const startHour = workingHours.start;
   const endHour = workingHours.end;
-  
+
   if (currentHour < startHour || currentHour > endHour) {
     return -1; // Not in working hours
   }
-  
+
   const totalMinutes = (currentHour - startHour) * 60 + currentMinute;
   const slotHeight = 100; // pixels per hour
-  
+
   return (totalMinutes / 60) * slotHeight;
 }
 
@@ -172,7 +169,7 @@ export function calculateDuration(start: Date, end: Date): number {
 export function calculateAppointmentHeight(
   start: Date,
   end: Date,
-  pixelsPerMinute: number = 2
+  pixelsPerMinute: number = 2,
 ): number {
   const duration = calculateDuration(start, end);
   return duration * pixelsPerMinute;
@@ -184,7 +181,7 @@ export function calculateAppointmentHeight(
 export function calculateAppointmentTop(
   appointmentStart: Date,
   dayStart: Date,
-  pixelsPerMinute: number = 2
+  pixelsPerMinute: number = 2,
 ): number {
   const minutesFromStart = differenceInMinutes(appointmentStart, dayStart);
   return minutesFromStart * pixelsPerMinute;
@@ -195,31 +192,36 @@ export function calculateAppointmentTop(
  */
 export function detectConflicts(
   newAppointment: { startTime: Date; endTime: Date; doctorId: string },
-  existingAppointments: CalendarAppointment[]
+  existingAppointments: CalendarAppointment[],
 ): ConflictDetection {
   const conflicts = existingAppointments.filter((apt) => {
     // Same doctor
     if (apt.doctorId !== newAppointment.doctorId) return false;
-    
+
     // Time overlap
     const newStart = newAppointment.startTime;
     const newEnd = newAppointment.endTime;
     const aptStart = apt.startTime;
     const aptEnd = apt.endTime;
-    
+
     return (
       (newStart >= aptStart && newStart < aptEnd) || // Starts during existing
-      (newEnd > aptStart && newEnd <= aptEnd) ||     // Ends during existing
-      (newStart <= aptStart && newEnd >= aptEnd)     // Completely overlaps
+      (newEnd > aptStart && newEnd <= aptEnd) || // Ends during existing
+      (newStart <= aptStart && newEnd >= aptEnd) // Completely overlaps
     );
   });
 
   return {
     hasConflict: conflicts.length > 0,
     conflictingAppointments: conflicts,
-    suggestedAlternatives: conflicts.length > 0 
-      ? generateAlternativeTimes(newAppointment.startTime, newAppointment.endTime, existingAppointments)
-      : undefined,
+    suggestedAlternatives:
+      conflicts.length > 0
+        ? generateAlternativeTimes(
+            newAppointment.startTime,
+            newAppointment.endTime,
+            existingAppointments,
+          )
+        : undefined,
   };
 }
 
@@ -229,28 +231,28 @@ export function detectConflicts(
 function generateAlternativeTimes(
   preferredStart: Date,
   preferredEnd: Date,
-  existingAppointments: CalendarAppointment[]
+  existingAppointments: CalendarAppointment[],
 ): Date[] {
   const alternatives: Date[] = [];
   const duration = calculateDuration(preferredStart, preferredEnd);
-  
+
   // Try same day, different times
   for (let offset = 30; offset <= 180; offset += 30) {
     const altStart = addMinutes(preferredStart, offset);
     const altEnd = addMinutes(altStart, duration);
-    
+
     const conflict = detectConflicts(
       { startTime: altStart, endTime: altEnd, doctorId: '' },
-      existingAppointments
+      existingAppointments,
     );
-    
+
     if (!conflict.hasConflict) {
       alternatives.push(altStart);
     }
-    
+
     if (alternatives.length >= 3) break;
   }
-  
+
   return alternatives;
 }
 
@@ -263,8 +265,8 @@ function addMinutes(date: Date, minutes: number): Date {
  */
 export function getBookingSourceColor(source: 'AI' | 'Manual' | 'Rescheduled'): string {
   const colors = {
-    AI: '#3B82F6',        // Blue
-    Manual: '#10B981',     // Green
+    AI: '#3B82F6', // Blue
+    Manual: '#10B981', // Green
     Rescheduled: '#F59E0B', // Orange
   };
   return colors[source];
@@ -288,23 +290,17 @@ export function getBookingSourceGradient(source: 'AI' | 'Manual' | 'Rescheduled'
 export function navigateCalendar(
   currentDate: Date,
   direction: 'prev' | 'next',
-  viewMode: 'day' | 'week' | 'month'
+  viewMode: 'day' | 'week' | 'month',
 ): Date {
   const multiplier = direction === 'next' ? 1 : -1;
-  
+
   switch (viewMode) {
     case 'day':
-      return direction === 'next' 
-        ? addDays(currentDate, 1) 
-        : subDays(currentDate, 1);
+      return direction === 'next' ? addDays(currentDate, 1) : subDays(currentDate, 1);
     case 'week':
-      return direction === 'next'
-        ? addWeeks(currentDate, 1)
-        : subWeeks(currentDate, 1);
+      return direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
     case 'month':
-      return direction === 'next'
-        ? addMonths(currentDate, 1)
-        : subMonths(currentDate, 1);
+      return direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1);
     default:
       return currentDate;
   }
@@ -334,7 +330,7 @@ export function getNavigationDisplayText(date: Date, viewMode: 'day' | 'week' | 
 export function filterAppointmentsByRange(
   appointments: CalendarAppointment[],
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): CalendarAppointment[] {
   return appointments.filter((apt) => {
     return apt.startTime >= startDate && apt.startTime <= endDate;
@@ -344,28 +340,24 @@ export function filterAppointmentsByRange(
 /**
  * Sort appointments by start time
  */
-export function sortAppointmentsByTime(
-  appointments: CalendarAppointment[]
-): CalendarAppointment[] {
-  return [...appointments].sort(
-    (a, b) => a.startTime.getTime() - b.startTime.getTime()
-  );
+export function sortAppointmentsByTime(appointments: CalendarAppointment[]): CalendarAppointment[] {
+  return [...appointments].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 }
 
 /**
  * Group appointments by day
  */
 export function groupAppointmentsByDay(
-  appointments: CalendarAppointment[]
+  appointments: CalendarAppointment[],
 ): Map<string, CalendarAppointment[]> {
   const grouped = new Map<string, CalendarAppointment[]>();
-  
+
   appointments.forEach((apt) => {
     const dateKey = format(apt.startTime, 'yyyy-MM-dd');
     const existing = grouped.get(dateKey) || [];
     grouped.set(dateKey, [...existing, apt]);
   });
-  
+
   return grouped;
 }
 
@@ -377,14 +369,14 @@ export function isTimeSlotAvailable(
   startHour: number,
   endHour: number,
   appointments: CalendarAppointment[],
-  doctorId?: string
+  doctorId?: string,
 ): boolean {
   const slotStart = setMinutes(setHours(startOfDay(date), startHour), 0);
   const slotEnd = setMinutes(setHours(startOfDay(date), endHour), 0);
-  
+
   return !appointments.some((apt) => {
     if (doctorId && apt.doctorId !== doctorId) return false;
-    
+
     return (
       (slotStart >= apt.startTime && slotStart < apt.endTime) ||
       (slotEnd > apt.startTime && slotEnd <= apt.endTime) ||

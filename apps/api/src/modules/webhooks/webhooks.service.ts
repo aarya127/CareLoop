@@ -100,7 +100,12 @@ export class WebhooksService {
       const messageId = (evt as any).sg_message_id ?? (evt as any).email ?? Date.now();
       const idempotencyKey = `sendgrid:${event}:${messageId}`;
 
-      const logId = await this.logInbound('sendgrid', event, idempotencyKey, evt as Record<string, unknown>);
+      const logId = await this.logInbound(
+        'sendgrid',
+        event,
+        idempotencyKey,
+        evt as Record<string, unknown>,
+      );
       if (!logId) continue;
 
       await enqueueWebhook({
@@ -132,7 +137,9 @@ export class WebhooksService {
         this.logger.error('GOOGLE_CALENDAR_WEBHOOK_TOKEN not set — rejecting calendar webhook');
         throw new BadRequestException('Calendar webhook not configured');
       }
-      this.logger.warn('GOOGLE_CALENDAR_WEBHOOK_TOKEN not set — skipping token check (non-production only)');
+      this.logger.warn(
+        'GOOGLE_CALENDAR_WEBHOOK_TOKEN not set — skipping token check (non-production only)',
+      );
     } else if (channelToken !== expectedToken) {
       this.logger.warn(`Invalid Google Calendar channel token for channel ${channelId}`);
       throw new BadRequestException('Invalid calendar webhook token');
@@ -141,7 +148,11 @@ export class WebhooksService {
     const event = resourceState || 'sync';
     const idempotencyKey = `google_calendar:${channelId}:${event}:${Date.now()}`;
 
-    const logId = await this.logInbound('google_calendar', event, idempotencyKey, { ...payload, channelId, resourceState });
+    const logId = await this.logInbound('google_calendar', event, idempotencyKey, {
+      ...payload,
+      channelId,
+      resourceState,
+    });
     if (!logId) return;
 
     await enqueueWebhook({
@@ -169,7 +180,9 @@ export class WebhooksService {
         this.logger.error('STRIPE_WEBHOOK_SECRET not set — rejecting Stripe webhook');
         throw new BadRequestException('Stripe webhook not configured');
       }
-      this.logger.warn('STRIPE_WEBHOOK_SECRET not set — skipping signature validation (non-production only)');
+      this.logger.warn(
+        'STRIPE_WEBHOOK_SECRET not set — skipping signature validation (non-production only)',
+      );
     } else if (!this.verifyStripeSignature(rawBody, signature, secret)) {
       this.logger.warn('Invalid Stripe webhook signature');
       throw new BadRequestException('Invalid Stripe signature');

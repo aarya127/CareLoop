@@ -85,16 +85,19 @@ export class MessagingService {
       },
     });
 
-    await enqueueAppointmentReminder({
-      appointmentId: dto.appointmentId ?? '',
-      patientId: dto.patientId,
-      practiceId,
-      reminderId: reminder.id,
-      channel: dto.channel,
-      to: dto.to,
-      reminderType: dto.channel, // backward compat
-      content: dto.body,
-    }, { delay: delayMs });
+    await enqueueAppointmentReminder(
+      {
+        appointmentId: dto.appointmentId ?? '',
+        patientId: dto.patientId,
+        practiceId,
+        reminderId: reminder.id,
+        channel: dto.channel,
+        to: dto.to,
+        reminderType: dto.channel, // backward compat
+        content: dto.body,
+      },
+      { delay: delayMs },
+    );
 
     this.logger.log(`Reminder ${reminder.id} scheduled for ${dto.scheduledAt} via ${dto.channel}`);
     return reminder;

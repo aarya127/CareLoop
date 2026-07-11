@@ -26,7 +26,11 @@ function formatCents(cents: number) {
 
 function formatDate(iso?: string | null) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 // ─── Summary Card ────────────────────────────────────────────────────────────
@@ -45,7 +49,9 @@ function SummaryCard({ label, value, sub }: { label: string; value: string; sub?
 
 function StatusBadge({ status }: { status: InvoiceStatus }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${INVOICE_STATUS_COLORS[status]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${INVOICE_STATUS_COLORS[status]}`}
+    >
       {INVOICE_STATUS_LABELS[status]}
     </span>
   );
@@ -250,7 +256,11 @@ export default function PatientBillingPage() {
       {/* Summary cards */}
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <SummaryCard label="Total Invoiced" value={formatCents(summary.totalInvoicedCents)} sub={`${summary.invoiceCount} invoice${summary.invoiceCount !== 1 ? 's' : ''}`} />
+          <SummaryCard
+            label="Total Invoiced"
+            value={formatCents(summary.totalInvoicedCents)}
+            sub={`${summary.invoiceCount} invoice${summary.invoiceCount !== 1 ? 's' : ''}`}
+          />
           <SummaryCard label="Total Paid" value={formatCents(summary.totalPaidCents)} />
           <SummaryCard label="Outstanding" value={formatCents(summary.outstandingCents)} />
           <SummaryCard label="Overdue" value={String(summary.overdueCount)} sub="invoices" />
@@ -273,7 +283,9 @@ export default function PatientBillingPage() {
                 min="0.01"
                 required
                 value={invoiceForm.totalAmountCents}
-                onChange={(e) => setInvoiceForm((f) => ({ ...f, totalAmountCents: e.target.value }))}
+                onChange={(e) =>
+                  setInvoiceForm((f) => ({ ...f, totalAmountCents: e.target.value }))
+                }
                 className="w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -282,7 +294,12 @@ export default function PatientBillingPage() {
               <label className="block text-xs text-gray-500 mb-1">Payer Type</label>
               <select
                 value={invoiceForm.payerType}
-                onChange={(e) => setInvoiceForm((f) => ({ ...f, payerType: e.target.value as 'patient' | 'insurance' }))}
+                onChange={(e) =>
+                  setInvoiceForm((f) => ({
+                    ...f,
+                    payerType: e.target.value as 'patient' | 'insurance',
+                  }))
+                }
                 className="w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="patient">Patient</option>
@@ -312,7 +329,10 @@ export default function PatientBillingPage() {
           <div className="flex gap-2 justify-end">
             <button
               type="button"
-              onClick={() => { setShowInvoiceForm(false); setInvoiceForm(DEFAULT_FORM); }}
+              onClick={() => {
+                setShowInvoiceForm(false);
+                setInvoiceForm(DEFAULT_FORM);
+              }}
               className="rounded-md border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
             >
               Cancel
@@ -338,11 +358,16 @@ export default function PatientBillingPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  {['Amount', 'Status', 'Payer', 'Due', 'Issued', 'Payments', 'Actions'].map((h) => (
-                    <th key={h} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      {h}
-                    </th>
-                  ))}
+                  {['Amount', 'Status', 'Payer', 'Due', 'Issued', 'Payments', 'Actions'].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
@@ -354,17 +379,24 @@ export default function PatientBillingPage() {
 
                   return (
                     <tr key={inv.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 font-medium text-gray-900">{formatCents(inv.totalAmountCents)}</td>
-                      <td className="px-4 py-2"><StatusBadge status={inv.status} /></td>
+                      <td className="px-4 py-2 font-medium text-gray-900">
+                        {formatCents(inv.totalAmountCents)}
+                      </td>
+                      <td className="px-4 py-2">
+                        <StatusBadge status={inv.status} />
+                      </td>
                       <td className="px-4 py-2 text-gray-600 capitalize">{inv.payerType}</td>
                       <td className="px-4 py-2 text-gray-500">{formatDate(inv.dueDate)}</td>
                       <td className="px-4 py-2 text-gray-500">{formatDate(inv.issuedAt)}</td>
                       <td className="px-4 py-2 text-gray-600">
                         <button
-                          onClick={() => setSelectedInvoiceId(selectedInvoiceId === inv.id ? null : inv.id)}
+                          onClick={() =>
+                            setSelectedInvoiceId(selectedInvoiceId === inv.id ? null : inv.id)
+                          }
                           className="text-blue-600 hover:underline text-xs"
                         >
-                          {formatCents(paidSoFar)} / {invPayments.length} payment{invPayments.length !== 1 ? 's' : ''}
+                          {formatCents(paidSoFar)} / {invPayments.length} payment
+                          {invPayments.length !== 1 ? 's' : ''}
                         </button>
                       </td>
                       <td className="px-4 py-2">
@@ -379,7 +411,10 @@ export default function PatientBillingPage() {
                           )}
                           {['sent', 'overdue'].includes(inv.status) && (
                             <button
-                              onClick={() => { setPaymentTarget(inv); setPaymentForm(DEFAULT_PAYMENT_FORM); }}
+                              onClick={() => {
+                                setPaymentTarget(inv);
+                                setPaymentForm(DEFAULT_PAYMENT_FORM);
+                              }}
                               className="text-xs text-green-600 hover:underline"
                             >
                               + Payment
@@ -407,14 +442,15 @@ export default function PatientBillingPage() {
       {/* Payment detail panel */}
       {selectedInvoiceId && selectedPayments.length > 0 && (
         <section className="rounded-xl border bg-white shadow-sm p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">
-            Payments for invoice
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Payments for invoice</h3>
           <table className="w-full text-sm">
             <thead>
               <tr>
                 {['Amount', 'Method', 'Payer', 'Status', 'Paid At', 'Ref'].map((h) => (
-                  <th key={h} className="pb-1 text-left text-xs font-medium text-gray-400 uppercase tracking-wide pr-4">
+                  <th
+                    key={h}
+                    className="pb-1 text-left text-xs font-medium text-gray-400 uppercase tracking-wide pr-4"
+                  >
                     {h}
                   </th>
                 ))}
@@ -423,21 +459,30 @@ export default function PatientBillingPage() {
             <tbody className="divide-y divide-gray-50">
               {selectedPayments.map((pay) => (
                 <tr key={pay.id}>
-                  <td className="py-1.5 pr-4 font-medium text-gray-900">{formatCents(pay.amountCents)}</td>
+                  <td className="py-1.5 pr-4 font-medium text-gray-900">
+                    {formatCents(pay.amountCents)}
+                  </td>
                   <td className="py-1.5 pr-4 text-gray-600">{PAYMENT_METHOD_LABELS[pay.method]}</td>
                   <td className="py-1.5 pr-4 text-gray-500 capitalize">{pay.payerType}</td>
                   <td className="py-1.5 pr-4">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                      pay.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      pay.status === 'refunded' ? 'bg-yellow-100 text-yellow-700' :
-                      pay.status === 'failed' ? 'bg-red-100 text-red-600' :
-                      'bg-gray-100 text-gray-500'
-                    }`}>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                        pay.status === 'completed'
+                          ? 'bg-green-100 text-green-700'
+                          : pay.status === 'refunded'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : pay.status === 'failed'
+                              ? 'bg-red-100 text-red-600'
+                              : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
                       {pay.status}
                     </span>
                   </td>
                   <td className="py-1.5 pr-4 text-gray-500">{formatDate(pay.paidAt)}</td>
-                  <td className="py-1.5 text-gray-400 font-mono text-xs">{pay.transactionRef ?? '—'}</td>
+                  <td className="py-1.5 text-gray-400 font-mono text-xs">
+                    {pay.transactionRef ?? '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -474,7 +519,12 @@ export default function PatientBillingPage() {
                 <label className="block text-xs text-gray-500 mb-1">Method</label>
                 <select
                   value={paymentForm.method}
-                  onChange={(e) => setPaymentForm((f) => ({ ...f, method: e.target.value as PaymentFormState['method'] }))}
+                  onChange={(e) =>
+                    setPaymentForm((f) => ({
+                      ...f,
+                      method: e.target.value as PaymentFormState['method'],
+                    }))
+                  }
                   className="w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="card">Card</option>
@@ -488,7 +538,12 @@ export default function PatientBillingPage() {
                 <label className="block text-xs text-gray-500 mb-1">Payer Type</label>
                 <select
                   value={paymentForm.payerType}
-                  onChange={(e) => setPaymentForm((f) => ({ ...f, payerType: e.target.value as 'patient' | 'insurance' }))}
+                  onChange={(e) =>
+                    setPaymentForm((f) => ({
+                      ...f,
+                      payerType: e.target.value as 'patient' | 'insurance',
+                    }))
+                  }
                   className="w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="patient">Patient</option>
@@ -500,7 +555,9 @@ export default function PatientBillingPage() {
                 <input
                   type="text"
                   value={paymentForm.transactionRef}
-                  onChange={(e) => setPaymentForm((f) => ({ ...f, transactionRef: e.target.value }))}
+                  onChange={(e) =>
+                    setPaymentForm((f) => ({ ...f, transactionRef: e.target.value }))
+                  }
                   className="w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Optional"
                 />
@@ -529,4 +586,3 @@ export default function PatientBillingPage() {
     </main>
   );
 }
-

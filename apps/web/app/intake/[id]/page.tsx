@@ -3,7 +3,13 @@
 import { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { intakeApi } from '@/lib/api/intake';
-import type { IntakeDraft, IntakeDraftData, DemographicsData, EmergencyContactData, InsuranceData } from '@/types/intake';
+import type {
+  IntakeDraft,
+  IntakeDraftData,
+  DemographicsData,
+  EmergencyContactData,
+  InsuranceData,
+} from '@/types/intake';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -74,8 +80,7 @@ function DemographicsSection({
   errors: Record<string, string>;
   onChange: (d: DemographicsData) => void;
 }) {
-  const set = (key: keyof DemographicsData, val: string) =>
-    onChange({ ...data, [key]: val });
+  const set = (key: keyof DemographicsData, val: string) => onChange({ ...data, [key]: val });
   const setAddr = (key: string, val: string) =>
     onChange({ ...data, address: { ...data.address, [key]: val } });
 
@@ -84,49 +89,87 @@ function DemographicsSection({
       <Row>
         <div>
           <Label required>First Name</Label>
-          <Input value={data.firstName ?? ''} onChange={(e) => set('firstName', e.target.value)} placeholder="Jane" />
+          <Input
+            value={data.firstName ?? ''}
+            onChange={(e) => set('firstName', e.target.value)}
+            placeholder="Jane"
+          />
           <ErrorMsg msg={errors.firstName} />
         </div>
         <div>
           <Label required>Last Name</Label>
-          <Input value={data.lastName ?? ''} onChange={(e) => set('lastName', e.target.value)} placeholder="Smith" />
+          <Input
+            value={data.lastName ?? ''}
+            onChange={(e) => set('lastName', e.target.value)}
+            placeholder="Smith"
+          />
           <ErrorMsg msg={errors.lastName} />
         </div>
       </Row>
       <div>
         <Label required>Date of Birth</Label>
-        <Input type="date" value={data.dateOfBirth ?? ''} onChange={(e) => set('dateOfBirth', e.target.value)} />
+        <Input
+          type="date"
+          value={data.dateOfBirth ?? ''}
+          onChange={(e) => set('dateOfBirth', e.target.value)}
+        />
         <ErrorMsg msg={errors.dateOfBirth} />
       </div>
       <Row>
         <div>
           <Label>Email</Label>
-          <Input type="email" value={data.email ?? ''} onChange={(e) => set('email', e.target.value)} placeholder="jane@example.com" />
+          <Input
+            type="email"
+            value={data.email ?? ''}
+            onChange={(e) => set('email', e.target.value)}
+            placeholder="jane@example.com"
+          />
           <ErrorMsg msg={errors.email} />
         </div>
         <div>
           <Label>Phone</Label>
-          <Input type="tel" value={data.phone ?? ''} onChange={(e) => set('phone', e.target.value)} placeholder="+1 555 000 0000" />
+          <Input
+            type="tel"
+            value={data.phone ?? ''}
+            onChange={(e) => set('phone', e.target.value)}
+            placeholder="+1 555 000 0000"
+          />
           <ErrorMsg msg={errors.phone} />
         </div>
       </Row>
       <div>
         <Label>Street Address</Label>
-        <Input value={data.address?.street ?? ''} onChange={(e) => setAddr('street', e.target.value)} placeholder="123 Main St" />
+        <Input
+          value={data.address?.street ?? ''}
+          onChange={(e) => setAddr('street', e.target.value)}
+          placeholder="123 Main St"
+        />
       </div>
       <Row>
         <div>
           <Label>City</Label>
-          <Input value={data.address?.city ?? ''} onChange={(e) => setAddr('city', e.target.value)} />
+          <Input
+            value={data.address?.city ?? ''}
+            onChange={(e) => setAddr('city', e.target.value)}
+          />
         </div>
         <div>
           <Label>State</Label>
-          <Input value={data.address?.state ?? ''} onChange={(e) => setAddr('state', e.target.value)} maxLength={2} placeholder="NY" />
+          <Input
+            value={data.address?.state ?? ''}
+            onChange={(e) => setAddr('state', e.target.value)}
+            maxLength={2}
+            placeholder="NY"
+          />
         </div>
       </Row>
       <div className="w-1/2">
         <Label>ZIP Code</Label>
-        <Input value={data.address?.zip ?? ''} onChange={(e) => setAddr('zip', e.target.value)} placeholder="10001" />
+        <Input
+          value={data.address?.zip ?? ''}
+          onChange={(e) => setAddr('zip', e.target.value)}
+          placeholder="10001"
+        />
       </div>
     </FieldGroup>
   );
@@ -141,24 +184,36 @@ function EmergencyContactSection({
   errors: Record<string, string>;
   onChange: (d: EmergencyContactData) => void;
 }) {
-  const set = (key: keyof EmergencyContactData, val: string) =>
-    onChange({ ...data, [key]: val });
+  const set = (key: keyof EmergencyContactData, val: string) => onChange({ ...data, [key]: val });
 
   return (
     <FieldGroup>
       <div>
         <Label>Full Name</Label>
-        <Input value={data.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder="John Smith" />
+        <Input
+          value={data.name ?? ''}
+          onChange={(e) => set('name', e.target.value)}
+          placeholder="John Smith"
+        />
         <ErrorMsg msg={errors.name} />
       </div>
       <Row>
         <div>
           <Label>Relationship</Label>
-          <Input value={data.relationship ?? ''} onChange={(e) => set('relationship', e.target.value)} placeholder="Spouse, Parent, Friend…" />
+          <Input
+            value={data.relationship ?? ''}
+            onChange={(e) => set('relationship', e.target.value)}
+            placeholder="Spouse, Parent, Friend…"
+          />
         </div>
         <div>
           <Label>Phone</Label>
-          <Input type="tel" value={data.phone ?? ''} onChange={(e) => set('phone', e.target.value)} placeholder="+1 555 000 0000" />
+          <Input
+            type="tel"
+            value={data.phone ?? ''}
+            onChange={(e) => set('phone', e.target.value)}
+            placeholder="+1 555 000 0000"
+          />
           <ErrorMsg msg={errors.phone} />
         </div>
       </Row>
@@ -175,31 +230,46 @@ function InsuranceSection({
   errors: Record<string, string>;
   onChange: (d: InsuranceData) => void;
 }) {
-  const set = (key: keyof InsuranceData, val: string) =>
-    onChange({ ...data, [key]: val });
+  const set = (key: keyof InsuranceData, val: string) => onChange({ ...data, [key]: val });
 
   return (
     <FieldGroup>
       <Row>
         <div>
           <Label>Insurance Company (Payer)</Label>
-          <Input value={data.payerName ?? ''} onChange={(e) => set('payerName', e.target.value)} placeholder="Blue Cross Blue Shield" />
+          <Input
+            value={data.payerName ?? ''}
+            onChange={(e) => set('payerName', e.target.value)}
+            placeholder="Blue Cross Blue Shield"
+          />
           <ErrorMsg msg={errors.payerName} />
         </div>
         <div>
           <Label>Plan Name</Label>
-          <Input value={data.planName ?? ''} onChange={(e) => set('planName', e.target.value)} placeholder="PPO Gold" />
+          <Input
+            value={data.planName ?? ''}
+            onChange={(e) => set('planName', e.target.value)}
+            placeholder="PPO Gold"
+          />
         </div>
       </Row>
       <Row>
         <div>
           <Label>Member ID</Label>
-          <Input value={data.memberId ?? ''} onChange={(e) => set('memberId', e.target.value)} placeholder="XYZ123456" />
+          <Input
+            value={data.memberId ?? ''}
+            onChange={(e) => set('memberId', e.target.value)}
+            placeholder="XYZ123456"
+          />
           <ErrorMsg msg={errors.memberId} />
         </div>
         <div>
           <Label>Group Number</Label>
-          <Input value={data.groupNumber ?? ''} onChange={(e) => set('groupNumber', e.target.value)} placeholder="GRP987" />
+          <Input
+            value={data.groupNumber ?? ''}
+            onChange={(e) => set('groupNumber', e.target.value)}
+            placeholder="GRP987"
+          />
         </div>
       </Row>
       <p className="text-xs text-muted-foreground">
@@ -209,13 +279,7 @@ function InsuranceSection({
   );
 }
 
-function NotesSection({
-  notes,
-  onChange,
-}: {
-  notes: string;
-  onChange: (n: string) => void;
-}) {
+function NotesSection({ notes, onChange }: { notes: string; onChange: (n: string) => void }) {
   return (
     <FieldGroup>
       <div>
@@ -299,10 +363,13 @@ export default function IntakeFormPage({ params }: Props) {
 
     // Save the current section
     const payload: Partial<IntakeDraftData> =
-      step === 0 ? { demographics }
-      : step === 1 ? { emergencyContact }
-      : step === 2 ? { insurance }
-      : { notes };
+      step === 0
+        ? { demographics }
+        : step === 1
+          ? { emergencyContact }
+          : step === 2
+            ? { insurance }
+            : { notes };
     await saveSection(payload);
 
     if (step < 3) {
@@ -370,11 +437,7 @@ export default function IntakeFormPage({ params }: Props) {
         <h2 className="text-base font-semibold mb-5">{STEPS[step]}</h2>
 
         {step === 0 && (
-          <DemographicsSection
-            data={demographics}
-            errors={errors}
-            onChange={setDemographics}
-          />
+          <DemographicsSection data={demographics} errors={errors} onChange={setDemographics} />
         )}
         {step === 1 && (
           <EmergencyContactSection
@@ -384,15 +447,9 @@ export default function IntakeFormPage({ params }: Props) {
           />
         )}
         {step === 2 && (
-          <InsuranceSection
-            data={insurance}
-            errors={errors}
-            onChange={setInsurance}
-          />
+          <InsuranceSection data={insurance} errors={errors} onChange={setInsurance} />
         )}
-        {step === 3 && (
-          <NotesSection notes={notes} onChange={setNotes} />
-        )}
+        {step === 3 && <NotesSection notes={notes} onChange={setNotes} />}
       </div>
 
       {/* Navigation */}
@@ -401,12 +458,8 @@ export default function IntakeFormPage({ params }: Props) {
           Back
         </Button>
         <div className="flex items-center gap-3">
-          {saving && (
-            <span className="text-xs text-muted-foreground">Saving…</span>
-          )}
-          <Button onClick={handleNext}>
-            {step < STEPS.length - 1 ? 'Continue' : 'Review'}
-          </Button>
+          {saving && <span className="text-xs text-muted-foreground">Saving…</span>}
+          <Button onClick={handleNext}>{step < STEPS.length - 1 ? 'Continue' : 'Review'}</Button>
         </div>
       </div>
     </main>

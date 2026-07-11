@@ -8,15 +8,15 @@ assistant (Twilio + ElevenLabs), Google Calendar sync, and analytics.
 
 This is a **pnpm + Turborepo monorepo**.
 
-| Path | Package | What it is |
-|---|---|---|
-| `apps/web` | `@careloop/web` | Next.js 15 / React 19 UI + BFF route handlers (port **3000**) |
-| `apps/api` | `@careloop/api` | NestJS 10 on Fastify — core domain API (port **3001**) |
-| `apps/worker` | `@careloop/worker` | BullMQ background workers (reminders, calendar sync, transcripts, KPIs) |
-| `packages/db` | `@careloop/db` | Prisma schema, migrations, seed, generated client |
-| `packages/shared` | `@careloop/shared` | Shared types/utilities |
-| `packages/ui` | `@careloop/ui` | Shared UI components |
-| `packages/tsconfig`, `packages/eslint-config` | — | Shared tooling config |
+| Path                                          | Package            | What it is                                                              |
+| --------------------------------------------- | ------------------ | ----------------------------------------------------------------------- |
+| `apps/web`                                    | `@careloop/web`    | Next.js 15 / React 19 UI + BFF route handlers (port **3000**)           |
+| `apps/api`                                    | `@careloop/api`    | NestJS 10 on Fastify — core domain API (port **3001**)                  |
+| `apps/worker`                                 | `@careloop/worker` | BullMQ background workers (reminders, calendar sync, transcripts, KPIs) |
+| `packages/db`                                 | `@careloop/db`     | Prisma schema, migrations, seed, generated client                       |
+| `packages/shared`                             | `@careloop/shared` | Shared types/utilities                                                  |
+| `packages/ui`                                 | `@careloop/ui`     | Shared UI components                                                    |
+| `packages/tsconfig`, `packages/eslint-config` | —                  | Shared tooling config                                                   |
 
 Backing services: **PostgreSQL** (data), **Redis** (sessions, throttling, BullMQ
 queues), and **S3-compatible storage** (documents; MinIO locally).
@@ -27,13 +27,13 @@ Deeper docs live in [`docs/architecture/`](docs/architecture) — start with
 
 ## Key flows
 
-| Flow | Entry point | Notes |
-|---|---|---|
-| **Practice signup** (new org + first admin) | web `/signup` → `POST /auth/signup` | Public, rate-limited; atomically creates the `Practice` + admin `User` + session. |
-| **Team invitations** ("join a team") | admin `/admin/team`; invitee `/join/<token>` | Admin/manager invite by email+role → single-use, 7-day token → invitee sets a password and joins the same practice. See [onboarding-and-team.md](docs/architecture/onboarding-and-team.md). |
-| **Patient intake** (public form) | web `/intake?practice=<id>` → `/intake/drafts/*` | Multi-step, autosaved, idempotent submit; creates the patient + insurance. No staff login required. |
-| **Insurance & claims** | `insurance` + `claims` modules; web patient → Insurance tab | Structured coverage (annual max, category %s, remaining benefit) + claims lifecycle (draft→submitted→adjudicated) with a status-event trail. |
-| **Reminders / notifications** | `messaging` + `reminders` modules; worker scan | Templated SMS/email; per-practice tenant-scoped; delivery status tracked on `Reminder`. |
+| Flow                                        | Entry point                                                 | Notes                                                                                                                                                                                       |
+| ------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Practice signup** (new org + first admin) | web `/signup` → `POST /auth/signup`                         | Public, rate-limited; atomically creates the `Practice` + admin `User` + session.                                                                                                           |
+| **Team invitations** ("join a team")        | admin `/admin/team`; invitee `/join/<token>`                | Admin/manager invite by email+role → single-use, 7-day token → invitee sets a password and joins the same practice. See [onboarding-and-team.md](docs/architecture/onboarding-and-team.md). |
+| **Patient intake** (public form)            | web `/intake?practice=<id>` → `/intake/drafts/*`            | Multi-step, autosaved, idempotent submit; creates the patient + insurance. No staff login required.                                                                                         |
+| **Insurance & claims**                      | `insurance` + `claims` modules; web patient → Insurance tab | Structured coverage (annual max, category %s, remaining benefit) + claims lifecycle (draft→submitted→adjudicated) with a status-event trail.                                                |
+| **Reminders / notifications**               | `messaging` + `reminders` modules; worker scan              | Templated SMS/email; per-practice tenant-scoped; delivery status tracked on `Reminder`.                                                                                                     |
 
 **RBAC.** All authenticated staff are scoped to one `Practice`. Role groups gate
 sensitive endpoints: **management** (`admin`, `manager`) for analytics, audit, and

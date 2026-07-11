@@ -41,9 +41,7 @@ async function handleStripeEvent(event: string, payload: Record<string, unknown>
 
 // ── Main processor ───────────────────────────────────────────────────────────
 
-export async function webhooksProcessor(
-  job: Job<ProcessWebhookJobData>,
-): Promise<void> {
+export async function webhooksProcessor(job: Job<ProcessWebhookJobData>): Promise<void> {
   const { provider, event, payload, webhookLogId, idempotencyKey } = job.data;
   job.log(`[webhook] processing ${provider}/${event} log=${webhookLogId}`);
 
@@ -67,20 +65,24 @@ export async function webhooksProcessor(
 
     // Mark log as processed
     if (webhookLogId) {
-      await prisma.webhookLog.update({
-        where: { id: webhookLogId },
-        data: { status: 'processed', processedAt: new Date() },
-      }).catch(() => {});
+      await prisma.webhookLog
+        .update({
+          where: { id: webhookLogId },
+          data: { status: 'processed', processedAt: new Date() },
+        })
+        .catch(() => {});
     }
 
     job.log(`[webhook] done ${provider}/${event}`);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     if (webhookLogId) {
-      await prisma.webhookLog.update({
-        where: { id: webhookLogId },
-        data: { status: 'failed', error: reason },
-      }).catch(() => {});
+      await prisma.webhookLog
+        .update({
+          where: { id: webhookLogId },
+          data: { status: 'failed', error: reason },
+        })
+        .catch(() => {});
     }
     throw err; // re-throw so BullMQ retries
   }

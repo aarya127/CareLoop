@@ -29,14 +29,16 @@ describe('PaymentsService tenant isolation', () => {
 
   it('getPayment 404s for a different practice', async () => {
     const { service } = makeService(PAYMENT);
-    await expect(service.getPayment('practice-B', 'pay-1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.getPayment('practice-B', 'pay-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('updatePayment refuses a cross-tenant payment before writing', async () => {
     const { service, repo } = makeService(PAYMENT);
-    await expect(service.updatePayment('practice-B', 'pay-1', { status: 'refunded' })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.updatePayment('practice-B', 'pay-1', { status: 'refunded' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.update).not.toHaveBeenCalled();
   });
 });

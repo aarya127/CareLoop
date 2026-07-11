@@ -6,11 +6,11 @@
 
 ## Three ways an account is created
 
-| Path | Endpoint | Auth | Creates |
-|---|---|---|---|
-| **Self-serve signup** | `POST /auth/signup` (web `/signup`) | Public, rate-limited (5/min) | A **new `Practice` + first admin `User` + session**, atomically. |
-| **Invite → accept** | `POST /invitations` then `POST /invitations/accept/:token` (web `/admin/team` → `/join/<token>`) | create = admin/manager; accept = public (token) | A `User` in the **inviting** practice with the invited role. No shared password. |
-| **Direct register** | `POST /auth/register` | Admin session | A `User` in the admin's existing practice. Back-office provisioning. |
+| Path                  | Endpoint                                                                                         | Auth                                            | Creates                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Self-serve signup** | `POST /auth/signup` (web `/signup`)                                                              | Public, rate-limited (5/min)                    | A **new `Practice` + first admin `User` + session**, atomically.                 |
+| **Invite → accept**   | `POST /invitations` then `POST /invitations/accept/:token` (web `/admin/team` → `/join/<token>`) | create = admin/manager; accept = public (token) | A `User` in the **inviting** practice with the invited role. No shared password. |
+| **Direct register**   | `POST /auth/register`                                                                            | Admin session                                   | A `User` in the admin's existing practice. Back-office provisioning.             |
 
 Signup is the only way to create a brand-new practice; the other two add members to
 an existing one. All three store passwords with **bcrypt** (`BCRYPT_ROUNDS`, default 12);
@@ -40,13 +40,14 @@ Duplicate email → `409`; weak input → `400` (validated `SignupDto`).
 Every authenticated user belongs to exactly one `Practice` (tenant). Beyond tenancy, three role
 groups (`auth.constants.ts`) gate sensitive endpoints via the global `RolesGuard` + `@RequireRole`:
 
-| Group | Roles | Gates |
-|---|---|---|
-| **management** | `admin`, `manager` | analytics, audit log, destructive/void (delete patient/document/treatment/insurance, void invoice), admin module, seed |
-| **front office** | `admin`, `manager`, `staff` | billing, payments, insurance writes, claims |
-| **clinical** | `admin`, `manager`, `provider`, `hygienist` | EMR (encounters/allergies/…), treatments |
+| Group            | Roles                                       | Gates                                                                                                                  |
+| ---------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **management**   | `admin`, `manager`                          | analytics, audit log, destructive/void (delete patient/document/treatment/insurance, void invoice), admin module, seed |
+| **front office** | `admin`, `manager`, `staff`                 | billing, payments, insurance writes, claims                                                                            |
+| **clinical**     | `admin`, `manager`, `provider`, `hygienist` | EMR (encounters/allergies/…), treatments                                                                               |
 
 Notes:
+
 - `admin` has a blanket bypass in `RolesGuard`; role comparison is case-insensitive.
 - Endpoints with no `@RequireRole` are open to any authenticated staff, but are still
   **tenant-scoped** — a user can only ever act on their own practice's rows.

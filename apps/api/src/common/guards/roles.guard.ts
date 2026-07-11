@@ -17,7 +17,6 @@ type RequestWithAuth = {
   };
 };
 
-
 @Injectable()
 export class RolesGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
@@ -40,9 +39,7 @@ export class RolesGuard implements CanActivate {
 
     if (userRoles.includes('admin')) return true;
 
-    const authorized = requiredRoles.some((role: string) =>
-      userRoles.includes(role.toLowerCase()),
-    );
+    const authorized = requiredRoles.some((role: string) => userRoles.includes(role.toLowerCase()));
 
     if (!authorized) {
       throw new ForbiddenException('Insufficient role');

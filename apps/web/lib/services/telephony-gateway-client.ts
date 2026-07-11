@@ -14,7 +14,8 @@ import type {
 import { auditLog, trackAPICall } from './audit-service';
 
 // Configuration
-const TELEPHONY_GATEWAY_BASE_URL = process.env.NEXT_PUBLIC_TELEPHONY_GATEWAY_URL || 'https://api.careloop.com/telephony';
+const TELEPHONY_GATEWAY_BASE_URL =
+  process.env.NEXT_PUBLIC_TELEPHONY_GATEWAY_URL || 'https://api.careloop.com/telephony';
 const DEFAULT_TIMEOUT = 15000; // 15 seconds for telephony
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -39,7 +40,9 @@ class TelephonyGatewayClient {
    */
   private validatePhoneNumber(phone: string): void {
     if (!E164_REGEX.test(phone)) {
-      throw new Error(`Invalid E.164 phone number format: ${phone}. Expected format: +[country code][number]`);
+      throw new Error(
+        `Invalid E.164 phone number format: ${phone}. Expected format: +[country code][number]`,
+      );
     }
   }
 
@@ -49,15 +52,13 @@ class TelephonyGatewayClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    retryCount = 0
+    retryCount = 0,
   ): Promise<APIResponse<T>> {
     const requestId = crypto.randomUUID();
     const startTime = Date.now();
 
     try {
-      const token = typeof window !== 'undefined'
-        ? localStorage.getItem('auth_token')
-        : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
       if (!token) {
         throw new Error('No authentication token found');
@@ -66,7 +67,7 @@ class TelephonyGatewayClient {
       const url = `${TELEPHONY_GATEWAY_BASE_URL}${endpoint}`;
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'x-request-id': requestId,
         ...options.headers,
       };
@@ -79,13 +80,7 @@ class TelephonyGatewayClient {
 
       // Track successful API call
       if (response.ok) {
-        trackAPICall(
-          endpoint,
-          options.method || 'GET',
-          true,
-          undefined,
-          requestId
-        );
+        trackAPICall(endpoint, options.method || 'GET', true, undefined, requestId);
       }
 
       if (!response.ok) {
@@ -98,7 +93,7 @@ class TelephonyGatewayClient {
         // Retry on 5xx errors
         if (response.status >= 500 && retryCount < MAX_RETRIES) {
           const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return this.request<T>(endpoint, options, retryCount + 1);
         }
 
@@ -107,21 +102,14 @@ class TelephonyGatewayClient {
 
       const data: APIResponse<T> = await response.json();
       return data;
-
     } catch (error: any) {
       // Track API error
-      trackAPICall(
-        endpoint,
-        options.method || 'GET',
-        false,
-        error.message,
-        requestId
-      );
+      trackAPICall(endpoint, options.method || 'GET', false, error.message, requestId);
 
       // Retry on network errors
       if (retryCount < MAX_RETRIES && error.name === 'AbortError') {
         const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.request<T>(endpoint, options, retryCount + 1);
       }
 
@@ -132,9 +120,7 @@ class TelephonyGatewayClient {
   /**
    * Get call history for a patient
    */
-  async getCallHistory(
-    filter: GetCallHistoryFilter
-  ): Promise<PaginatedResponse<CallRecord>> {
+  async getCallHistory(filter: GetCallHistoryFilter): Promise<PaginatedResponse<CallRecord>> {
     if (filter.patient_id) {
       auditLog({
         action: 'view_call_history',
@@ -155,7 +141,7 @@ class TelephonyGatewayClient {
     if (filter.offset) params.append('offset', filter.offset.toString());
 
     const response = await this.request<PaginatedResponse<CallRecord>>(
-      `/calls?${params.toString()}`
+      `/calls?${params.toString()}`,
     );
 
     return response.data;
@@ -164,10 +150,7 @@ class TelephonyGatewayClient {
   /**
    * Initiate an outbound call
    */
-  async initiateCall(
-    request: InitiateCallRequest,
-    patientId: string
-  ): Promise<CallRecord> {
+  async initiateCall(request: InitiateCallRequest, patientId: string): Promise<CallRecord> {
     // Validate phone numbers
     this.validatePhoneNumber(request.to);
     this.validatePhoneNumber(request.from);
@@ -186,16 +169,13 @@ class TelephonyGatewayClient {
       },
     });
 
-    const response = await this.request<CallRecord>(
-      '/calls/initiate',
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(request),
-      }
-    );
+    const response = await this.request<CallRecord>('/calls/initiate', {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(request),
+    });
 
     return response.data;
   }
@@ -220,10 +200,7 @@ class TelephonyGatewayClient {
   /**
    * Get call transcript with ASR segments
    */
-  async getCallTranscript(
-    callId: string,
-    patientId: string
-  ): Promise<CallTranscript> {
+  async getCallTranscript(callId: string, patientId: string): Promise<CallTranscript> {
     auditLog({
       action: 'view_call_history',
       patient_id: patientId,
@@ -233,9 +210,7 @@ class TelephonyGatewayClient {
       metadata: { endpoint: `/calls/${callId}/transcript` },
     });
 
-    const response = await this.request<CallTranscript>(
-      `/calls/${callId}/transcript`
-    );
+    const response = await this.request<CallTranscript>(`/calls/${callId}/transcript`);
 
     return response.data;
   }
@@ -247,7 +222,7 @@ class TelephonyGatewayClient {
   async getRecordingUrl(
     callId: string,
     patientId: string,
-    consentToRecord: boolean
+    consentToRecord: boolean,
   ): Promise<{ url: string; expires_at: string }> {
     // Validate consent before accessing recording
     if (!consentToRecord) {
@@ -264,7 +239,7 @@ class TelephonyGatewayClient {
     });
 
     const response = await this.request<{ url: string; expires_at: string }>(
-      `/calls/${callId}/recording`
+      `/calls/${callId}/recording`,
     );
 
     return response.data;
@@ -277,7 +252,7 @@ class TelephonyGatewayClient {
   async downloadRecording(
     callId: string,
     patientId: string,
-    consentToRecord: boolean
+    consentToRecord: boolean,
   ): Promise<Blob> {
     if (!consentToRecord) {
       throw new Error('Cannot download recording: Patient has not consented to recording');
@@ -303,7 +278,7 @@ class TelephonyGatewayClient {
       notes?: string;
       tags?: string[];
       follow_up_required?: boolean;
-    }
+    },
   ): Promise<CallRecord> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -320,16 +295,13 @@ class TelephonyGatewayClient {
       },
     });
 
-    const response = await this.request<CallRecord>(
-      `/calls/${callId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(updates),
-      }
-    );
+    const response = await this.request<CallRecord>(`/calls/${callId}`, {
+      method: 'PATCH',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(updates),
+    });
 
     return response.data;
   }
@@ -339,7 +311,7 @@ class TelephonyGatewayClient {
    */
   async getCallStats(
     patientId: string,
-    dateRange?: { from: string; to: string }
+    dateRange?: { from: string; to: string },
   ): Promise<{
     total_calls: number;
     inbound_calls: number;
@@ -356,9 +328,7 @@ class TelephonyGatewayClient {
       params.append('to_date', dateRange.to);
     }
 
-    const response = await this.request<any>(
-      `/calls/stats?${params.toString()}`
-    );
+    const response = await this.request<any>(`/calls/stats?${params.toString()}`);
 
     return response.data;
   }
@@ -370,7 +340,7 @@ class TelephonyGatewayClient {
     patientId: string,
     phoneNumber: string,
     preferredTime?: string,
-    reason?: string
+    reason?: string,
   ): Promise<{ callback_id: string; scheduled_at: string }> {
     this.validatePhoneNumber(phoneNumber);
 
@@ -401,7 +371,7 @@ class TelephonyGatewayClient {
           preferred_time: preferredTime,
           reason,
         }),
-      }
+      },
     );
 
     return response.data;
@@ -428,18 +398,14 @@ export async function getCallTranscript(callId: string, patientId: string) {
   return telephonyGatewayClient.getCallTranscript(callId, patientId);
 }
 
-export async function getRecordingUrl(
-  callId: string,
-  patientId: string,
-  consentToRecord: boolean
-) {
+export async function getRecordingUrl(callId: string, patientId: string, consentToRecord: boolean) {
   return telephonyGatewayClient.getRecordingUrl(callId, patientId, consentToRecord);
 }
 
 export async function downloadRecording(
   callId: string,
   patientId: string,
-  consentToRecord: boolean
+  consentToRecord: boolean,
 ) {
   return telephonyGatewayClient.downloadRecording(callId, patientId, consentToRecord);
 }
@@ -447,15 +413,12 @@ export async function downloadRecording(
 export async function updateCall(
   callId: string,
   patientId: string,
-  updates: Parameters<typeof telephonyGatewayClient.updateCall>[2]
+  updates: Parameters<typeof telephonyGatewayClient.updateCall>[2],
 ) {
   return telephonyGatewayClient.updateCall(callId, patientId, updates);
 }
 
-export async function getCallStats(
-  patientId: string,
-  dateRange?: { from: string; to: string }
-) {
+export async function getCallStats(patientId: string, dateRange?: { from: string; to: string }) {
   return telephonyGatewayClient.getCallStats(patientId, dateRange);
 }
 
@@ -463,7 +426,7 @@ export async function requestCallback(
   patientId: string,
   phoneNumber: string,
   preferredTime?: string,
-  reason?: string
+  reason?: string,
 ) {
   return telephonyGatewayClient.requestCallback(patientId, phoneNumber, preferredTime, reason);
 }

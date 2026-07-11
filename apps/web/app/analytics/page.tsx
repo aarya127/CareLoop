@@ -1,15 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   analyticsApi,
   type AppointmentStatsResponse,
@@ -70,13 +62,7 @@ function KpiCard({
   );
 }
 
-function RangePicker({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
+function RangePicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const options = [7, 30, 90] as const;
   return (
     <div className="flex gap-1 rounded-lg border p-1">
@@ -110,31 +96,28 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (days: number) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [k, p, ns, a, pat] = await Promise.all([
-          analyticsApi.kpis(PRACTICE_ID, days),
-          analyticsApi.payments(PRACTICE_ID, days),
-          analyticsApi.noShow(PRACTICE_ID, days),
-          analyticsApi.appointments(PRACTICE_ID, days),
-          analyticsApi.patients(PRACTICE_ID),
-        ]);
-        setKpis(k);
-        setPayments(p);
-        setNoShow(ns);
-        setAppointments(a);
-        setPatients(pat);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load analytics');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const load = useCallback(async (days: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [k, p, ns, a, pat] = await Promise.all([
+        analyticsApi.kpis(PRACTICE_ID, days),
+        analyticsApi.payments(PRACTICE_ID, days),
+        analyticsApi.noShow(PRACTICE_ID, days),
+        analyticsApi.appointments(PRACTICE_ID, days),
+        analyticsApi.patients(PRACTICE_ID),
+      ]);
+      setKpis(k);
+      setPayments(p);
+      setNoShow(ns);
+      setAppointments(a);
+      setPatients(pat);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load analytics');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void load(rangeDays);
@@ -154,7 +137,9 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-semibold">Analytics</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Practice performance metrics
-            {payments?.generatedAt ? ` · updated ${new Date(payments.generatedAt).toLocaleTimeString()}` : ''}
+            {payments?.generatedAt
+              ? ` · updated ${new Date(payments.generatedAt).toLocaleTimeString()}`
+              : ''}
           </p>
         </div>
         <RangePicker value={rangeDays} onChange={setRangeDays} />
@@ -209,19 +194,29 @@ export default function AnalyticsPage() {
             <Skeleton className="h-48" />
           ) : payments?.dailyTrend.length ? (
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={payments.dailyTrend} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+              <BarChart
+                data={payments.dailyTrend}
+                margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(v: string) => v.slice(5)}
                   tick={{ fontSize: 11 }}
                 />
-                <YAxis tickFormatter={(v: number) => `$${(v / 100).toFixed(0)}`} tick={{ fontSize: 11 }} />
+                <YAxis
+                  tickFormatter={(v: number) => `$${(v / 100).toFixed(0)}`}
+                  tick={{ fontSize: 11 }}
+                />
                 <Tooltip
                   formatter={(v: number) => [fmt$(v), 'Revenue']}
                   labelFormatter={(l: string) => l}
                 />
-                <Bar dataKey="amountCents" fill="var(--color-primary, #4f46e5)" radius={[3, 3, 0, 0]} />
+                <Bar
+                  dataKey="amountCents"
+                  fill="var(--color-primary, #4f46e5)"
+                  radius={[3, 3, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -229,9 +224,17 @@ export default function AnalyticsPage() {
           )}
           {payments && (
             <div className="mt-3 flex gap-6 text-xs text-muted-foreground">
-              <span>Paid <strong className="text-foreground">{fmt$(payments.totalPaidCents)}</strong></span>
-              <span>Outstanding <strong className="text-foreground">{fmt$(payments.totalOutstandingCents)}</strong></span>
-              <span>Payments received <strong className="text-foreground">{payments.paymentsReceived}</strong></span>
+              <span>
+                Paid <strong className="text-foreground">{fmt$(payments.totalPaidCents)}</strong>
+              </span>
+              <span>
+                Outstanding{' '}
+                <strong className="text-foreground">{fmt$(payments.totalOutstandingCents)}</strong>
+              </span>
+              <span>
+                Payments received{' '}
+                <strong className="text-foreground">{payments.paymentsReceived}</strong>
+              </span>
             </div>
           )}
         </Card>
@@ -243,10 +246,7 @@ export default function AnalyticsPage() {
             <Skeleton className="h-48" />
           ) : noShow?.dailyTrend.length ? (
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart
-                data={noShow.dailyTrend}
-                margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
-              >
+              <BarChart data={noShow.dailyTrend} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
                   dataKey="date"
@@ -270,9 +270,15 @@ export default function AnalyticsPage() {
           )}
           {noShow && (
             <div className="mt-3 flex gap-6 text-xs text-muted-foreground">
-              <span>Rate <strong className="text-foreground">{fmtPct(noShow.noShowRatePct)}</strong></span>
-              <span>No-shows <strong className="text-foreground">{noShow.totalNoShows}</strong></span>
-              <span>Total appts <strong className="text-foreground">{noShow.totalAppointments}</strong></span>
+              <span>
+                Rate <strong className="text-foreground">{fmtPct(noShow.noShowRatePct)}</strong>
+              </span>
+              <span>
+                No-shows <strong className="text-foreground">{noShow.totalNoShows}</strong>
+              </span>
+              <span>
+                Total appts <strong className="text-foreground">{noShow.totalAppointments}</strong>
+              </span>
             </div>
           )}
         </Card>
@@ -285,7 +291,9 @@ export default function AnalyticsPage() {
           <div className="flex flex-wrap gap-4">
             {Object.entries(payments.byStatus).map(([status, data]) => (
               <div key={status} className="flex flex-col gap-0.5">
-                <span className="text-xs font-medium capitalize text-muted-foreground">{status}</span>
+                <span className="text-xs font-medium capitalize text-muted-foreground">
+                  {status}
+                </span>
                 <span className="text-lg font-bold tabular-nums">{data.count}</span>
                 <span className="text-xs text-muted-foreground">{fmt$(data.amountCents)}</span>
               </div>

@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
   } catch {
     const text = await res.text().catch(() => '');
     console.error('[auth/signup] API returned non-JSON:', res.status, text);
-    return NextResponse.json({ error: 'Invalid API response', detail: text.slice(0, 200) }, { status: 502 });
+    return NextResponse.json(
+      { error: 'Invalid API response', detail: text.slice(0, 200) },
+      { status: 502 },
+    );
   }
 
   if (!res.ok) {

@@ -9,7 +9,9 @@ describe('insurance coverage: remainingBenefitCents', () => {
   });
 
   it('subtracts used-to-date from the annual maximum', () => {
-    expect(remainingBenefitCents({ annualMaximumCents: 150000, usedToDateCents: 40000 })).toBe(110000);
+    expect(remainingBenefitCents({ annualMaximumCents: 150000, usedToDateCents: 40000 })).toBe(
+      110000,
+    );
   });
 
   it('treats missing used-to-date as zero', () => {

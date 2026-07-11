@@ -1,7 +1,15 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Calendar, ChevronLeft, Pill, ClipboardList, Plus, ShieldCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  ChevronLeft,
+  Pill,
+  ClipboardList,
+  Plus,
+  ShieldCheck,
+} from 'lucide-react';
 import { Chip } from './emr-chips';
 
 export interface ChartHeaderAllergy {
@@ -53,7 +61,13 @@ export default function ChartHeader({
     .join('');
   const hasSevere = allergies.some((a) => SEVERE.has(a.severity));
   const age = ageFrom(dateOfBirth);
-  const demo = [age, gender, dateOfBirth ? `DOB ${dateOfBirth}` : '', `#${patientId.slice(0, 8)}`, phone]
+  const demo = [
+    age,
+    gender,
+    dateOfBirth ? `DOB ${dateOfBirth}` : '',
+    `#${patientId.slice(0, 8)}`,
+    phone,
+  ]
     .filter(Boolean)
     .join('  ·  ');
 

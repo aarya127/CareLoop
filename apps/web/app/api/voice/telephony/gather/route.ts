@@ -13,19 +13,19 @@
  * Empty speech / silence: we play a "I didn't catch that" prompt and re-gather.
  */
 
-import { NextRequest } from "next/server";
-import { childLogger } from "@/lib/utils/logger";
-import { runAssistantIntent } from "@/lib/voice/assistant";
-import { synthesizeWithElevenLabs } from "@/lib/services/elevenlabs";
+import { NextRequest } from 'next/server';
+import { childLogger } from '@/lib/utils/logger';
+import { runAssistantIntent } from '@/lib/voice/assistant';
+import { synthesizeWithElevenLabs } from '@/lib/services/elevenlabs';
 import {
   buildPlayAndGatherTwiml,
   buildSayAndGatherTwiml,
   buildSayAndHangupTwiml,
   requireTwilioRequest,
-} from "@/lib/services/twilio";
-import { storeAudioBuffer, getAudioUrl } from "@/lib/voice/audio-store";
+} from '@/lib/services/twilio';
+import { storeAudioBuffer, getAudioUrl } from '@/lib/voice/audio-store';
 
-const log = childLogger("telephony/gather");
+const log = childLogger('telephony/gather');
 
 const SILENCE_RESPONSE =
   "I'm sorry, I didn't quite catch that. Could you please repeat your question?";
@@ -38,41 +38,45 @@ const MAX_TURNS = 20; // Safety limit — hang up after 20 turns to prevent infi
 export async function POST(req: NextRequest) {
   const formData = await req.formData().catch(() => new FormData());
 
-  const rejected = requireTwilioRequest(req.nextUrl, formData, req.headers.get("x-twilio-signature"));
+  const rejected = requireTwilioRequest(
+    req.nextUrl,
+    formData,
+    req.headers.get('x-twilio-signature'),
+  );
   if (rejected) {
-    log.warn("rejected gather webhook: invalid Twilio signature");
+    log.warn('rejected gather webhook: invalid Twilio signature');
     return rejected;
   }
 
-  const callSid = formData.get("CallSid")?.toString() ?? "unknown";
-  const speechResult = formData.get("SpeechResult")?.toString()?.trim() ?? "";
-  const confidence = formData.get("Confidence")?.toString() ?? "0";
-  const turnStr = formData.get("turnCount")?.toString() ?? "0";
+  const callSid = formData.get('CallSid')?.toString() ?? 'unknown';
+  const speechResult = formData.get('SpeechResult')?.toString()?.trim() ?? '';
+  const confidence = formData.get('Confidence')?.toString() ?? '0';
+  const turnStr = formData.get('turnCount')?.toString() ?? '0';
   const turnCount = parseInt(turnStr, 10) || 0;
 
-  const baseUrl = process.env.BASE_URL ?? process.env.APP_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.BASE_URL ?? process.env.APP_BASE_URL ?? 'http://localhost:3000';
   const gatherUrl = `${baseUrl}/api/voice/telephony/gather`;
 
   log.info(
     { callSid, speechLen: speechResult.length, confidence, turn: turnCount },
-    "gather received",
+    'gather received',
   );
 
   // Safety: end the call after too many turns
   if (turnCount >= MAX_TURNS) {
-    log.warn({ callSid, turnCount }, "max turns reached — ending call");
+    log.warn({ callSid, turnCount }, 'max turns reached — ending call');
     const twiml = buildSayAndHangupTwiml(
       "We've reached the end of our conversation. Thank you for calling CareLoop. Goodbye!",
     );
     return new Response(twiml, {
       status: 200,
-      headers: { "Content-Type": "text/xml" },
+      headers: { 'Content-Type': 'text/xml' },
     });
   }
 
   // Handle empty / silent input
   if (!speechResult) {
-    log.info({ callSid }, "empty speech — prompting again");
+    log.info({ callSid }, 'empty speech — prompting again');
     try {
       const audio = await synthesizeWithElevenLabs({ text: SILENCE_RESPONSE });
       const audioId = await storeAudioBuffer(audio);
@@ -82,7 +86,7 @@ export async function POST(req: NextRequest) {
       });
       return new Response(twiml, {
         status: 200,
-        headers: { "Content-Type": "text/xml" },
+        headers: { 'Content-Type': 'text/xml' },
       });
     } catch {
       const twiml = buildSayAndGatherTwiml({
@@ -91,7 +95,7 @@ export async function POST(req: NextRequest) {
       });
       return new Response(twiml, {
         status: 200,
-        headers: { "Content-Type": "text/xml" },
+        headers: { 'Content-Type': 'text/xml' },
       });
     }
   }
@@ -112,18 +116,18 @@ export async function POST(req: NextRequest) {
       gatherUrl: appendTurn(gatherUrl, turnCount + 1),
     });
 
-    log.info({ callSid, turn: turnCount + 1 }, "response delivered");
+    log.info({ callSid, turn: turnCount + 1 }, 'response delivered');
     return new Response(twiml, {
       status: 200,
-      headers: { "Content-Type": "text/xml" },
+      headers: { 'Content-Type': 'text/xml' },
     });
   } catch (err) {
-    log.error({ callSid, err: String(err) }, "assistant or TTS failed");
+    log.error({ callSid, err: String(err) }, 'assistant or TTS failed');
 
     const twiml = buildSayAndHangupTwiml(ERROR_RESPONSE);
     return new Response(twiml, {
       status: 200,
-      headers: { "Content-Type": "text/xml" },
+      headers: { 'Content-Type': 'text/xml' },
     });
   }
 }
@@ -131,6 +135,6 @@ export async function POST(req: NextRequest) {
 /** Appends the current turn counter as a query param so we can track it */
 function appendTurn(url: string, turn: number): string {
   const u = new URL(url);
-  u.searchParams.set("turnCount", String(turn));
+  u.searchParams.set('turnCount', String(turn));
   return u.toString();
 }

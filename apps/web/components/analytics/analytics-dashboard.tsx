@@ -22,16 +22,16 @@ interface StatCardProps {
   animateValue?: boolean;
 }
 
-function StatCard({ 
-  icon, 
-  label, 
-  value, 
-  prefix = '', 
-  suffix = '', 
-  trend, 
+function StatCard({
+  icon,
+  label,
+  value,
+  prefix = '',
+  suffix = '',
+  trend,
   color = 'bg-[#0A84FF]',
   delay = 0,
-  animateValue = true 
+  animateValue = true,
 }: StatCardProps) {
   const [displayValue, setDisplayValue] = useState(animateValue ? 0 : value);
 
@@ -50,46 +50,41 @@ function StatCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        duration: 0.4, 
+      transition={{
+        duration: 0.4,
         delay: delay / 1000,
-        ease: [0.4, 0, 0.2, 1] 
+        ease: [0.4, 0, 0.2, 1],
       }}
       className="relative group"
     >
       <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 transition-all duration-200 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.08)] hover:-translate-y-1">
         {/* Icon */}
         <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-4', color)}>
-          <div className="text-white">
-            {icon}
-          </div>
+          <div className="text-white">{icon}</div>
         </div>
 
         {/* Label */}
-        <p className="text-xs uppercase font-medium text-[#86868B] tracking-wide mb-2">
-          {label}
-        </p>
+        <p className="text-xs uppercase font-medium text-[#86868B] tracking-wide mb-2">{label}</p>
 
         {/* Value */}
         <div className="flex items-baseline gap-1">
           {prefix && <span className="text-xl font-semibold text-[#1D1D1F]">{prefix}</span>}
           <span className="text-3xl font-semibold text-[#1D1D1F]">
-            {typeof displayValue === 'number' 
-              ? displayValue.toLocaleString() 
-              : displayValue
-            }
+            {typeof displayValue === 'number' ? displayValue.toLocaleString() : displayValue}
           </span>
           {suffix && <span className="text-lg font-medium text-[#86868B]">{suffix}</span>}
         </div>
 
         {/* Trend Indicator (optional) */}
         {trend && (
-          <div className={cn(
-            'mt-3 flex items-center gap-1 text-xs font-medium',
-            trend === 'up' && 'text-green-600',
-            trend === 'down' && 'text-red-600',
-            trend === 'neutral' && 'text-[#86868B]'
-          )}>
+          <div
+            className={cn(
+              'mt-3 flex items-center gap-1 text-xs font-medium',
+              trend === 'up' && 'text-green-600',
+              trend === 'down' && 'text-red-600',
+              trend === 'neutral' && 'text-[#86868B]',
+            )}
+          >
             {trend === 'up' && <TrendingUp className="w-3 h-3" />}
             {trend === 'down' && <TrendingUp className="w-3 h-3 rotate-180" />}
             <span>{trend === 'up' ? 'Growing' : trend === 'down' ? 'Declining' : 'Stable'}</span>
@@ -219,10 +214,9 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
             Payment Collection
           </p>
           <p className="text-lg font-semibold text-[#1D1D1F]">
-            {outstandingBalances > 0 
+            {outstandingBalances > 0
               ? `$${outstandingBalances.toLocaleString()} pending`
-              : 'All paid up! 🎉'
-            }
+              : 'All paid up! 🎉'}
           </p>
         </div>
       </motion.div>

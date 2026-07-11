@@ -7,7 +7,11 @@ import type { Prisma } from '@careloop/db';
 
 // ── Audit helper ─────────────────────────────────────────────────────────────
 
-async function auditReminder(eventType: string, outcome: string, meta: Prisma.InputJsonValue): Promise<void> {
+async function auditReminder(
+  eventType: string,
+  outcome: string,
+  meta: Prisma.InputJsonValue,
+): Promise<void> {
   try {
     await prisma.auditLog.create({
       data: {
@@ -17,7 +21,9 @@ async function auditReminder(eventType: string, outcome: string, meta: Prisma.In
         metadata: meta,
       },
     });
-  } catch { /* audit writes must never crash the worker */ }
+  } catch {
+    /* audit writes must never crash the worker */
+  }
 }
 
 // ── Provider helpers ─────────────────────────────────────────────────────────
@@ -58,9 +64,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<str
  * BullMQ will retry automatically (uses default attempts=3, exponential backoff)
  * on thrown errors, updating retryCount + failReason on each failure.
  */
-export async function remindersProcessor(
-  job: Job<AppointmentReminderJobData>,
-): Promise<void> {
+export async function remindersProcessor(job: Job<AppointmentReminderJobData>): Promise<void> {
   const { reminderId, channel, to, content, reminderType } = job.data;
   const effectiveChannel = channel ?? reminderType ?? 'sms';
 

@@ -110,7 +110,14 @@ export interface Appointment {
   end: string;
   procedure_code: string;
   procedure_name: string;
-  status: 'scheduled' | 'confirmed' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  status:
+    | 'scheduled'
+    | 'confirmed'
+    | 'checked_in'
+    | 'in_progress'
+    | 'completed'
+    | 'cancelled'
+    | 'no_show';
   source: 'ai' | 'manual' | 'rescheduled';
   booking_channel?: 'voice' | 'sms' | 'web' | 'staff' | 'web_chat' | 'phone' | 'in_person';
   ai_confidence_score?: number;
@@ -270,9 +277,15 @@ export interface ConvertToAppointmentRequest {
 // ============================================================================
 
 export type WebSocketEvent =
-  | { type: 'calendar_appointment_changed'; data: { appointment: Appointment; change_type: 'created' | 'updated' | 'deleted' } }
+  | {
+      type: 'calendar_appointment_changed';
+      data: { appointment: Appointment; change_type: 'created' | 'updated' | 'deleted' };
+    }
   | { type: 'message_received'; data: { conversation_id: string; message: Message } }
-  | { type: 'conversation_status_changed'; data: { conversation_id: string; status: Conversation['status'] } }
+  | {
+      type: 'conversation_status_changed';
+      data: { conversation_id: string; status: Conversation['status'] };
+    }
   | { type: 'patient_notes_updated'; data: { patient_id: string; note: DoctorNote } }
   | { type: 'new_xray_uploaded'; data: { patient_id: string; xray: XRayImage } }
   | { type: 'call_completed'; data: { call_id: string; patient_id: string; call: CallRecord } };

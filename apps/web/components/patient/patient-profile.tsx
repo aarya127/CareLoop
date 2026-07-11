@@ -55,9 +55,7 @@ const mockPatient = {
       { date: '2023-08-15', procedure: 'Crown - #14', provider: 'Dr. Smith' },
       { date: '2025-06-10', procedure: 'Cleaning', provider: 'Dr. Lee' },
     ],
-    upcomingPlan: [
-      { procedure: 'Root Canal - #19', estimatedCost: 1200 },
-    ],
+    upcomingPlan: [{ procedure: 'Root Canal - #19', estimatedCost: 1200 }],
   },
   financial: {
     balance: 120,
@@ -85,7 +83,7 @@ export function PatientProfile({ patientId, currentUserRole }: PatientProfilePro
                 {getInitials(`${mockPatient.firstName} ${mockPatient.lastName}`)}
               </span>
             </div>
-            
+
             <div className="flex-1">
               <div className="flex items-start justify-between">
                 <div>
@@ -106,7 +104,7 @@ export function PatientProfile({ patientId, currentUserRole }: PatientProfilePro
                       {mockPatient.email}
                     </span>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     {mockPatient.tags.map((tag) => (
                       <Badge
@@ -162,7 +160,11 @@ export function PatientProfile({ patientId, currentUserRole }: PatientProfilePro
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Status</span>
-                <Badge variant={mockPatient.insurance.eligibilityStatus === 'active' ? 'default' : 'secondary'}>
+                <Badge
+                  variant={
+                    mockPatient.insurance.eligibilityStatus === 'active' ? 'default' : 'secondary'
+                  }
+                >
                   {mockPatient.insurance.eligibilityStatus}
                 </Badge>
               </div>
@@ -187,7 +189,7 @@ export function PatientProfile({ patientId, currentUserRole }: PatientProfilePro
                   </span>
                 </div>
               </div>
-              
+
               <div className="mt-4 text-xs text-muted-foreground">
                 Last verified: {new Date(mockPatient.insurance.lastVerified).toLocaleDateString()}
               </div>
@@ -216,7 +218,7 @@ export function PatientProfile({ patientId, currentUserRole }: PatientProfilePro
                     {formatCurrency(mockPatient.financial.balance)}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                   <span className="text-sm text-muted-foreground">Last Payment</span>
                   <div className="text-right">
@@ -230,9 +232,7 @@ export function PatientProfile({ patientId, currentUserRole }: PatientProfilePro
                 </div>
               </div>
 
-              <Button className="w-full">
-                Collect Payment
-              </Button>
+              <Button className="w-full">Collect Payment</Button>
 
               <Button className="w-full" variant="outline">
                 View Payment History
@@ -260,9 +260,7 @@ export function PatientProfile({ patientId, currentUserRole }: PatientProfilePro
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-medium">{proc.procedure}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {proc.provider}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{proc.provider}</p>
                           </div>
                           <span className="text-xs text-muted-foreground">
                             {new Date(proc.date).toLocaleDateString()}

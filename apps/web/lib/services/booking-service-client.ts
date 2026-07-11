@@ -3,16 +3,12 @@
  * Type-safe wrapper for appointment management
  */
 
-import type {
-  Appointment,
-  APIResponse,
-  APIError,
-  PaginatedResponse,
-} from './api-types';
+import type { Appointment, APIResponse, APIError, PaginatedResponse } from './api-types';
 import { auditLog, trackAPICall } from './audit-service';
 
 // Configuration
-const BOOKING_SERVICE_BASE_URL = process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL || 'https://api.careloop.com/booking';
+const BOOKING_SERVICE_BASE_URL =
+  process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL || 'https://api.careloop.com/booking';
 const DEFAULT_TIMEOUT = 10000; // 10 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -62,15 +58,13 @@ class BookingServiceClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    retryCount = 0
+    retryCount = 0,
   ): Promise<APIResponse<T>> {
     const requestId = crypto.randomUUID();
     const startTime = Date.now();
 
     try {
-      const token = typeof window !== 'undefined'
-        ? localStorage.getItem('auth_token')
-        : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
       if (!token) {
         throw new Error('No authentication token found');
@@ -79,7 +73,7 @@ class BookingServiceClient {
       const url = `${BOOKING_SERVICE_BASE_URL}${endpoint}`;
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'x-request-id': requestId,
         ...options.headers,
       };
@@ -92,13 +86,7 @@ class BookingServiceClient {
 
       // Track successful API call
       if (response.ok) {
-        trackAPICall(
-          endpoint,
-          options.method || 'GET',
-          true,
-          undefined,
-          requestId
-        );
+        trackAPICall(endpoint, options.method || 'GET', true, undefined, requestId);
       }
 
       if (!response.ok) {
@@ -111,7 +99,7 @@ class BookingServiceClient {
         // Retry on 5xx errors
         if (response.status >= 500 && retryCount < MAX_RETRIES) {
           const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return this.request<T>(endpoint, options, retryCount + 1);
         }
 
@@ -120,21 +108,14 @@ class BookingServiceClient {
 
       const data: APIResponse<T> = await response.json();
       return data;
-
     } catch (error: any) {
       // Track API error
-      trackAPICall(
-        endpoint,
-        options.method || 'GET',
-        false,
-        error.message,
-        requestId
-      );
+      trackAPICall(endpoint, options.method || 'GET', false, error.message, requestId);
 
       // Retry on network errors
       if (retryCount < MAX_RETRIES && error.name === 'AbortError') {
         const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.request<T>(endpoint, options, retryCount + 1);
       }
 
@@ -153,7 +134,7 @@ class BookingServiceClient {
       status?: Appointment['status'][];
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<PaginatedResponse<Appointment>> {
     auditLog({
       action: 'view_patient_calendar',
@@ -171,7 +152,7 @@ class BookingServiceClient {
     if (filter?.offset) params.append('offset', filter.offset.toString());
 
     const response = await this.request<PaginatedResponse<Appointment>>(
-      `/appointments?${params.toString()}`
+      `/appointments?${params.toString()}`,
     );
 
     return response.data;
@@ -180,9 +161,7 @@ class BookingServiceClient {
   /**
    * Create a new appointment with idempotency
    */
-  async createAppointment(
-    request: CreateAppointmentRequest
-  ): Promise<Appointment> {
+  async createAppointment(request: CreateAppointmentRequest): Promise<Appointment> {
     const idempotencyKey = crypto.randomUUID();
 
     auditLog({
@@ -197,16 +176,13 @@ class BookingServiceClient {
       },
     });
 
-    const response = await this.request<Appointment>(
-      '/appointments',
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(request),
-      }
-    );
+    const response = await this.request<Appointment>('/appointments', {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(request),
+    });
 
     return response.data;
   }
@@ -217,7 +193,7 @@ class BookingServiceClient {
   async updateAppointment(
     appointmentId: string,
     patientId: string,
-    updates: UpdateAppointmentRequest
+    updates: UpdateAppointmentRequest,
   ): Promise<Appointment> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -234,16 +210,13 @@ class BookingServiceClient {
       },
     });
 
-    const response = await this.request<Appointment>(
-      `/appointments/${appointmentId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(updates),
-      }
-    );
+    const response = await this.request<Appointment>(`/appointments/${appointmentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(updates),
+    });
 
     return response.data;
   }
@@ -254,7 +227,7 @@ class BookingServiceClient {
   async cancelAppointment(
     appointmentId: string,
     patientId: string,
-    reason?: string
+    reason?: string,
   ): Promise<Appointment> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -271,16 +244,13 @@ class BookingServiceClient {
       },
     });
 
-    const response = await this.request<Appointment>(
-      `/appointments/${appointmentId}/cancel`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify({ reason }),
-      }
-    );
+    const response = await this.request<Appointment>(`/appointments/${appointmentId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({ reason }),
+    });
 
     return response.data;
   }
@@ -293,7 +263,7 @@ class BookingServiceClient {
     patientId: string,
     newStartTime: string,
     newEndTime: string,
-    reason?: string
+    reason?: string,
   ): Promise<Appointment> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -312,20 +282,17 @@ class BookingServiceClient {
       },
     });
 
-    const response = await this.request<Appointment>(
-      `/appointments/${appointmentId}/reschedule`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify({
-          start_time: newStartTime,
-          end_time: newEndTime,
-          reason,
-        }),
-      }
-    );
+    const response = await this.request<Appointment>(`/appointments/${appointmentId}/reschedule`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({
+        start_time: newStartTime,
+        end_time: newEndTime,
+        reason,
+      }),
+    });
 
     return response.data;
   }
@@ -333,9 +300,7 @@ class BookingServiceClient {
   /**
    * Get insurance coverage estimate for a procedure
    */
-  async getCoverageEstimate(
-    request: CoverageEstimateRequest
-  ): Promise<CoverageEstimate> {
+  async getCoverageEstimate(request: CoverageEstimateRequest): Promise<CoverageEstimate> {
     auditLog({
       action: 'view_insurance_details',
       patient_id: request.patient_id,
@@ -346,13 +311,10 @@ class BookingServiceClient {
       },
     });
 
-    const response = await this.request<CoverageEstimate>(
-      '/coverage/estimate',
-      {
-        method: 'POST',
-        body: JSON.stringify(request),
-      }
-    );
+    const response = await this.request<CoverageEstimate>('/coverage/estimate', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
 
     return response.data;
   }
@@ -360,10 +322,7 @@ class BookingServiceClient {
   /**
    * Confirm an appointment (patient confirmed)
    */
-  async confirmAppointment(
-    appointmentId: string,
-    patientId: string
-  ): Promise<Appointment> {
+  async confirmAppointment(appointmentId: string, patientId: string): Promise<Appointment> {
     const idempotencyKey = crypto.randomUUID();
 
     auditLog({
@@ -378,15 +337,12 @@ class BookingServiceClient {
       },
     });
 
-    const response = await this.request<Appointment>(
-      `/appointments/${appointmentId}/confirm`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-      }
-    );
+    const response = await this.request<Appointment>(`/appointments/${appointmentId}/confirm`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    });
 
     return response.data;
   }
@@ -394,10 +350,7 @@ class BookingServiceClient {
   /**
    * Check in patient for appointment
    */
-  async checkInAppointment(
-    appointmentId: string,
-    patientId: string
-  ): Promise<Appointment> {
+  async checkInAppointment(appointmentId: string, patientId: string): Promise<Appointment> {
     const idempotencyKey = crypto.randomUUID();
 
     auditLog({
@@ -412,15 +365,12 @@ class BookingServiceClient {
       },
     });
 
-    const response = await this.request<Appointment>(
-      `/appointments/${appointmentId}/checkin`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-      }
-    );
+    const response = await this.request<Appointment>(`/appointments/${appointmentId}/checkin`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    });
 
     return response.data;
   }
@@ -432,7 +382,7 @@ export const bookingServiceClient = new BookingServiceClient();
 // Convenience functions
 export async function getAppointments(
   patientId: string,
-  filter?: Parameters<typeof bookingServiceClient.getAppointments>[1]
+  filter?: Parameters<typeof bookingServiceClient.getAppointments>[1],
 ) {
   return bookingServiceClient.getAppointments(patientId, filter);
 }
@@ -444,16 +394,12 @@ export async function createAppointment(request: CreateAppointmentRequest) {
 export async function updateAppointment(
   appointmentId: string,
   patientId: string,
-  updates: UpdateAppointmentRequest
+  updates: UpdateAppointmentRequest,
 ) {
   return bookingServiceClient.updateAppointment(appointmentId, patientId, updates);
 }
 
-export async function cancelAppointment(
-  appointmentId: string,
-  patientId: string,
-  reason?: string
-) {
+export async function cancelAppointment(appointmentId: string, patientId: string, reason?: string) {
   return bookingServiceClient.cancelAppointment(appointmentId, patientId, reason);
 }
 
@@ -462,14 +408,14 @@ export async function rescheduleAppointment(
   patientId: string,
   newStartTime: string,
   newEndTime: string,
-  reason?: string
+  reason?: string,
 ) {
   return bookingServiceClient.rescheduleAppointment(
     appointmentId,
     patientId,
     newStartTime,
     newEndTime,
-    reason
+    reason,
   );
 }
 

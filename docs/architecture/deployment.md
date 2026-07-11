@@ -2,11 +2,11 @@
 
 ## Environments
 
-| Environment | Branch | URL |
-|---|---|---|
-| Development | `develop` | localhost |
-| Staging | `main` | staging.careloop.example.com |
-| Production | tags `v*` | careloop.example.com |
+| Environment | Branch    | URL                          |
+| ----------- | --------- | ---------------------------- |
+| Development | `develop` | localhost                    |
+| Staging     | `main`    | staging.careloop.example.com |
+| Production  | tags `v*` | careloop.example.com         |
 
 ## Prerequisites
 
@@ -55,5 +55,6 @@ kubectl apply -f infrastructure/kubernetes/ingress/
 ## Environment Variables
 
 See `.env.example` in the repo root. Required secrets are stored in:
+
 - Local: `.env.local` per app
 - Staging/Prod: Kubernetes `careloop-secrets` Secret

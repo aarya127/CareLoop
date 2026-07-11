@@ -19,7 +19,11 @@ import {
   Edit3,
   Trash2,
 } from 'lucide-react';
-import type { PeriodontalRecords, PeriodontalExam, ToothMeasurement } from '@/lib/types/dental-record';
+import type {
+  PeriodontalRecords,
+  PeriodontalExam,
+  ToothMeasurement,
+} from '@/lib/types/dental-record';
 
 interface PeriodontalRecordsSectionProps {
   patientId: string;
@@ -33,7 +37,7 @@ export default function PeriodontalRecordsSection({
   onUpdate,
 }: PeriodontalRecordsSectionProps) {
   const [selectedExam, setSelectedExam] = useState<PeriodontalExam | null>(
-    periodontalRecords.exams[0] || null
+    periodontalRecords.exams[0] || null,
   );
   const [viewMode, setViewMode] = useState<'chart' | 'trends'>('chart');
   const [expandedQuadrant, setExpandedQuadrant] = useState<string | null>(null);
@@ -80,14 +84,17 @@ export default function PeriodontalRecordsSection({
       overall_diagnosis: newExamForm.diagnosis.trim() || undefined,
       treatment_recommendations: newExamForm.recommendations
         .split('\n')
-        .map(item => item.trim())
+        .map((item) => item.trim())
         .filter(Boolean),
     };
 
-    commitPeriodontalRecords({
-      ...periodontalRecords,
-      exams: [nextExam, ...periodontalRecords.exams],
-    }, 'Exam created');
+    commitPeriodontalRecords(
+      {
+        ...periodontalRecords,
+        exams: [nextExam, ...periodontalRecords.exams],
+      },
+      'Exam created',
+    );
 
     setSelectedExam(nextExam);
     setShowNewExamModal(false);
@@ -108,10 +115,13 @@ export default function PeriodontalRecordsSection({
     const nextExams = periodontalRecords.exams.filter((exam) => exam.exam_id !== examId);
     if (nextExams.length === 0) return;
 
-    commitPeriodontalRecords({
-      ...periodontalRecords,
-      exams: nextExams,
-    }, 'Exam removed');
+    commitPeriodontalRecords(
+      {
+        ...periodontalRecords,
+        exams: nextExams,
+      },
+      'Exam removed',
+    );
     setSelectedExam(nextExams[0]);
   };
 
@@ -162,7 +172,8 @@ export default function PeriodontalRecordsSection({
       bleeding_on_probing: [...measurementForm.bleeding],
       recession_mm: measurementForm.recession.map((value) => clamp(value, 0, 8)),
       mobility_grade: clamp(Number(measurementForm.mobilityGrade) || 0, 0, 3),
-      furcation_involvement: measurementForm.furcationInvolvement as ToothMeasurement['furcation_involvement'],
+      furcation_involvement:
+        measurementForm.furcationInvolvement as ToothMeasurement['furcation_involvement'],
     };
 
     const nextExams = periodontalRecords.exams.map((exam) => {
@@ -170,15 +181,18 @@ export default function PeriodontalRecordsSection({
       return {
         ...exam,
         tooth_measurements: exam.tooth_measurements.map((measurement) =>
-          measurement.tooth_number === nextMeasurement.tooth_number ? nextMeasurement : measurement
+          measurement.tooth_number === nextMeasurement.tooth_number ? nextMeasurement : measurement,
         ),
       };
     });
 
-    commitPeriodontalRecords({
-      ...periodontalRecords,
-      exams: nextExams,
-    }, `Tooth #${nextMeasurement.tooth_number} updated`);
+    commitPeriodontalRecords(
+      {
+        ...periodontalRecords,
+        exams: nextExams,
+      },
+      `Tooth #${nextMeasurement.tooth_number} updated`,
+    );
 
     setShowMeasurementEditor(false);
     setEditingTooth(null);
@@ -202,7 +216,7 @@ export default function PeriodontalRecordsSection({
       tooth.pocket_depths.forEach((depth: number) => {
         totalDepth += depth;
         totalPoints++;
-        
+
         if (depth <= 3) healthy++;
         else if (depth <= 5) warning++;
         else severe++;
@@ -254,10 +268,12 @@ export default function PeriodontalRecordsSection({
       LL: [17, 18, 19, 20, 21, 22, 23, 24],
       LR: [25, 26, 27, 28, 29, 30, 31, 32],
     };
-    
-    return ranges[quadrant].map(num => 
-      latestExam?.tooth_measurements.find((t: ToothMeasurement) => t.tooth_number === num)
-    ).filter(Boolean);
+
+    return ranges[quadrant]
+      .map((num) =>
+        latestExam?.tooth_measurements.find((t: ToothMeasurement) => t.tooth_number === num),
+      )
+      .filter(Boolean);
   };
 
   return (
@@ -328,7 +344,9 @@ export default function PeriodontalRecordsSection({
             <select
               value={selectedExam?.exam_id || ''}
               onChange={(e) => {
-                const exam = periodontalRecords.exams.find((ex: PeriodontalExam) => ex.exam_id === e.target.value);
+                const exam = periodontalRecords.exams.find(
+                  (ex: PeriodontalExam) => ex.exam_id === e.target.value,
+                );
                 setSelectedExam(exam || null);
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -382,12 +400,16 @@ export default function PeriodontalRecordsSection({
 
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
           <p className="font-medium">How to edit</p>
-          <p className="mt-1">Pick an exam, then press Edit on any tooth card. Saving changes updates only the selected exam.</p>
+          <p className="mt-1">
+            Pick an exam, then press Edit on any tooth card. Saving changes updates only the
+            selected exam.
+          </p>
         </div>
 
         {activeExam && (
           <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-900">
-            Currently editing exam: {new Date(activeExam.exam_date).toLocaleDateString()} by Dr. {activeExam.examiner_name}
+            Currently editing exam: {new Date(activeExam.exam_date).toLocaleDateString()} by Dr.{' '}
+            {activeExam.examiner_name}
           </div>
         )}
 
@@ -427,11 +449,18 @@ export default function PeriodontalRecordsSection({
                 <p className="text-sm font-medium text-gray-600 text-center mb-3">Right</p>
                 <div className="space-y-2">
                   {getQuadrantTeeth('UR').map((tooth: any) => (
-                    <div key={tooth.tooth_number} className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}>
+                    <div
+                      key={tooth.tooth_number}
+                      className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}
+                    >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-gray-900">#{tooth.tooth_number}</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          #{tooth.tooth_number}
+                        </span>
                         {tooth.mobility_grade > 0 && (
-                          <span className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}>
+                          <span
+                            className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}
+                          >
                             Mobility: {tooth.mobility_grade}
                           </span>
                         )}
@@ -491,11 +520,18 @@ export default function PeriodontalRecordsSection({
                 <p className="text-sm font-medium text-gray-600 text-center mb-3">Left</p>
                 <div className="space-y-2">
                   {getQuadrantTeeth('UL').map((tooth: any) => (
-                    <div key={tooth.tooth_number} className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}>
+                    <div
+                      key={tooth.tooth_number}
+                      className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}
+                    >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-gray-900">#{tooth.tooth_number}</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          #{tooth.tooth_number}
+                        </span>
                         {tooth.mobility_grade > 0 && (
-                          <span className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}>
+                          <span
+                            className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}
+                          >
                             Mobility: {tooth.mobility_grade}
                           </span>
                         )}
@@ -557,59 +593,69 @@ export default function PeriodontalRecordsSection({
               <div>
                 <p className="text-sm font-medium text-gray-600 text-center mb-3">Left</p>
                 <div className="space-y-2">
-                  {getQuadrantTeeth('LL').reverse().map((tooth: any) => (
-                    <div key={tooth.tooth_number} className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-gray-900">#{tooth.tooth_number}</span>
-                        {tooth.mobility_grade > 0 && (
-                          <span className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}>
-                            Mobility: {tooth.mobility_grade}
+                  {getQuadrantTeeth('LL')
+                    .reverse()
+                    .map((tooth: any) => (
+                      <div
+                        key={tooth.tooth_number}
+                        className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-gray-900">
+                            #{tooth.tooth_number}
                           </span>
+                          {tooth.mobility_grade > 0 && (
+                            <span
+                              className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}
+                            >
+                              Mobility: {tooth.mobility_grade}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-6 gap-1 mb-2">
+                          {tooth.pocket_depths.map((depth: number, idx: number) => (
+                            <div
+                              key={idx}
+                              className={`text-center py-1 rounded text-xs font-bold ${getDepthColor(depth)}`}
+                            >
+                              {depth}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-6 gap-1">
+                          {tooth.bleeding_on_probing.map((bleeding: boolean, idx: number) => (
+                            <div key={idx} className="text-center">
+                              {bleeding && <Droplet className="w-3 h-3 text-red-500 mx-auto" />}
+                            </div>
+                          ))}
+                        </div>
+
+                        {tooth.recession_mm.some((r: number) => r > 0) && (
+                          <div className="mt-2 text-xs text-orange-600">
+                            Recession: {tooth.recession_mm.filter((r: number) => r > 0).length}{' '}
+                            sites
+                          </div>
                         )}
-                      </div>
 
-                      <div className="grid grid-cols-6 gap-1 mb-2">
-                        {tooth.pocket_depths.map((depth: number, idx: number) => (
-                          <div
-                            key={idx}
-                            className={`text-center py-1 rounded text-xs font-bold ${getDepthColor(depth)}`}
+                        {tooth.furcation_involvement && tooth.furcation_involvement !== 'none' && (
+                          <div className="mt-1 text-xs text-red-600 font-medium">
+                            Furcation: Class {tooth.furcation_involvement.replace('class_', '')}
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex justify-end">
+                          <button
+                            onClick={() => openMeasurementEditor(tooth)}
+                            className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
                           >
-                            {depth}
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-6 gap-1">
-                        {tooth.bleeding_on_probing.map((bleeding: boolean, idx: number) => (
-                          <div key={idx} className="text-center">
-                            {bleeding && <Droplet className="w-3 h-3 text-red-500 mx-auto" />}
-                          </div>
-                        ))}
-                      </div>
-
-                      {tooth.recession_mm.some((r: number) => r > 0) && (
-                        <div className="mt-2 text-xs text-orange-600">
-                          Recession: {tooth.recession_mm.filter((r: number) => r > 0).length} sites
+                            <Edit3 className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
                         </div>
-                      )}
-
-                      {tooth.furcation_involvement && tooth.furcation_involvement !== 'none' && (
-                        <div className="mt-1 text-xs text-red-600 font-medium">
-                          Furcation: Class {tooth.furcation_involvement.replace('class_', '')}
-                        </div>
-                      )}
-
-                      <div className="mt-2 flex justify-end">
-                        <button
-                          onClick={() => openMeasurementEditor(tooth)}
-                          className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                        >
-                          <Edit3 className="h-3.5 w-3.5" />
-                          Edit
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
@@ -617,59 +663,69 @@ export default function PeriodontalRecordsSection({
               <div>
                 <p className="text-sm font-medium text-gray-600 text-center mb-3">Right</p>
                 <div className="space-y-2">
-                  {getQuadrantTeeth('LR').reverse().map((tooth: any) => (
-                    <div key={tooth.tooth_number} className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-gray-900">#{tooth.tooth_number}</span>
-                        {tooth.mobility_grade > 0 && (
-                          <span className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}>
-                            Mobility: {tooth.mobility_grade}
+                  {getQuadrantTeeth('LR')
+                    .reverse()
+                    .map((tooth: any) => (
+                      <div
+                        key={tooth.tooth_number}
+                        className={`border border-gray-200 rounded-lg p-3 transition-all ${editingTooth?.tooth_number === tooth.tooth_number ? 'ring-2 ring-blue-300 animate-pulse' : ''}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-gray-900">
+                            #{tooth.tooth_number}
                           </span>
+                          {tooth.mobility_grade > 0 && (
+                            <span
+                              className={`text-xs font-semibold ${getMobilityColor(tooth.mobility_grade)}`}
+                            >
+                              Mobility: {tooth.mobility_grade}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-6 gap-1 mb-2">
+                          {tooth.pocket_depths.map((depth: number, idx: number) => (
+                            <div
+                              key={idx}
+                              className={`text-center py-1 rounded text-xs font-bold ${getDepthColor(depth)}`}
+                            >
+                              {depth}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-6 gap-1">
+                          {tooth.bleeding_on_probing.map((bleeding: boolean, idx: number) => (
+                            <div key={idx} className="text-center">
+                              {bleeding && <Droplet className="w-3 h-3 text-red-500 mx-auto" />}
+                            </div>
+                          ))}
+                        </div>
+
+                        {tooth.recession_mm.some((r: number) => r > 0) && (
+                          <div className="mt-2 text-xs text-orange-600">
+                            Recession: {tooth.recession_mm.filter((r: number) => r > 0).length}{' '}
+                            sites
+                          </div>
                         )}
-                      </div>
 
-                      <div className="grid grid-cols-6 gap-1 mb-2">
-                        {tooth.pocket_depths.map((depth: number, idx: number) => (
-                          <div
-                            key={idx}
-                            className={`text-center py-1 rounded text-xs font-bold ${getDepthColor(depth)}`}
+                        {tooth.furcation_involvement && tooth.furcation_involvement !== 'none' && (
+                          <div className="mt-1 text-xs text-red-600 font-medium">
+                            Furcation: Class {tooth.furcation_involvement.replace('class_', '')}
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex justify-end">
+                          <button
+                            onClick={() => openMeasurementEditor(tooth)}
+                            className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
                           >
-                            {depth}
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-6 gap-1">
-                        {tooth.bleeding_on_probing.map((bleeding: boolean, idx: number) => (
-                          <div key={idx} className="text-center">
-                            {bleeding && <Droplet className="w-3 h-3 text-red-500 mx-auto" />}
-                          </div>
-                        ))}
-                      </div>
-
-                      {tooth.recession_mm.some((r: number) => r > 0) && (
-                        <div className="mt-2 text-xs text-orange-600">
-                          Recession: {tooth.recession_mm.filter((r: number) => r > 0).length} sites
+                            <Edit3 className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
                         </div>
-                      )}
-
-                      {tooth.furcation_involvement && tooth.furcation_involvement !== 'none' && (
-                        <div className="mt-1 text-xs text-red-600 font-medium">
-                          Furcation: Class {tooth.furcation_involvement.replace('class_', '')}
-                        </div>
-                      )}
-
-                      <div className="mt-2 flex justify-end">
-                        <button
-                          onClick={() => openMeasurementEditor(tooth)}
-                          className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                        >
-                          <Edit3 className="h-3.5 w-3.5" />
-                          Edit
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </div>
@@ -714,24 +770,40 @@ export default function PeriodontalRecordsSection({
                   Average Pocket Depth Over Time
                 </h4>
                 <div className="h-48 flex items-end space-x-2">
-                  {periodontalRecords.exams.slice().reverse().map((exam: PeriodontalExam, idx: number) => {
-                    const avgDepth = exam.tooth_measurements.reduce((sum: number, tooth: ToothMeasurement) => {
-                      return sum + tooth.pocket_depths.reduce((a: number, b: number) => a + b, 0) / tooth.pocket_depths.length;
-                    }, 0) / exam.tooth_measurements.length;
+                  {periodontalRecords.exams
+                    .slice()
+                    .reverse()
+                    .map((exam: PeriodontalExam, idx: number) => {
+                      const avgDepth =
+                        exam.tooth_measurements.reduce((sum: number, tooth: ToothMeasurement) => {
+                          return (
+                            sum +
+                            tooth.pocket_depths.reduce((a: number, b: number) => a + b, 0) /
+                              tooth.pocket_depths.length
+                          );
+                        }, 0) / exam.tooth_measurements.length;
 
-                    const height = (avgDepth / 8) * 100; // Max 8mm = 100%
+                      const height = (avgDepth / 8) * 100; // Max 8mm = 100%
 
-                    return (
-                      <div key={exam.exam_id} className="flex-1 flex flex-col items-center">
-                        <div className="w-full bg-blue-500 rounded-t" style={{ height: `${height}%` }}>
-                          <p className="text-xs text-white text-center pt-2">{avgDepth.toFixed(1)}mm</p>
+                      return (
+                        <div key={exam.exam_id} className="flex-1 flex flex-col items-center">
+                          <div
+                            className="w-full bg-blue-500 rounded-t"
+                            style={{ height: `${height}%` }}
+                          >
+                            <p className="text-xs text-white text-center pt-2">
+                              {avgDepth.toFixed(1)}mm
+                            </p>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2 text-center">
+                            {new Date(exam.exam_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              year: '2-digit',
+                            })}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-600 mt-2 text-center">
-                          {new Date(exam.exam_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </div>
 
@@ -742,26 +814,43 @@ export default function PeriodontalRecordsSection({
                   Bleeding on Probing Trend
                 </h4>
                 <div className="h-48 flex items-end space-x-2">
-                  {periodontalRecords.exams.slice().reverse().map((exam: PeriodontalExam) => {
-                    const bleedingCount = exam.tooth_measurements.reduce((sum: number, tooth: ToothMeasurement) => {
-                      return sum + tooth.bleeding_on_probing.filter((b: boolean) => b).length;
-                    }, 0);
-                    const totalPoints = exam.tooth_measurements.reduce((sum: number, tooth: ToothMeasurement) => {
-                      return sum + tooth.bleeding_on_probing.length;
-                    }, 0);
-                    const percentage = (bleedingCount / totalPoints) * 100;
-                    
-                    return (
-                      <div key={exam.exam_id} className="flex-1 flex flex-col items-center">
-                        <div className="w-full bg-red-500 rounded-t" style={{ height: `${percentage}%` }}>
-                          <p className="text-xs text-white text-center pt-2">{percentage.toFixed(0)}%</p>
+                  {periodontalRecords.exams
+                    .slice()
+                    .reverse()
+                    .map((exam: PeriodontalExam) => {
+                      const bleedingCount = exam.tooth_measurements.reduce(
+                        (sum: number, tooth: ToothMeasurement) => {
+                          return sum + tooth.bleeding_on_probing.filter((b: boolean) => b).length;
+                        },
+                        0,
+                      );
+                      const totalPoints = exam.tooth_measurements.reduce(
+                        (sum: number, tooth: ToothMeasurement) => {
+                          return sum + tooth.bleeding_on_probing.length;
+                        },
+                        0,
+                      );
+                      const percentage = (bleedingCount / totalPoints) * 100;
+
+                      return (
+                        <div key={exam.exam_id} className="flex-1 flex flex-col items-center">
+                          <div
+                            className="w-full bg-red-500 rounded-t"
+                            style={{ height: `${percentage}%` }}
+                          >
+                            <p className="text-xs text-white text-center pt-2">
+                              {percentage.toFixed(0)}%
+                            </p>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2 text-center">
+                            {new Date(exam.exam_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              year: '2-digit',
+                            })}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-600 mt-2 text-center">
-                          {new Date(exam.exam_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </div>
 
@@ -825,25 +914,40 @@ export default function PeriodontalRecordsSection({
                 Edit Tooth #{editingTooth.tooth_number} Measurements
               </h4>
               <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
-                This save updates periodontal depths, bleeding, recession, mobility, and furcation for this tooth in the selected exam.
+                This save updates periodontal depths, bleeding, recession, mobility, and furcation
+                for this tooth in the selected exam.
               </div>
               <div className="space-y-4">
                 <div className="rounded-xl border border-gray-200 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Tooth Surface Chart Editor</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    Tooth Surface Chart Editor
+                  </p>
                   <div className="space-y-3">
                     {[0, 3].map((start) => (
                       <div key={start} className="rounded-lg border border-gray-200 bg-gray-50 p-2">
-                        <p className="text-xs font-semibold text-gray-700 mb-2">{sectionTitle(start)} Sites</p>
+                        <p className="text-xs font-semibold text-gray-700 mb-2">
+                          {sectionTitle(start)} Sites
+                        </p>
                         <div className="grid grid-cols-3 gap-2">
                           {[start, start + 1, start + 2].map((idx) => (
-                            <div key={idx} className="rounded-md border border-gray-200 bg-white p-2">
-                              <p className="text-xs font-semibold text-gray-500 mb-1">{siteLabel(idx)} site</p>
+                            <div
+                              key={idx}
+                              className="rounded-md border border-gray-200 bg-white p-2"
+                            >
+                              <p className="text-xs font-semibold text-gray-500 mb-1">
+                                {siteLabel(idx)} site
+                              </p>
                               <div className="space-y-2">
                                 <div>
                                   <p className="text-[11px] text-gray-500">Depth (mm)</p>
                                   <div className="mt-1 flex items-center gap-1">
                                     <button
-                                      onClick={() => updatePocketDepth(idx, measurementForm.pocketDepths[idx] - 1)}
+                                      onClick={() =>
+                                        updatePocketDepth(
+                                          idx,
+                                          measurementForm.pocketDepths[idx] - 1,
+                                        )
+                                      }
                                       className="h-6 w-6 rounded bg-gray-100 text-sm font-bold text-gray-700 hover:bg-gray-200"
                                     >
                                       -
@@ -853,11 +957,18 @@ export default function PeriodontalRecordsSection({
                                       min={1}
                                       max={12}
                                       value={measurementForm.pocketDepths[idx]}
-                                      onChange={(e) => updatePocketDepth(idx, Number(e.target.value) || 1)}
+                                      onChange={(e) =>
+                                        updatePocketDepth(idx, Number(e.target.value) || 1)
+                                      }
                                       className="w-full rounded border border-gray-300 px-1 py-1 text-center text-sm"
                                     />
                                     <button
-                                      onClick={() => updatePocketDepth(idx, measurementForm.pocketDepths[idx] + 1)}
+                                      onClick={() =>
+                                        updatePocketDepth(
+                                          idx,
+                                          measurementForm.pocketDepths[idx] + 1,
+                                        )
+                                      }
                                       className="h-6 w-6 rounded bg-gray-100 text-sm font-bold text-gray-700 hover:bg-gray-200"
                                     >
                                       +
@@ -872,7 +983,9 @@ export default function PeriodontalRecordsSection({
                                     min={0}
                                     max={8}
                                     value={measurementForm.recession[idx]}
-                                    onChange={(e) => updateRecession(idx, Number(e.target.value) || 0)}
+                                    onChange={(e) =>
+                                      updateRecession(idx, Number(e.target.value) || 0)
+                                    }
                                     className="mt-1 w-full rounded border border-gray-300 px-1 py-1 text-center text-sm"
                                   />
                                 </div>
@@ -894,22 +1007,36 @@ export default function PeriodontalRecordsSection({
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Mobility grade</label>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Mobility grade
+                    </label>
                     <input
                       type="number"
                       min={0}
                       max={3}
                       value={measurementForm.mobilityGrade}
-                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, mobilityGrade: clamp(Number(e.target.value) || 0, 0, 3) }))}
+                      onChange={(e) =>
+                        setMeasurementForm((prev) => ({
+                          ...prev,
+                          mobilityGrade: clamp(Number(e.target.value) || 0, 0, 3),
+                        }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Furcation</label>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Furcation
+                    </label>
                     <select
                       value={measurementForm.furcationInvolvement}
-                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, furcationInvolvement: e.target.value }))}
+                      onChange={(e) =>
+                        setMeasurementForm((prev) => ({
+                          ...prev,
+                          furcationInvolvement: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     >
                       <option value="none">No furcation</option>
@@ -921,7 +1048,8 @@ export default function PeriodontalRecordsSection({
                 </div>
 
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                  Tip: Use + / - for quick probing depth updates, and tap Bleeding to toggle each site.
+                  Tip: Use + / - for quick probing depth updates, and tap Bleeding to toggle each
+                  site.
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-5">
@@ -942,7 +1070,6 @@ export default function PeriodontalRecordsSection({
           </motion.div>
         )}
 
-        
         {showNewExamModal && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -955,32 +1082,40 @@ export default function PeriodontalRecordsSection({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl p-6 w-full max-w-xl"
             >
               <h4 className="text-lg font-bold text-gray-900 mb-4">New Periodontal Exam</h4>
               <div className="space-y-3">
                 <input
                   value={newExamForm.examiner_name}
-                  onChange={e => setNewExamForm(prev => ({ ...prev, examiner_name: e.target.value }))}
+                  onChange={(e) =>
+                    setNewExamForm((prev) => ({ ...prev, examiner_name: e.target.value }))
+                  }
                   placeholder="Examiner name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <input
                   type="date"
                   value={newExamForm.exam_date}
-                  onChange={e => setNewExamForm(prev => ({ ...prev, exam_date: e.target.value }))}
+                  onChange={(e) =>
+                    setNewExamForm((prev) => ({ ...prev, exam_date: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <input
                   value={newExamForm.diagnosis}
-                  onChange={e => setNewExamForm(prev => ({ ...prev, diagnosis: e.target.value }))}
+                  onChange={(e) =>
+                    setNewExamForm((prev) => ({ ...prev, diagnosis: e.target.value }))
+                  }
                   placeholder="Overall diagnosis"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <textarea
                   value={newExamForm.recommendations}
-                  onChange={e => setNewExamForm(prev => ({ ...prev, recommendations: e.target.value }))}
+                  onChange={(e) =>
+                    setNewExamForm((prev) => ({ ...prev, recommendations: e.target.value }))
+                  }
                   placeholder="Recommendations (one per line)"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[100px]"
                 />

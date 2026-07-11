@@ -13,12 +13,12 @@ export type BookingSource = 'ai' | 'manual';
 /**
  * Appointment status
  */
-export type AppointmentStatus = 
-  | 'scheduled'    // Upcoming appointment
-  | 'completed'    // Past appointment that happened
-  | 'canceled'     // Canceled appointment
-  | 'rescheduled'  // Was rescheduled (historical record)
-  | 'no-show';     // Patient didn't show up
+export type AppointmentStatus =
+  | 'scheduled' // Upcoming appointment
+  | 'completed' // Past appointment that happened
+  | 'canceled' // Canceled appointment
+  | 'rescheduled' // Was rescheduled (historical record)
+  | 'no-show'; // Patient didn't show up
 
 /**
  * Procedure types
@@ -53,51 +53,51 @@ export interface Doctor {
  */
 export interface Appointment {
   id: string;
-  
+
   // Patient reference
   patientId: string;
   patient?: Patient; // Populated for display
-  
+
   // Doctor assignment
   doctorId: string;
   doctor?: Doctor; // Populated for display
-  
+
   // Scheduling
   startTime: Date;
   endTime: Date;
-  
+
   // Appointment details
   procedureType: ProcedureType;
   status: AppointmentStatus;
-  
+
   // Booking metadata
   bookingSource: BookingSource;
   aiConfidenceScore?: number; // 0-100 for AI bookings
   aiTranscript?: string; // Optional conversation transcript
-  
+
   // Notes and details
   notes?: string;
   patientNotes?: string; // Patient-provided notes
-  
+
   // Insurance
   insuranceProvider?: string;
   estimatedCost?: number;
   patientCost?: number; // After insurance
-  
+
   // Audit trail
   createdBy: string; // User ID who created the booking
   createdAt: Date;
   updatedAt: Date;
-  
+
   // Rescheduling
   rescheduledFrom?: string; // Original appointment ID
   rescheduledTo?: string; // New appointment ID
   rescheduledReason?: string;
-  
+
   // Reminders
   reminderSent?: boolean;
   reminderSentAt?: Date;
-  
+
   // Confirmation
   confirmed?: boolean;
   confirmedAt?: Date;

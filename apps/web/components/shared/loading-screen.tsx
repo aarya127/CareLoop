@@ -21,7 +21,7 @@ export default function LoadingScreen() {
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             />
-            
+
             {/* Inner pulsing circle */}
             <motion.div
               className="absolute inset-0 flex items-center justify-center"

@@ -43,7 +43,8 @@ export default function AdminDocumentsSection({
   adminDocuments: initialAdminDocuments,
   onUpdate,
 }: AdminDocumentsSectionProps) {
-  const [adminDocuments, setAdminDocuments] = useState<AdministrativeDocuments>(initialAdminDocuments);
+  const [adminDocuments, setAdminDocuments] =
+    useState<AdministrativeDocuments>(initialAdminDocuments);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<AdministrativeDocument | null>(null);
@@ -98,7 +99,7 @@ export default function AdminDocumentsSection({
     };
 
     const nextDocuments = editingDocumentId
-      ? adminDocuments.documents.map(doc => (doc.id === editingDocumentId ? nextDoc : doc))
+      ? adminDocuments.documents.map((doc) => (doc.id === editingDocumentId ? nextDoc : doc))
       : [nextDoc, ...adminDocuments.documents];
 
     commitAdminDocuments({
@@ -117,42 +118,42 @@ export default function AdminDocumentsSection({
       id: 'consent_form',
       label: 'Consent Forms',
       icon: FileSignature,
-      count: adminDocuments.documents.filter(d => d.document_type === 'consent_form').length,
+      count: adminDocuments.documents.filter((d) => d.document_type === 'consent_form').length,
     },
     {
       id: 'treatment_plan',
       label: 'Treatment Plans',
       icon: ClipboardList,
-      count: adminDocuments.documents.filter(d => d.document_type === 'treatment_plan').length,
+      count: adminDocuments.documents.filter((d) => d.document_type === 'treatment_plan').length,
     },
     {
       id: 'invoice',
       label: 'Invoices',
       icon: DollarSign,
-      count: adminDocuments.documents.filter(d => d.document_type === 'invoice').length,
+      count: adminDocuments.documents.filter((d) => d.document_type === 'invoice').length,
     },
     {
       id: 'insurance_claim',
       label: 'Insurance Claims',
       icon: FileCheck,
-      count: adminDocuments.documents.filter(d => d.document_type === 'insurance_claim').length,
+      count: adminDocuments.documents.filter((d) => d.document_type === 'insurance_claim').length,
     },
     {
       id: 'prescription',
       label: 'Prescriptions',
       icon: Pill,
-      count: adminDocuments.documents.filter(d => d.document_type === 'prescription').length,
+      count: adminDocuments.documents.filter((d) => d.document_type === 'prescription').length,
     },
     {
       id: 'referral_letter',
       label: 'Referral Letters',
       icon: SendHorizontal,
-      count: adminDocuments.documents.filter(d => d.document_type === 'referral_letter').length,
+      count: adminDocuments.documents.filter((d) => d.document_type === 'referral_letter').length,
     },
   ];
 
   // Filter documents
-  const filteredDocuments = adminDocuments.documents.filter(doc => {
+  const filteredDocuments = adminDocuments.documents.filter((doc) => {
     const matchesCategory = selectedCategory === 'all' || doc.document_type === selectedCategory;
     const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -194,7 +195,7 @@ export default function AdminDocumentsSection({
 
   // Get category icon
   const getCategoryIcon = (type: string) => {
-    const category = categories.find(c => c.id === type);
+    const category = categories.find((c) => c.id === type);
     return category?.icon || FileText;
   };
 
@@ -217,7 +218,7 @@ export default function AdminDocumentsSection({
             <div>
               <p className="text-sm text-gray-600">Pending</p>
               <p className="text-2xl font-bold text-yellow-600">
-                {adminDocuments.documents.filter(d => d.status === 'pending').length}
+                {adminDocuments.documents.filter((d) => d.status === 'pending').length}
               </p>
             </div>
             <Clock className="w-8 h-8 text-yellow-500" />
@@ -229,7 +230,7 @@ export default function AdminDocumentsSection({
             <div>
               <p className="text-sm text-gray-600">Signed</p>
               <p className="text-2xl font-bold text-green-600">
-                {adminDocuments.documents.filter(d => d.status === 'signed').length}
+                {adminDocuments.documents.filter((d) => d.status === 'signed').length}
               </p>
             </div>
             <CheckCircle2 className="w-8 h-8 text-green-500" />
@@ -241,7 +242,7 @@ export default function AdminDocumentsSection({
             <div>
               <p className="text-sm text-gray-600">Need Attention</p>
               <p className="text-2xl font-bold text-red-600">
-                {adminDocuments.documents.filter(d => d.status === 'rejected').length}
+                {adminDocuments.documents.filter((d) => d.status === 'rejected').length}
               </p>
             </div>
             <AlertCircle className="w-8 h-8 text-red-500" />
@@ -252,7 +253,7 @@ export default function AdminDocumentsSection({
       {/* Category Tabs */}
       <div className="bg-white rounded-xl border border-gray-200 p-2 shadow-sm overflow-x-auto">
         <div className="flex space-x-2 min-w-max">
-          {categories.map(category => {
+          {categories.map((category) => {
             const Icon = category.icon;
             return (
               <button
@@ -266,9 +267,11 @@ export default function AdminDocumentsSection({
               >
                 <Icon className="w-4 h-4" />
                 <span>{category.label}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  selectedCategory === category.id ? 'bg-blue-600' : 'bg-gray-200'
-                }`}>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs ${
+                    selectedCategory === category.id ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
                   {category.count}
                 </span>
               </button>
@@ -306,7 +309,7 @@ export default function AdminDocumentsSection({
       {/* Documents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <AnimatePresence mode="popLayout">
-          {filteredDocuments.map(doc => {
+          {filteredDocuments.map((doc) => {
             const Icon = getCategoryIcon(doc.document_type);
             const statusInfo = statusConfig[doc.status];
             const StatusIcon = statusInfo.icon;
@@ -337,7 +340,9 @@ export default function AdminDocumentsSection({
                 )}
 
                 <div className="flex items-center justify-between mb-3">
-                  <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium border ${statusInfo.color}`}>
+                  <span
+                    className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium border ${statusInfo.color}`}
+                  >
                     <StatusIcon className="w-3 h-3" />
                     <span>{statusInfo.label}</span>
                   </span>
@@ -476,7 +481,9 @@ export default function AdminDocumentsSection({
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <p className="text-xs text-gray-600 mb-1">File Format</p>
-                      <p className="text-sm font-medium text-gray-900">{selectedDocument.file_format.toUpperCase()}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {selectedDocument.file_format.toUpperCase()}
+                      </p>
                     </div>
                   </div>
 
@@ -488,11 +495,26 @@ export default function AdminDocumentsSection({
                         <h3 className="font-semibold text-green-900">Document Signed</h3>
                       </div>
                       <div className="space-y-1 text-sm text-green-700">
-                        <p>Signed by: <span className="font-medium">{selectedDocument.signed_by[0].signer_name}</span></p>
-                        <p>Role: <span className="font-medium capitalize">{selectedDocument.signed_by[0].signer_role}</span></p>
-                        <p>Date: <span className="font-medium">
-                          {new Date(selectedDocument.signed_by[0].signature_date).toLocaleDateString()}
-                        </span></p>
+                        <p>
+                          Signed by:{' '}
+                          <span className="font-medium">
+                            {selectedDocument.signed_by[0].signer_name}
+                          </span>
+                        </p>
+                        <p>
+                          Role:{' '}
+                          <span className="font-medium capitalize">
+                            {selectedDocument.signed_by[0].signer_role}
+                          </span>
+                        </p>
+                        <p>
+                          Date:{' '}
+                          <span className="font-medium">
+                            {new Date(
+                              selectedDocument.signed_by[0].signature_date,
+                            ).toLocaleDateString()}
+                          </span>
+                        </p>
                       </div>
                     </div>
                   )}
@@ -502,7 +524,8 @@ export default function AdminDocumentsSection({
                     <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 font-medium mb-2">Document Preview</p>
                     <p className="text-sm text-gray-500">
-                      {selectedDocument.file_format.toUpperCase()} file viewer will be displayed here
+                      {selectedDocument.file_format.toUpperCase()} file viewer will be displayed
+                      here
                     </p>
                   </div>
                 </div>
@@ -566,13 +589,15 @@ export default function AdminDocumentsSection({
               <div className="space-y-3 mb-6">
                 <input
                   value={documentForm.title}
-                  onChange={e => setDocumentForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => setDocumentForm((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="Document title"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <select
                   value={documentForm.document_type}
-                  onChange={e => setDocumentForm(prev => ({ ...prev, document_type: e.target.value }))}
+                  onChange={(e) =>
+                    setDocumentForm((prev) => ({ ...prev, document_type: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="consent_form">Consent Form</option>
@@ -585,7 +610,7 @@ export default function AdminDocumentsSection({
                 </select>
                 <select
                   value={documentForm.status}
-                  onChange={e => setDocumentForm(prev => ({ ...prev, status: e.target.value }))}
+                  onChange={(e) => setDocumentForm((prev) => ({ ...prev, status: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="pending">Pending</option>
@@ -598,18 +623,22 @@ export default function AdminDocumentsSection({
                 <input
                   type="date"
                   value={documentForm.date_issued}
-                  onChange={e => setDocumentForm(prev => ({ ...prev, date_issued: e.target.value }))}
+                  onChange={(e) =>
+                    setDocumentForm((prev) => ({ ...prev, date_issued: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <input
                   value={documentForm.linked_procedure}
-                  onChange={e => setDocumentForm(prev => ({ ...prev, linked_procedure: e.target.value }))}
+                  onChange={(e) =>
+                    setDocumentForm((prev) => ({ ...prev, linked_procedure: e.target.value }))
+                  }
                   placeholder="Linked procedure (optional)"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <textarea
                   value={documentForm.notes}
-                  onChange={e => setDocumentForm(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) => setDocumentForm((prev) => ({ ...prev, notes: e.target.value }))}
                   placeholder="Notes"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]"
                 />

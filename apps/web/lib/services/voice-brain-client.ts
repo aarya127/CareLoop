@@ -16,7 +16,8 @@ import type {
 import { auditLog, trackAPICall } from './audit-service';
 
 // Configuration
-const VOICE_BRAIN_BASE_URL = process.env.NEXT_PUBLIC_VOICE_BRAIN_URL || 'https://api.careloop.com/voice-brain';
+const VOICE_BRAIN_BASE_URL =
+  process.env.NEXT_PUBLIC_VOICE_BRAIN_URL || 'https://api.careloop.com/voice-brain';
 const DEFAULT_TIMEOUT = 10000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -69,9 +70,7 @@ class VoiceBrainClient {
    */
   private checkRateLimit(): void {
     const now = Date.now();
-    this.messageTimestamps = this.messageTimestamps.filter(
-      ts => now - ts < RATE_LIMIT_WINDOW_MS
-    );
+    this.messageTimestamps = this.messageTimestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
 
     if (this.messageTimestamps.length >= MESSAGE_RATE_LIMIT) {
       throw new Error(`Rate limit exceeded: Maximum ${MESSAGE_RATE_LIMIT} messages per minute`);
@@ -86,15 +85,13 @@ class VoiceBrainClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    retryCount = 0
+    retryCount = 0,
   ): Promise<APIResponse<T>> {
     const requestId = crypto.randomUUID();
     const startTime = Date.now();
 
     try {
-      const token = typeof window !== 'undefined'
-        ? localStorage.getItem('auth_token')
-        : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
       if (!token) {
         throw new Error('No authentication token found');
@@ -103,7 +100,7 @@ class VoiceBrainClient {
       const url = `${VOICE_BRAIN_BASE_URL}${endpoint}`;
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'x-request-id': requestId,
         ...options.headers,
       };
@@ -116,13 +113,7 @@ class VoiceBrainClient {
 
       // Track successful API call
       if (response.ok) {
-        trackAPICall(
-          endpoint,
-          options.method || 'GET',
-          true,
-          undefined,
-          requestId
-        );
+        trackAPICall(endpoint, options.method || 'GET', true, undefined, requestId);
       }
 
       if (!response.ok) {
@@ -135,7 +126,7 @@ class VoiceBrainClient {
         // Retry on 5xx errors
         if (response.status >= 500 && retryCount < MAX_RETRIES) {
           const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return this.request<T>(endpoint, options, retryCount + 1);
         }
 
@@ -144,21 +135,14 @@ class VoiceBrainClient {
 
       const data: APIResponse<T> = await response.json();
       return data;
-
     } catch (error: any) {
       // Track API error
-      trackAPICall(
-        endpoint,
-        options.method || 'GET',
-        false,
-        error.message,
-        requestId
-      );
+      trackAPICall(endpoint, options.method || 'GET', false, error.message, requestId);
 
       // Retry on network errors
       if (retryCount < MAX_RETRIES && error.name === 'AbortError') {
         const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.request<T>(endpoint, options, retryCount + 1);
       }
 
@@ -169,9 +153,7 @@ class VoiceBrainClient {
   /**
    * Get conversations with filters
    */
-  async getConversations(
-    filter: GetConversationsFilter
-  ): Promise<PaginatedResponse<Conversation>> {
+  async getConversations(filter: GetConversationsFilter): Promise<PaginatedResponse<Conversation>> {
     if (filter.patient_id) {
       auditLog({
         action: 'view_conversation',
@@ -193,7 +175,7 @@ class VoiceBrainClient {
     if (filter.offset) params.append('offset', filter.offset.toString());
 
     const response = await this.request<PaginatedResponse<Conversation>>(
-      `/conversations?${params.toString()}`
+      `/conversations?${params.toString()}`,
     );
 
     return response.data;
@@ -202,9 +184,7 @@ class VoiceBrainClient {
   /**
    * Get messages for a conversation
    */
-  async getMessages(
-    filter: GetMessagesFilter
-  ): Promise<PaginatedResponse<Message>> {
+  async getMessages(filter: GetMessagesFilter): Promise<PaginatedResponse<Message>> {
     const params = new URLSearchParams();
     params.append('conversation_id', filter.conversation_id);
     if (filter.from_date) params.append('from_date', filter.from_date);
@@ -214,7 +194,7 @@ class VoiceBrainClient {
     if (filter.offset) params.append('offset', filter.offset.toString());
 
     const response = await this.request<PaginatedResponse<Message>>(
-      `/messages?${params.toString()}`
+      `/messages?${params.toString()}`,
     );
 
     return response.data;
@@ -223,10 +203,7 @@ class VoiceBrainClient {
   /**
    * Send a message in a conversation
    */
-  async sendMessage(
-    request: SendMessageRequest,
-    patientId: string
-  ): Promise<Message> {
+  async sendMessage(request: SendMessageRequest, patientId: string): Promise<Message> {
     // Check rate limit
     this.checkRateLimit();
 
@@ -243,16 +220,13 @@ class VoiceBrainClient {
       },
     });
 
-    const response = await this.request<Message>(
-      '/messages',
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(request),
-      }
-    );
+    const response = await this.request<Message>('/messages', {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(request),
+    });
 
     return response.data;
   }
@@ -263,7 +237,7 @@ class VoiceBrainClient {
   async uploadAttachment(
     conversationId: string,
     patientId: string,
-    file: File
+    file: File,
   ): Promise<{ file_id: string; url: string }> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -284,9 +258,7 @@ class VoiceBrainClient {
     formData.append('conversation_id', conversationId);
     formData.append('file', file);
 
-    const token = typeof window !== 'undefined'
-      ? localStorage.getItem('auth_token')
-      : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
     if (!token) {
       throw new Error('No authentication token found');
@@ -295,7 +267,7 @@ class VoiceBrainClient {
     const response = await fetch(`${VOICE_BRAIN_BASE_URL}/attachments`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Idempotency-Key': idempotencyKey,
         'x-request-id': crypto.randomUUID(),
       },
@@ -314,9 +286,7 @@ class VoiceBrainClient {
   /**
    * Escalate conversation to human agent
    */
-  async escalateConversation(
-    request: EscalateRequest
-  ): Promise<Conversation> {
+  async escalateConversation(request: EscalateRequest): Promise<Conversation> {
     const idempotencyKey = crypto.randomUUID();
 
     auditLog({
@@ -344,7 +314,7 @@ class VoiceBrainClient {
           assign_to: request.assign_to,
           priority: request.priority || 'medium',
         }),
-      }
+      },
     );
 
     return response.data;
@@ -356,7 +326,7 @@ class VoiceBrainClient {
    */
   async convertToAppointment(
     request: ConvertToAppointmentRequest,
-    patientId: string
+    patientId: string,
   ): Promise<Appointment> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -380,7 +350,7 @@ class VoiceBrainClient {
           'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify(request),
-      }
+      },
     );
 
     return response.data;
@@ -389,9 +359,7 @@ class VoiceBrainClient {
   /**
    * Mark conversation as resolved
    */
-  async markResolved(
-    request: MarkResolvedRequest
-  ): Promise<Conversation> {
+  async markResolved(request: MarkResolvedRequest): Promise<Conversation> {
     const idempotencyKey = crypto.randomUUID();
 
     auditLog({
@@ -416,7 +384,7 @@ class VoiceBrainClient {
           resolution_notes: request.resolution_notes,
           follow_up_required: request.follow_up_required || false,
         }),
-      }
+      },
     );
 
     return response.data;
@@ -428,7 +396,7 @@ class VoiceBrainClient {
   async reopenConversation(
     conversationId: string,
     patientId: string,
-    reason?: string
+    reason?: string,
   ): Promise<Conversation> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -443,16 +411,13 @@ class VoiceBrainClient {
       },
     });
 
-    const response = await this.request<Conversation>(
-      `/conversations/${conversationId}/reopen`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify({ reason }),
-      }
-    );
+    const response = await this.request<Conversation>(`/conversations/${conversationId}/reopen`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({ reason }),
+    });
 
     return response.data;
   }
@@ -463,7 +428,7 @@ class VoiceBrainClient {
   async assignConversation(
     conversationId: string,
     patientId: string,
-    assignTo: string
+    assignTo: string,
   ): Promise<Conversation> {
     const idempotencyKey = crypto.randomUUID();
 
@@ -478,16 +443,13 @@ class VoiceBrainClient {
       },
     });
 
-    const response = await this.request<Conversation>(
-      `/conversations/${conversationId}/assign`,
-      {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify({ assign_to: assignTo }),
-      }
-    );
+    const response = await this.request<Conversation>(`/conversations/${conversationId}/assign`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({ assign_to: assignTo }),
+    });
 
     return response.data;
   }
@@ -498,15 +460,12 @@ class VoiceBrainClient {
   async markAsRead(
     conversationId: string,
     patientId: string,
-    messageIds?: string[]
+    messageIds?: string[],
   ): Promise<void> {
-    await this.request(
-      `/conversations/${conversationId}/read`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ message_ids: messageIds }),
-      }
-    );
+    await this.request(`/conversations/${conversationId}/read`, {
+      method: 'POST',
+      body: JSON.stringify({ message_ids: messageIds }),
+    });
   }
 
   /**
@@ -514,7 +473,7 @@ class VoiceBrainClient {
    */
   async getConversationSummary(
     conversationId: string,
-    patientId: string
+    patientId: string,
   ): Promise<{
     summary: string;
     key_points: string[];
@@ -522,9 +481,7 @@ class VoiceBrainClient {
     intent: string[];
     suggested_actions: string[];
   }> {
-    const response = await this.request<any>(
-      `/conversations/${conversationId}/summary`
-    );
+    const response = await this.request<any>(`/conversations/${conversationId}/summary`);
 
     return response.data;
   }
@@ -535,19 +492,19 @@ class VoiceBrainClient {
   async searchConversations(
     query: string,
     patientId?: string,
-    limit = 20
-  ): Promise<Array<{
-    conversation: Conversation;
-    matches: Array<{ message_id: string; text: string; relevance: number }>;
-  }>> {
+    limit = 20,
+  ): Promise<
+    Array<{
+      conversation: Conversation;
+      matches: Array<{ message_id: string; text: string; relevance: number }>;
+    }>
+  > {
     const params = new URLSearchParams();
     params.append('q', query);
     if (patientId) params.append('patient_id', patientId);
     params.append('limit', limit.toString());
 
-    const response = await this.request<any>(
-      `/conversations/search?${params.toString()}`
-    );
+    const response = await this.request<any>(`/conversations/search?${params.toString()}`);
 
     return response.data;
   }
@@ -569,11 +526,7 @@ export async function sendMessage(request: SendMessageRequest, patientId: string
   return voiceBrainClient.sendMessage(request, patientId);
 }
 
-export async function uploadAttachment(
-  conversationId: string,
-  patientId: string,
-  file: File
-) {
+export async function uploadAttachment(conversationId: string, patientId: string, file: File) {
   return voiceBrainClient.uploadAttachment(conversationId, patientId, file);
 }
 
@@ -583,7 +536,7 @@ export async function escalateConversation(request: EscalateRequest) {
 
 export async function convertToAppointment(
   request: ConvertToAppointmentRequest,
-  patientId: string
+  patientId: string,
 ) {
   return voiceBrainClient.convertToAppointment(request, patientId);
 }
@@ -595,7 +548,7 @@ export async function markResolved(request: MarkResolvedRequest) {
 export async function reopenConversation(
   conversationId: string,
   patientId: string,
-  reason?: string
+  reason?: string,
 ) {
   return voiceBrainClient.reopenConversation(conversationId, patientId, reason);
 }
@@ -603,38 +556,22 @@ export async function reopenConversation(
 export async function assignConversation(
   conversationId: string,
   patientId: string,
-  assignTo: string
+  assignTo: string,
 ) {
   return voiceBrainClient.assignConversation(conversationId, patientId, assignTo);
 }
 
-export async function markAsRead(
-  conversationId: string,
-  patientId: string,
-  messageIds?: string[]
-) {
+export async function markAsRead(conversationId: string, patientId: string, messageIds?: string[]) {
   return voiceBrainClient.markAsRead(conversationId, patientId, messageIds);
 }
 
-export async function getConversationSummary(
-  conversationId: string,
-  patientId: string
-) {
+export async function getConversationSummary(conversationId: string, patientId: string) {
   return voiceBrainClient.getConversationSummary(conversationId, patientId);
 }
 
-export async function searchConversations(
-  query: string,
-  patientId?: string,
-  limit?: number
-) {
+export async function searchConversations(query: string, patientId?: string, limit?: number) {
   return voiceBrainClient.searchConversations(query, patientId, limit);
 }
 
 // Export types
-export type {
-  GetConversationsFilter,
-  GetMessagesFilter,
-  EscalateRequest,
-  MarkResolvedRequest,
-};
+export type { GetConversationsFilter, GetMessagesFilter, EscalateRequest, MarkResolvedRequest };

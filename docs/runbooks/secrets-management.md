@@ -10,34 +10,34 @@ CareLoop uses environment variables injected at runtime as the primary secrets d
 
 ### API (`apps/api`)
 
-| Variable | Description | Example |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/careloop?sslmode=require` |
-| `REDIS_URL` | Redis connection string | `rediss://user:pass@host:6380` |
-| `COOKIE_SECRET` | 32-byte random key for cookie signing | `openssl rand -hex 32` |
-| `SESSION_TTL_SECONDS` | Session lifetime in seconds | `28800` (8h) |
-| `SESSION_IDLE_TTL_SECONDS` | Idle session timeout | `3600` (1h) |
-| `STORAGE_BUCKET` | S3 bucket name | `careloop-documents-prod` |
-| `STORAGE_REGION` | AWS region | `ca-central-1` |
-| `STORAGE_ACCESS_KEY_ID` | S3 access key (use IAM role in production) | — |
-| `STORAGE_SECRET_ACCESS_KEY` | S3 secret key (use IAM role in production) | — |
-| `WEB_URL` | Allowed CORS origin(s), comma-separated | `https://app.careloop.company.com` |
-| `API_PORT` | Port the API binds to | `3001` |
+| Variable                    | Description                                | Example                                                     |
+| --------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| `DATABASE_URL`              | PostgreSQL connection string               | `postgresql://user:pass@host:5432/careloop?sslmode=require` |
+| `REDIS_URL`                 | Redis connection string                    | `rediss://user:pass@host:6380`                              |
+| `COOKIE_SECRET`             | 32-byte random key for cookie signing      | `openssl rand -hex 32`                                      |
+| `SESSION_TTL_SECONDS`       | Session lifetime in seconds                | `28800` (8h)                                                |
+| `SESSION_IDLE_TTL_SECONDS`  | Idle session timeout                       | `3600` (1h)                                                 |
+| `STORAGE_BUCKET`            | S3 bucket name                             | `careloop-documents-prod`                                   |
+| `STORAGE_REGION`            | AWS region                                 | `ca-central-1`                                              |
+| `STORAGE_ACCESS_KEY_ID`     | S3 access key (use IAM role in production) | —                                                           |
+| `STORAGE_SECRET_ACCESS_KEY` | S3 secret key (use IAM role in production) | —                                                           |
+| `WEB_URL`                   | Allowed CORS origin(s), comma-separated    | `https://app.careloop.company.com`                          |
+| `API_PORT`                  | Port the API binds to                      | `3001`                                                      |
 
 ### Worker (`apps/worker`)
 
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | Same as API |
-| `REDIS_URL` | Same as API |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID for SMS |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token |
+| Variable              | Description                  |
+| --------------------- | ---------------------------- |
+| `DATABASE_URL`        | Same as API                  |
+| `REDIS_URL`           | Same as API                  |
+| `TWILIO_ACCOUNT_SID`  | Twilio account SID for SMS   |
+| `TWILIO_AUTH_TOKEN`   | Twilio auth token            |
 | `TWILIO_PHONE_NUMBER` | Outbound Twilio phone number |
-| `SMTP_HOST` | SMTP server hostname |
-| `SMTP_PORT` | SMTP port (`587` or `465`) |
-| `SMTP_USER` | SMTP username |
-| `SMTP_PASS` | SMTP password |
-| `SMTP_FROM` | From address |
+| `SMTP_HOST`           | SMTP server hostname         |
+| `SMTP_PORT`           | SMTP port (`587` or `465`)   |
+| `SMTP_USER`           | SMTP username                |
+| `SMTP_PASS`           | SMTP password                |
+| `SMTP_FROM`           | From address                 |
 
 ---
 
@@ -136,11 +136,11 @@ spec:
 
 ## Least-Privilege Access Review
 
-| Service | DB Role | Permissions |
-|---|---|---|
-| API (`careloop_api`) | `SELECT, INSERT, UPDATE` on all app tables | NO DDL, NO DROP |
-| Worker (`careloop_worker`) | `SELECT, INSERT, UPDATE` on relevant tables only | NO DDL, NO DROP |
-| Migrations (CI only) | `careloop_admin` | Full DDL — CI/CD only, never in running pods |
+| Service                    | DB Role                                          | Permissions                                  |
+| -------------------------- | ------------------------------------------------ | -------------------------------------------- |
+| API (`careloop_api`)       | `SELECT, INSERT, UPDATE` on all app tables       | NO DDL, NO DROP                              |
+| Worker (`careloop_worker`) | `SELECT, INSERT, UPDATE` on relevant tables only | NO DDL, NO DROP                              |
+| Migrations (CI only)       | `careloop_admin`                                 | Full DDL — CI/CD only, never in running pods |
 
 ### Create least-privilege DB roles
 

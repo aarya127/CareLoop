@@ -14,7 +14,9 @@ function SectionRow({ label, value }: { label: string; value?: string | null }) 
   return (
     <div className="flex gap-2 py-2 border-b last:border-0">
       <span className="text-muted-foreground text-sm w-40 shrink-0">{label}</span>
-      <span className="text-sm">{value || <span className="text-muted-foreground/60 italic">—</span>}</span>
+      <span className="text-sm">
+        {value || <span className="text-muted-foreground/60 italic">—</span>}
+      </span>
     </div>
   );
 }
@@ -22,7 +24,9 @@ function SectionRow({ label, value }: { label: string; value?: string | null }) 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-card border rounded-xl p-5 mb-4">
-      <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-3">{title}</h3>
+      <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-3">
+        {title}
+      </h3>
       {children}
     </div>
   );
@@ -36,7 +40,10 @@ export default function ReviewPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    intakeApi.getDraft(id).then(setDraft).catch(() => router.replace('/intake'));
+    intakeApi
+      .getDraft(id)
+      .then(setDraft)
+      .catch(() => router.replace('/intake'));
   }, [id, router]);
 
   async function handleSubmit() {

@@ -51,4 +51,3 @@ export class TreatmentsRepository {
     return prisma.treatmentRecord.delete({ where: { id } });
   }
 }
-

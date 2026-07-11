@@ -27,9 +27,7 @@ export default function DayView({
   workStartHour = 8, // 8 AM
   workEndHour = 18, // 6 PM
 }: DayViewProps) {
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
-    string | null
-  >(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
 
   // Generate time slots
   const timeSlots = [];
@@ -52,7 +50,7 @@ export default function DayView({
         aptDate.getMonth() === date.getMonth() &&
         aptDate.getDate() === date.getDate()
       );
-    })
+    }),
   ) as PopulatedAppointment[];
 
   // Calculate position and height for each appointment
@@ -61,10 +59,8 @@ export default function DayView({
     const end = new Date(appointment.endTime);
 
     // Calculate minutes from work start
-    const startMinutes =
-      (start.getHours() - workStartHour) * 60 + start.getMinutes();
-    const durationMinutes =
-      (end.getTime() - start.getTime()) / (1000 * 60);
+    const startMinutes = (start.getHours() - workStartHour) * 60 + start.getMinutes();
+    const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
 
     // Each hour is 80px tall, so each minute is 80/60 px
     const pixelsPerMinute = 80 / 60;
@@ -95,13 +91,8 @@ export default function DayView({
       {/* Time Labels Column */}
       <div className="sticky left-0 z-10 w-20 flex-shrink-0 border-r border-gray-200 bg-white">
         {timeSlots.map((slot) => (
-          <div
-            key={slot.hour}
-            className="h-20 border-b border-gray-100 px-2 py-1 text-right"
-          >
-            <span className="text-sm font-medium text-gray-600">
-              {slot.time}
-            </span>
+          <div key={slot.hour} className="h-20 border-b border-gray-100 px-2 py-1 text-right">
+            <span className="text-sm font-medium text-gray-600">{slot.time}</span>
           </div>
         ))}
       </div>
@@ -155,11 +146,7 @@ export default function DayView({
         </div>
 
         {/* Current time indicator */}
-        <CurrentTimeIndicator
-          workStartHour={workStartHour}
-          workEndHour={workEndHour}
-          date={date}
-        />
+        <CurrentTimeIndicator workStartHour={workStartHour} workEndHour={workEndHour} date={date} />
       </div>
     </div>
   );
@@ -197,16 +184,12 @@ function CurrentTimeIndicator({
   }
 
   // Calculate position
-  const minutesFromStart =
-    (currentHour - workStartHour) * 60 + currentMinutes;
+  const minutesFromStart = (currentHour - workStartHour) * 60 + currentMinutes;
   const pixelsPerMinute = 80 / 60;
   const top = minutesFromStart * pixelsPerMinute;
 
   return (
-    <div
-      className="absolute left-0 right-0 z-40 flex items-center"
-      style={{ top: `${top}px` }}
-    >
+    <div className="absolute left-0 right-0 z-40 flex items-center" style={{ top: `${top}px` }}>
       {/* Red circle */}
       <div className="h-3 w-3 rounded-full bg-red-500 shadow-sm" />
       {/* Red line */}
@@ -227,9 +210,7 @@ export function DayViewEmpty({ onAddClick }: { onAddClick?: () => void }) {
     <div className="flex h-full items-center justify-center">
       <div className="text-center">
         <div className="mb-4 text-6xl">📅</div>
-        <h3 className="mb-2 text-xl font-semibold text-gray-900">
-          No appointments scheduled
-        </h3>
+        <h3 className="mb-2 text-xl font-semibold text-gray-900">No appointments scheduled</h3>
         <p className="mb-6 text-gray-600">
           This day is wide open. Add an appointment to get started.
         </p>

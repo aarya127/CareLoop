@@ -15,29 +15,26 @@ export default function PatientsPage() {
   }, []);
 
   // Filter patients based on search and doctor filter
-  const filteredPatients = patients.filter(patient => {
-    const matchesSearch = 
+  const filteredPatients = patients.filter((patient) => {
+    const matchesSearch =
       patient.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.phone.includes(searchQuery);
 
-    const matchesDoctor = 
-      filterDoctor === 'all' || 
-      patient.primary_doctor_id === filterDoctor;
+    const matchesDoctor = filterDoctor === 'all' || patient.primary_doctor_id === filterDoctor;
 
     return matchesSearch && matchesDoctor;
   });
 
   // Get unique doctors for filter
-  const doctors = Array.from(new Set(patients.map(p => p.primary_doctor_name)))
-    .map(name => {
-      const patient = patients.find(p => p.primary_doctor_name === name);
-      return {
-        id: patient?.primary_doctor_id || '',
-        name,
-      };
-    });
+  const doctors = Array.from(new Set(patients.map((p) => p.primary_doctor_name))).map((name) => {
+    const patient = patients.find((p) => p.primary_doctor_name === name);
+    return {
+      id: patient?.primary_doctor_id || '',
+      name,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,9 +44,7 @@ export default function PatientsPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Patients</h1>
-              <p className="text-gray-600 mt-1">
-                Manage your patient records and appointments
-              </p>
+              <p className="text-gray-600 mt-1">Manage your patient records and appointments</p>
             </div>
             <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
               <UserPlus className="w-4 h-4" />
@@ -132,15 +127,14 @@ function PatientRow({ patient }: { patient: DemoPatient }) {
       {/* Patient Info */}
       <div className="col-span-3 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
-          {patient.first_name[0]}{patient.last_name[0]}
+          {patient.first_name[0]}
+          {patient.last_name[0]}
         </div>
         <div>
           <div className="font-medium text-gray-900">
             {patient.first_name} {patient.last_name}
           </div>
-          <div className="text-sm text-gray-500">
-            Age {patient.age}
-          </div>
+          <div className="text-sm text-gray-500">Age {patient.age}</div>
         </div>
       </div>
 
@@ -157,32 +151,37 @@ function PatientRow({ patient }: { patient: DemoPatient }) {
 
       {/* Next Appointment */}
       <div className="col-span-2">
-        <div className="text-sm text-gray-900">
-          {formatDate(patient.next_appointment_date)}
-        </div>
+        <div className="text-sm text-gray-900">{formatDate(patient.next_appointment_date)}</div>
       </div>
 
       {/* Last Visit */}
       <div className="col-span-2">
-        <div className="text-sm text-gray-500">
-          {formatDate(patient.last_visit_date)}
-        </div>
+        <div className="text-sm text-gray-500">{formatDate(patient.last_visit_date)}</div>
       </div>
 
       {/* Flags */}
       <div className="col-span-1 flex gap-1">
         {patient.has_allergies && (
-          <div className="w-6 h-6 rounded bg-yellow-100 text-yellow-700 flex items-center justify-center" title="Has allergies">
+          <div
+            className="w-6 h-6 rounded bg-yellow-100 text-yellow-700 flex items-center justify-center"
+            title="Has allergies"
+          >
             <AlertCircle className="w-4 h-4" />
           </div>
         )}
         {patient.requires_pre_medication && (
-          <div className="w-6 h-6 rounded bg-purple-100 text-purple-700 flex items-center justify-center" title="Requires pre-medication">
+          <div
+            className="w-6 h-6 rounded bg-purple-100 text-purple-700 flex items-center justify-center"
+            title="Requires pre-medication"
+          >
             <Pill className="w-4 h-4" />
           </div>
         )}
         {patient.has_outstanding_balance && (
-          <div className="w-6 h-6 rounded bg-red-100 text-red-700 flex items-center justify-center" title="Outstanding balance">
+          <div
+            className="w-6 h-6 rounded bg-red-100 text-red-700 flex items-center justify-center"
+            title="Outstanding balance"
+          >
             <DollarSign className="w-4 h-4" />
           </div>
         )}

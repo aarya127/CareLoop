@@ -6,14 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import {
-  Calendar,
-  Bot,
-  Hand,
-  RefreshCw,
-  Clock,
-  Activity,
-} from 'lucide-react';
+import { Calendar, Bot, Hand, RefreshCw, Clock, Activity } from 'lucide-react';
 import type { CalendarAnalytics } from '@/lib/types/appointment';
 import { animateNumber } from '@/lib/utils/analytics';
 import { useEffect, useState } from 'react';
@@ -88,9 +81,7 @@ function StatCard({
       </div>
 
       {/* Label */}
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </div>
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
 
       {/* Value */}
       <div className="mb-1 text-3xl font-semibold text-gray-900">
@@ -98,24 +89,18 @@ function StatCard({
       </div>
 
       {/* Sub value or trend */}
-      {subValue && (
-        <div className="text-sm text-gray-600">{subValue}</div>
-      )}
+      {subValue && <div className="text-sm text-gray-600">{subValue}</div>}
 
       {trend && (
         <div
-          className={`text-sm font-medium ${
-            trend.isPositive ? 'text-green-600' : 'text-red-600'
-          }`}
+          className={`text-sm font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}
         >
           {trend.isPositive ? '↑' : '↓'} {trend.value}
         </div>
       )}
 
       {/* Active indicator */}
-      {isActive && (
-        <div className="absolute right-3 top-3 h-2 w-2 rounded-full bg-[#87CEEB]" />
-      )}
+      {isActive && <div className="absolute right-3 top-3 h-2 w-2 rounded-full bg-[#87CEEB]" />}
     </motion.div>
   );
 }
@@ -130,12 +115,8 @@ export default function CalendarAnalyticsDashboard({
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Schedule Overview
-          </h2>
-          <p className="text-sm text-gray-600">
-            Real-time booking analytics and trends
-          </p>
+          <h2 className="text-2xl font-semibold text-gray-900">Schedule Overview</h2>
+          <p className="text-sm text-gray-600">Real-time booking analytics and trends</p>
         </div>
 
         {/* Clear filters button */}
@@ -213,12 +194,8 @@ export default function CalendarAnalyticsDashboard({
           value={analytics.mostFrequentProcedure.type}
           subValue={`${analytics.mostFrequentProcedure.count} this month`}
           color="#FF2D55"
-          onClick={() =>
-            onFilterClick?.(`procedure-${analytics.mostFrequentProcedure.type}`)
-          }
-          isActive={activeFilters.includes(
-            `procedure-${analytics.mostFrequentProcedure.type}`
-          )}
+          onClick={() => onFilterClick?.(`procedure-${analytics.mostFrequentProcedure.type}`)}
+          isActive={activeFilters.includes(`procedure-${analytics.mostFrequentProcedure.type}`)}
         />
       </div>
 
@@ -230,13 +207,8 @@ export default function CalendarAnalyticsDashboard({
               key={filter}
               className="inline-flex items-center gap-2 rounded-full border border-[#87CEEB]/20 bg-[#87CEEB]/10 px-3 py-1 text-sm font-medium text-[#87CEEB]"
             >
-              <span className="capitalize">
-                {filter.replace('procedure-', '')}
-              </span>
-              <button
-                onClick={() => onFilterClick?.(filter)}
-                className="hover:text-[#6BA8D9]"
-              >
+              <span className="capitalize">{filter.replace('procedure-', '')}</span>
+              <button onClick={() => onFilterClick?.(filter)} className="hover:text-[#6BA8D9]">
                 ✕
               </button>
             </div>

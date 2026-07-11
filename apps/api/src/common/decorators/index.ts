@@ -16,9 +16,7 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLE_METADATA_KEY, roles);
 
 /** Extract the current user from the request. */
-export const CurrentUser = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext) => {
-    const req = ctx.switchToHttp().getRequest<{ user?: unknown }>();
-    return req.user;
-  },
-);
+export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionContext) => {
+  const req = ctx.switchToHttp().getRequest<{ user?: unknown }>();
+  return req.user;
+});

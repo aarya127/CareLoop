@@ -59,11 +59,7 @@ export class EncountersController {
 
   @Put('encounters/:id')
   @RequireRole(...EMR_CLINICAL_ROLES)
-  update(
-    @CurrentUser() actor: EmrActor,
-    @Param('id') id: string,
-    @Body() dto: UpdateEncounterDto,
-  ) {
+  update(@CurrentUser() actor: EmrActor, @Param('id') id: string, @Body() dto: UpdateEncounterDto) {
     return this.emr.updateEncounter(actor, id, dto);
   }
 

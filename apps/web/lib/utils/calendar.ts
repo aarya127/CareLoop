@@ -14,32 +14,22 @@ import { startOfDay, endOfDay, isAfter, isBefore, addDays } from 'date-fns';
 /**
  * Calculate calendar analytics from appointments
  */
-export function calculateCalendarAnalytics(
-  appointments: Appointment[]
-): CalendarAnalytics {
+export function calculateCalendarAnalytics(appointments: Appointment[]): CalendarAnalytics {
   const now = new Date();
   const sevenDaysLater = addDays(now, 7);
 
   // Filter active appointments only
-  const activeAppointments = appointments.filter(
-    (apt) => apt.status === 'scheduled'
-  );
+  const activeAppointments = appointments.filter((apt) => apt.status === 'scheduled');
 
   // Total bookings
   const totalBookings = activeAppointments.length;
 
   // AI vs Manual split
-  const aiBookings = activeAppointments.filter(
-    (apt) => apt.bookingSource === 'ai'
-  ).length;
-  const manualBookings = activeAppointments.filter(
-    (apt) => apt.bookingSource === 'manual'
-  ).length;
+  const aiBookings = activeAppointments.filter((apt) => apt.bookingSource === 'ai').length;
+  const manualBookings = activeAppointments.filter((apt) => apt.bookingSource === 'manual').length;
 
   // Rescheduled count
-  const rescheduled = activeAppointments.filter(
-    (apt) => apt.rescheduledFrom
-  ).length;
+  const rescheduled = activeAppointments.filter((apt) => apt.rescheduledFrom).length;
 
   // Upcoming 7 days
   const upcomingSevenDays = activeAppointments.filter((apt) => {
@@ -67,16 +57,13 @@ export function calculateCalendarAnalytics(
   });
 
   const mostFrequentEntry = Object.entries(procedureCounts).reduce(
-    (max, [type, count]) =>
-      count > max.count ? { type: type as ProcedureType, count } : max,
-    { type: 'Cleaning' as ProcedureType, count: 0 }
+    (max, [type, count]) => (count > max.count ? { type: type as ProcedureType, count } : max),
+    { type: 'Cleaning' as ProcedureType, count: 0 },
   );
 
   // Percentages
-  const aiBookingPercentage =
-    totalBookings > 0 ? (aiBookings / totalBookings) * 100 : 0;
-  const manualBookingPercentage =
-    totalBookings > 0 ? (manualBookings / totalBookings) * 100 : 0;
+  const aiBookingPercentage = totalBookings > 0 ? (aiBookings / totalBookings) * 100 : 0;
+  const manualBookingPercentage = totalBookings > 0 ? (manualBookings / totalBookings) * 100 : 0;
 
   // Average daily bookings (over next 30 days)
   const thirtyDaysLater = addDays(now, 30);
@@ -106,7 +93,7 @@ export function calculateCalendarAnalytics(
 
   const peakBookingDay = Object.entries(dayOfWeekCounts).reduce(
     (max, [day, count]) => (count > max.count ? { day, count } : max),
-    { day: 'Monday', count: 0 }
+    { day: 'Monday', count: 0 },
   ).day;
 
   return {
@@ -133,7 +120,7 @@ export function checkAppointmentConflict(
     doctorId: string;
   },
   existingAppointments: Appointment[],
-  excludeAppointmentId?: string
+  excludeAppointmentId?: string,
 ): AppointmentConflict {
   const conflicts = existingAppointments.filter((apt) => {
     // Skip if it's the same appointment (when editing)
@@ -190,7 +177,7 @@ export function getAvailableTimeSlots(
   appointments: Appointment[],
   workStartHour: number = 8, // 8 AM
   workEndHour: number = 18, // 6 PM
-  slotDuration: number = 30 // 30 minutes
+  slotDuration: number = 30, // 30 minutes
 ): Date[] {
   const availableSlots: Date[] = [];
   const dayStart = startOfDay(date);
@@ -202,7 +189,7 @@ export function getAvailableTimeSlots(
       apt.doctorId === doctorId &&
       apt.status !== 'canceled' &&
       new Date(apt.startTime) >= dayStart &&
-      new Date(apt.startTime) <= dayEnd
+      new Date(apt.startTime) <= dayEnd,
   );
 
   // Generate all possible slots
@@ -221,7 +208,7 @@ export function getAvailableTimeSlots(
           endTime: slotEnd,
           doctorId,
         },
-        doctorAppointments
+        doctorAppointments,
       );
 
       if (!conflict.hasConflict) {
@@ -290,7 +277,7 @@ export function formatDuration(minutes: number): string {
 export function getAppointmentDuration(appointment: Appointment): string {
   const duration = getDurationMinutes(
     new Date(appointment.startTime),
-    new Date(appointment.endTime)
+    new Date(appointment.endTime),
   );
   return formatDuration(duration);
 }
@@ -349,7 +336,7 @@ export function getBookingSourceColor(source: 'ai' | 'manual'): {
  * Get color for appointment status
  */
 export function getStatusColor(
-  status: 'scheduled' | 'completed' | 'canceled' | 'rescheduled' | 'no-show'
+  status: 'scheduled' | 'completed' | 'canceled' | 'rescheduled' | 'no-show',
 ): string {
   switch (status) {
     case 'scheduled':
@@ -370,12 +357,9 @@ export function getStatusColor(
 /**
  * Sort appointments by start time
  */
-export function sortAppointmentsByTime(
-  appointments: Appointment[]
-): Appointment[] {
+export function sortAppointmentsByTime(appointments: Appointment[]): Appointment[] {
   return [...appointments].sort(
-    (a, b) =>
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
   );
 }
 
@@ -383,7 +367,7 @@ export function sortAppointmentsByTime(
  * Group appointments by date
  */
 export function groupAppointmentsByDate(
-  appointments: Appointment[]
+  appointments: Appointment[],
 ): Record<string, Appointment[]> {
   const grouped: Record<string, Appointment[]> = {};
 

@@ -134,9 +134,12 @@ export function PracticeKpiDashboard() {
   const [seedFeedback, setSeedFeedback] = useState('');
 
   const loadAnalytics = async (activeRange: '7d' | '30d' | '90d') => {
-    const res = await fetch(`/api/analytics/dashboard?range=${activeRange}&practiceId=demo-practice`, {
-      credentials: 'include',
-    });
+    const res = await fetch(
+      `/api/analytics/dashboard?range=${activeRange}&practiceId=demo-practice`,
+      {
+        credentials: 'include',
+      },
+    );
     const payload = (await res.json()) as DashboardPayload;
 
     setData({
@@ -192,7 +195,7 @@ export function PracticeKpiDashboard() {
         setSeedFeedback(
           json.fallback === 'synthetic'
             ? 'Seeded synthetic Phase 1 data (DB unavailable).'
-            : 'Seeded Phase 1 data successfully.'
+            : 'Seeded Phase 1 data successfully.',
         );
       } else {
         setSeedFeedback(json?.message ?? 'Unable to seed Phase 1 data.');
@@ -226,8 +229,10 @@ export function PracticeKpiDashboard() {
   }, [data]);
 
   const satisfactionSeries = useMemo(() => {
-    const dentist = data?.timeline?.filter((r) => r.metricName === 'provider_satisfaction_dentist') ?? [];
-    const hygienist = data?.timeline?.filter((r) => r.metricName === 'provider_satisfaction_hygienist') ?? [];
+    const dentist =
+      data?.timeline?.filter((r) => r.metricName === 'provider_satisfaction_dentist') ?? [];
+    const hygienist =
+      data?.timeline?.filter((r) => r.metricName === 'provider_satisfaction_hygienist') ?? [];
 
     const max = Math.max(dentist.length, hygienist.length);
     const output: Array<{ date: string; Dentist: number; Hygienist: number }> = [];
@@ -264,7 +269,9 @@ export function PracticeKpiDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-sm text-gray-600 mt-1">Voice call outcomes, sentiment, and treatment acceptance</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Voice call outcomes, sentiment, and treatment acceptance
+          </p>
           {seedFeedback && <p className="text-xs text-indigo-700 mt-1">{seedFeedback}</p>}
         </div>
         <div className="flex items-center gap-2">
@@ -280,7 +287,9 @@ export function PracticeKpiDashboard() {
               key={value}
               onClick={() => setRange(value)}
               className={`px-3 py-1.5 rounded-md text-sm border ${
-                range === value ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 text-gray-700'
+                range === value
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'border-gray-300 text-gray-700'
               }`}
             >
               {value}
@@ -292,11 +301,15 @@ export function PracticeKpiDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <p className="text-sm text-gray-600">Average Sentiment</p>
-          <p className="text-3xl font-bold text-gray-900">{data.summary.avgSentiment.toFixed(2)} / 10</p>
+          <p className="text-3xl font-bold text-gray-900">
+            {data.summary.avgSentiment.toFixed(2)} / 10
+          </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <p className="text-sm text-gray-600">Treatment Acceptance</p>
-          <p className="text-3xl font-bold text-gray-900">{data.summary.acceptanceRate.toFixed(1)}%</p>
+          <p className="text-3xl font-bold text-gray-900">
+            {data.summary.acceptanceRate.toFixed(1)}%
+          </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <p className="text-sm text-gray-600">Total Calls (Range)</p>
@@ -325,9 +338,12 @@ export function PracticeKpiDashboard() {
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">Appointments Completion</p>
-              <p className="text-2xl font-bold text-gray-900">{overview.appointments.completionRatePct}%</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {overview.appointments.completionRatePct}%
+              </p>
               <p className="text-xs text-gray-500">
-                {overview.appointments.completedThisMonth}/{overview.appointments.thisMonth} completed
+                {overview.appointments.completedThisMonth}/{overview.appointments.thisMonth}{' '}
+                completed
               </p>
             </div>
           </div>
@@ -335,24 +351,35 @@ export function PracticeKpiDashboard() {
           <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">User Growth Trend</p>
-              <p className="text-xl font-semibold text-gray-900">{overview.users.monthlyGrowthPct}%</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {overview.users.monthlyGrowthPct}%
+              </p>
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">Voice Transcripts</p>
-              <p className="text-xl font-semibold text-gray-900">{overview.activity.transcriptsThisMonth}</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {overview.activity.transcriptsThisMonth}
+              </p>
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">New Conversations</p>
-              <p className="text-xl font-semibold text-gray-900">{overview.activity.conversationsThisMonth}</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {overview.activity.conversationsThisMonth}
+              </p>
             </div>
           </div>
 
           <div className="mt-4 rounded-md border border-gray-200 p-3">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Client / user exit reasons</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Client / user exit reasons
+            </p>
             {overview.users.leftReasons.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-2">
                 {overview.users.leftReasons.map((item) => (
-                  <span key={item.reason} className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
+                  <span
+                    key={item.reason}
+                    className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
+                  >
                     {item.reason}: {item.count}
                   </span>
                 ))}
@@ -367,7 +394,9 @@ export function PracticeKpiDashboard() {
       {phaseOverview && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-gray-700">Phase 1 (MVP) Live Decision Actions</h2>
+            <h2 className="text-sm font-medium text-gray-700">
+              Phase 1 (MVP) Live Decision Actions
+            </h2>
             <span className="text-xs uppercase tracking-wide rounded-full px-2 py-1 bg-indigo-100 text-indigo-700">
               {phaseOverview.phase}
             </span>
@@ -376,29 +405,41 @@ export function PracticeKpiDashboard() {
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">No-show Rate</p>
-              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.noShowRatePct}%</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {phaseOverview.metrics.noShowRatePct}%
+              </p>
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">Same-day Vacancy</p>
-              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.sameDayVacancyRatePct}%</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {phaseOverview.metrics.sameDayVacancyRatePct}%
+              </p>
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">Comms Conversion</p>
-              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.communicationConversionPct}%</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {phaseOverview.metrics.communicationConversionPct}%
+              </p>
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">Recall Compliance</p>
-              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.recallCompliancePct}%</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {phaseOverview.metrics.recallCompliancePct}%
+              </p>
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500">Treatment Acceptance</p>
-              <p className="text-xl font-semibold text-gray-900">{phaseOverview.metrics.treatmentAcceptancePct}%</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {phaseOverview.metrics.treatmentAcceptancePct}%
+              </p>
             </div>
           </div>
 
           <div className="mt-4 space-y-2">
             {phaseOverview.decisions.length === 0 && (
-              <p className="text-sm text-gray-500">No immediate automations triggered. Metrics are within threshold.</p>
+              <p className="text-sm text-gray-500">
+                No immediate automations triggered. Metrics are within threshold.
+              </p>
             )}
             {phaseOverview.decisions.map((item, idx) => (
               <div key={`${item.trigger}-${idx}`} className="rounded-md border border-gray-200 p-3">
@@ -409,8 +450,8 @@ export function PracticeKpiDashboard() {
                       item.priority === 'high'
                         ? 'bg-red-100 text-red-700'
                         : item.priority === 'medium'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-green-100 text-green-700'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-green-100 text-green-700'
                     }`}
                   >
                     {item.priority}
@@ -431,7 +472,9 @@ export function PracticeKpiDashboard() {
                     {runningActionKey === item.actionKey ? 'Running...' : 'Run Automation'}
                   </button>
                   {actionFeedback[item.actionKey] && (
-                    <p className="text-xs text-gray-600 text-right">{actionFeedback[item.actionKey]}</p>
+                    <p className="text-xs text-gray-600 text-right">
+                      {actionFeedback[item.actionKey]}
+                    </p>
                   )}
                 </div>
               </div>
@@ -455,7 +498,9 @@ export function PracticeKpiDashboard() {
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Phase 2</p>
-              <p className="text-sm font-semibold text-gray-900 mt-1">{phaseRoadmap.phase2.status}</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">
+                {phaseRoadmap.phase2.status}
+              </p>
               <ul className="mt-2 text-sm text-gray-700 list-disc pl-4 space-y-1">
                 {phaseRoadmap.phase2.deliverables.map((d) => (
                   <li key={d}>{d}</li>
@@ -464,7 +509,9 @@ export function PracticeKpiDashboard() {
             </div>
             <div className="rounded-md border border-gray-200 p-3">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Phase 3</p>
-              <p className="text-sm font-semibold text-gray-900 mt-1">{phaseRoadmap.phase3.status}</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">
+                {phaseRoadmap.phase3.status}
+              </p>
               <ul className="mt-2 text-sm text-gray-700 list-disc pl-4 space-y-1">
                 {phaseRoadmap.phase3.deliverables.map((d) => (
                   <li key={d}>{d}</li>
@@ -485,7 +532,13 @@ export function PracticeKpiDashboard() {
               <YAxis domain={[1, 10]} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="sentiment" stroke="#4f46e5" strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="sentiment"
+                stroke="#4f46e5"
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -512,18 +565,25 @@ export function PracticeKpiDashboard() {
         <h2 className="text-sm font-medium text-gray-700">Recent Calls</h2>
         <div className="mt-3 space-y-2">
           {data.recentCalls.map((call) => (
-            <div key={call.id} className="flex items-center justify-between rounded border border-gray-200 p-3">
+            <div
+              key={call.id}
+              className="flex items-center justify-between rounded border border-gray-200 p-3"
+            >
               <div>
                 <p className="text-sm font-medium text-gray-900">{call.callSid}</p>
                 <p className="text-xs text-gray-500">{new Date(call.createdAt).toLocaleString()}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-xs rounded-full px-2 py-1 ${sentimentBadgeColor(call.sentimentScore)}`}>
+                <span
+                  className={`text-xs rounded-full px-2 py-1 ${sentimentBadgeColor(call.sentimentScore)}`}
+                >
                   Sentiment: {call.sentimentScore ?? 'N/A'}
                 </span>
                 <span
                   className={`text-xs rounded-full px-2 py-1 ${
-                    call.treatmentAcceptance ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                    call.treatmentAcceptance
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-amber-100 text-amber-700'
                   }`}
                 >
                   {call.treatmentAcceptance ? 'Accepted' : 'Not accepted'}

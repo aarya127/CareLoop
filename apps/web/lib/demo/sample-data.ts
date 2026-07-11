@@ -350,7 +350,7 @@ export function isDemoMode(): boolean {
 
 // Get demo patient by ID
 export function getDemoPatient(patientId: string): DemoPatient | undefined {
-  return DEMO_PATIENTS.find(p => p.id === patientId);
+  return DEMO_PATIENTS.find((p) => p.id === patientId);
 }
 
 // Get all demo patients

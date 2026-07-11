@@ -77,7 +77,9 @@ export class ClaimsService {
   async submit(practiceId: string, id: string, actorUserId: string) {
     const claim = await this.getOwnedClaim(practiceId, id);
     if (claim.status !== 'draft') {
-      throw new BadRequestException(`Only draft claims can be submitted (current: ${claim.status})`);
+      throw new BadRequestException(
+        `Only draft claims can be submitted (current: ${claim.status})`,
+      );
     }
     return prisma.$transaction(async (tx) => {
       await tx.claimStatusEvent.create({ data: { claimId: id, status: 'submitted', actorUserId } });
@@ -90,7 +92,12 @@ export class ClaimsService {
   }
 
   /** Record an adjudication outcome (accepted/rejected/paid/void) with a code + trail. */
-  async updateStatus(practiceId: string, id: string, actorUserId: string, dto: UpdateClaimStatusDto) {
+  async updateStatus(
+    practiceId: string,
+    id: string,
+    actorUserId: string,
+    dto: UpdateClaimStatusDto,
+  ) {
     const claim = await this.getOwnedClaim(practiceId, id);
 
     if (claim.status === 'draft' && dto.status !== 'void') {
