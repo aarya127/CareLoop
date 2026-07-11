@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import crypto from 'crypto';
 import { prisma } from '../../config/database';
+import { CoverageSummaryDto, remainingBenefitCents } from './dto';
 
 function hashMemberId(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
@@ -92,5 +93,50 @@ export class InsuranceService {
     });
     if (!existing) throw new NotFoundException(`Insurance record ${id} not found`);
     await prisma.patientInsurance.delete({ where: { id } });
+  }
+
+  /**
+   * Structured coverage for a patient's active insurance, with computed benefit
+   * remaining. Scoped through the patient's practice.
+   */
+  async getCoverage(practiceId: string, patientId: string) {
+    const record = await prisma.patientInsurance.findFirst({
+      where: { patientId, active: true, patient: { practiceId } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        payerName: true,
+        planName: true,
+        coverageSummary: true,
+        verifiedAt: true,
+      },
+    });
+    if (!record) return { hasCoverage: false as const };
+
+    const coverage = (record.coverageSummary ?? {}) as CoverageSummaryDto;
+    return {
+      hasCoverage: true as const,
+      insuranceId: record.id,
+      payerName: record.payerName,
+      planName: record.planName,
+      verifiedAt: record.verifiedAt,
+      coverage,
+      remainingBenefitCents: remainingBenefitCents(coverage),
+    };
+  }
+
+  /** Set structured coverage and mark the record verified (front office). */
+  async updateCoverage(practiceId: string, id: string, coverage: CoverageSummaryDto) {
+    const existing = await prisma.patientInsurance.findFirst({
+      where: { id, patient: { practiceId } },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException(`Insurance record ${id} not found`);
+
+    return prisma.patientInsurance.update({
+      where: { id },
+      data: { coverageSummary: coverage as object, verifiedAt: new Date() },
+      select: { id: true, coverageSummary: true, verifiedAt: true },
+    });
   }
 }

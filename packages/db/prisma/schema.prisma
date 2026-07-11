@@ -54,6 +54,7 @@ model Practice {
   periodontalExams  PeriodontalExam[]
   treatmentPlans    TreatmentPlan[]
   invitations       Invitation[]
+  claims            Claim[]
 
   @@index([name])
 }
@@ -79,6 +80,66 @@ model Invitation {
 
   @@index([practiceId, status])
   @@index([email])
+}
+
+/// Insurance claim submitted to a payer for a patient's treatment. Tracks the
+/// adjudication lifecycle (draft → submitted → accepted/rejected/paid) with a
+/// full status-event trail and rejection codes.
+model Claim {
+  id                  String   @id @default(cuid())
+  practiceId          String
+  patientId           String
+  insuranceId         String?  // PatientInsurance used (soft ref — no FK)
+  treatmentId         String?
+  invoiceId           String?
+  claimNumber         String?  // external payer/clearinghouse claim number
+  status              String   @default("draft") // draft|submitted|accepted|rejected|paid|void
+  totalChargedCents   Int      @default(0)
+  approvedAmountCents Int?
+  rejectionCode       String?
+  notes               String?
+  submittedAt         DateTime?
+  resolvedAt          DateTime?
+  createdBy           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  practice Practice           @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  lines    ClaimLine[]
+  events   ClaimStatusEvent[]
+
+  @@index([practiceId, status])
+  @@index([patientId])
+}
+
+model ClaimLine {
+  id            String   @id @default(cuid())
+  claimId       String
+  procedureCode String
+  description   String?
+  toothNumber   Int?
+  chargedCents  Int      @default(0)
+  allowedCents  Int?
+  createdAt     DateTime @default(now())
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+}
+
+model ClaimStatusEvent {
+  id          String   @id @default(cuid())
+  claimId     String
+  status      String
+  code        String?  // rejection / adjudication code
+  note        String?
+  actorUserId String?
+  createdAt   DateTime @default(now())
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId, createdAt])
 }
 
 // ============================================================================
@@ -263,6 +324,7 @@ model Patient {
   toothChartEntries ToothChartEntry[]
   periodontalExams  PeriodontalExam[]
   treatmentPlans    TreatmentPlan[]
+  claims            Claim[]
 
   @@index([practiceId, lastName, firstName])
   @@unique([practiceId, phoneE164])
