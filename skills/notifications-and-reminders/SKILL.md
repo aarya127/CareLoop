@@ -34,9 +34,17 @@ reminder immediately, or cancel one. Decisions: pick channel, dedupe, and respec
 6. To force early delivery: `POST /reminders/:id/send`. To stop it: `PATCH /reminders/:id/cancel`.
 
 ## 4. Inputs & Outputs
+> **Tenancy:** `practiceId` is taken from the authenticated session on every endpoint, never
+> from the request body — the reminders/messaging modules are tenant-scoped (a reminder from
+> another practice cannot be read, sent, or cancelled). Any `practiceId` in the body is ignored.
+>
+> **Templated content:** if `body` is omitted when scheduling, the server renders it from the
+> reminder `type` + `metadata` (patientName, startsAt, amountDueCents) via `messaging/templates.ts`,
+> using the practice's name/timezone. Provide `body` only to override the template.
+
 ### Inputs
-- Send: `practiceId`, `patientId`, `channel`, `to`, `body` (required); `subject` (email), `reminderId` (optional).
-- Schedule: above + `type` (`appointment_reminder|recall|payment_due`), `scheduledAt` (required), `appointmentId`, `metadata` (optional).
+- Send: `patientId`, `channel`, `to`, `body` (required); `subject` (email), `reminderId` (optional).
+- Schedule: above + `type` (`appointment_reminder|recall|payment_due`), `scheduledAt` (required), `appointmentId`, `metadata` (optional). `body` optional — templated when omitted.
 ### Outputs
 ```json
 // POST /messaging/send → 200
@@ -64,5 +72,9 @@ reminder immediately, or cancel one. Decisions: pick channel, dedupe, and respec
 - **Output:** `{ id: "rem_5", status: "pending" }`; worker sends it at `scheduledAt`.
 - **Agent reasoning:** "For future sends I create a `Reminder` and let the worker deliver (durable, retried); for an immediate confirmation I call `/messaging/send` directly."
 
-## 8. Optional Resources Folder
-Optional `resources/templates/`: message templates for `appointment_reminder`, `recall`, `payment_due` (currently inline — externalizing them is a recommended improvement).
+## 8. Templates (implemented)
+Message templates live in [`apps/api/src/modules/messaging/templates.ts`](../../apps/api/src/modules/messaging/templates.ts):
+`renderAppointmentReminder`, `renderRecall`, `renderPaymentDue`, and `renderInvite`, plus a
+`renderReminder(type, …)` router. Each returns `{ subject, text, html }` (timezone-aware). The
+`reminders` service renders content on create when no body is supplied; invitations use
+`renderInvite` for the invite email. Covered by `templates.spec.ts`.

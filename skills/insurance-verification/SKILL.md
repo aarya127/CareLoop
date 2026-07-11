@@ -52,7 +52,17 @@ Required: `patientId`, `payerName`, `memberId`. Optional: `planName`, `groupNumb
 ## 7. Example Usage
 - **Request:** `POST /insurance {"patientId":"pat_1","payerName":"Delta Dental","memberId":"D12345678","planName":"PPO"}`.
 - **Output:** `{ id, active: true, verifiedAt: null }`.
-- **Agent reasoning:** "I can record and look up coverage, but I cannot verify eligibility with the payer or file a claim — I'll store the record and mark it unverified for staff."
+- **Agent reasoning:** "I can record/look up coverage, set structured coverage + verify it, and now file and track claims. I still can't hit a real payer/clearinghouse — adjudication is recorded manually (or via a webhook source later)."
 
-## 8. Optional Resources Folder
-Optional `resources/claim-model.md`: the proposed `Claim` + `ClaimLine` + `ClaimStatusEvent` schema to extend this skill into true claims submission.
+## 8. Structured coverage & claims (implemented)
+- **Coverage:** `GET /insurance/:patientId/coverage` returns the active plan's structured
+  `CoverageSummary` (annual max, deductible, used-to-date, category %s) plus computed
+  `remainingBenefitCents`. `PUT /insurance/:id/coverage` sets it and marks the record verified
+  (front-office role). Type + math live in `insurance/dto` (`CoverageSummaryDto`, `remainingBenefitCents`).
+- **Claims** (`claims` module — front-office role, tenant-scoped):
+  - `POST /claims` — create from line items (sums charges; starts `draft`).
+  - `POST /claims/:id/submit` — `draft → submitted`.
+  - `POST /claims/:id/status` — record adjudication (`accepted`/`rejected`/`paid`/`void`) with a
+    code; terminal states are locked. Every transition is appended to `ClaimStatusEvent`.
+  - `GET /claims`, `GET /claims/:id` (with lines + status trail).
+  - Models: `Claim`, `ClaimLine`, `ClaimStatusEvent`.

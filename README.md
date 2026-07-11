@@ -25,6 +25,22 @@ Deeper docs live in [`docs/architecture/`](docs/architecture) — start with
 [`overview.md`](docs/architecture/overview.md). A full review and roadmap is in
 [`docs/architecture/careloop-review-and-roadmap.md`](docs/architecture/careloop-review-and-roadmap.md).
 
+## Key flows
+
+| Flow | Entry point | Notes |
+|---|---|---|
+| **Practice signup** (new org + first admin) | web `/signup` → `POST /auth/signup` | Public, rate-limited; atomically creates the `Practice` + admin `User` + session. |
+| **Team invitations** ("join a team") | admin `/admin/team`; invitee `/join/<token>` | Admin/manager invite by email+role → single-use, 7-day token → invitee sets a password and joins the same practice. See [onboarding-and-team.md](docs/architecture/onboarding-and-team.md). |
+| **Patient intake** (public form) | web `/intake?practice=<id>` → `/intake/drafts/*` | Multi-step, autosaved, idempotent submit; creates the patient + insurance. No staff login required. |
+| **Insurance & claims** | `insurance` + `claims` modules; web patient → Insurance tab | Structured coverage (annual max, category %s, remaining benefit) + claims lifecycle (draft→submitted→adjudicated) with a status-event trail. |
+| **Reminders / notifications** | `messaging` + `reminders` modules; worker scan | Templated SMS/email; per-practice tenant-scoped; delivery status tracked on `Reminder`. |
+
+**RBAC.** All authenticated staff are scoped to one `Practice`. Role groups gate
+sensitive endpoints: **management** (`admin`, `manager`) for analytics, audit, and
+destructive/void actions; **front office** (`admin`, `manager`, `staff`) for billing,
+payments, and insurance; **clinical** (`admin`, `manager`, `provider`, `hygienist`) for
+EMR and treatments. Enforced by the global `RolesGuard` + `@RequireRole`.
+
 ## Prerequisites
 
 - **Node.js 20 LTS or newer** (the repo requires `>=20`)
@@ -71,10 +87,13 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 # API (required by apps/api in production — see apps/api/src/main.ts)
 COOKIE_SECRET=a_long_random_32+_char_secret
 SESSION_TTL_SECONDS=28800
+# bcrypt work factor for password hashing. Lower (e.g. 10) on constrained CPUs
+# such as Render's free tier; existing users are migrated via rehash-on-login.
+BCRYPT_ROUNDS=12
 
 # Secrets / crypto
 ENCRYPTION_KEY=a_long_random_secret
-JWT_SECRET=a_long_random_secret
+# JWT_SECRET is legacy/unused — auth uses opaque server-side sessions, not JWTs.
 
 # S3-compatible storage (MinIO locally)
 STORAGE_ENDPOINT=http://localhost:9000
@@ -140,9 +159,10 @@ pnpm --filter @careloop/api test
 
 ## Testing
 
-Unit tests run on **Vitest**. Suites live next to the code as `*.spec.ts`
-(e.g. `apps/api/src/modules/auth/password.service.spec.ts`). CI runs
-`turbo run test` against Postgres + Redis service containers — see
+Unit tests run on **Vitest**. Suites live next to the code as `*.spec.ts` and
+cover tenant isolation, RBAC (`roles.guard.spec.ts`), the claims lifecycle,
+webhook-signature verification, notification templates, and coverage math. CI
+runs `turbo run test` against Postgres + Redis service containers — see
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Deployment

@@ -6,20 +6,22 @@ Redis, S3). One skill = one meaningful capability, not one-per-file.
 
 > **Grounding rule:** every skill references real routes (`apps/api/src/modules/**`),
 > real Prisma models (`packages/db/prisma/schema.prisma`), and real services. Where a
-> capability is **modeled but not wired** (Stripe, OHIP claims, real-time chat, LLM
+> capability is **modeled but not wired** (Stripe payment processor, real-time chat, LLM
 > summarization), the skill says so explicitly under *Edge Cases & Failure Handling* —
-> agents must not assume those endpoints exist.
+> agents must not assume those endpoints exist. (Now wired: insurance **claims** — `claims`
+> module, minus a real clearinghouse — plus self-serve **signup** and team **invitations**.)
 
 ## 1. Codebase map → domains
 
 | Domain | Source modules | Primary tables |
 |---|---|---|
 | Authentication & sessions | `auth` | `User`, `Session`, `UserRole`, `AuditLog` |
+| Team & membership | `invitations` (+ `auth` signup/register) | `Invitation`, `User`, `Practice` |
 | Scheduling & availability | `appointments` (+ `availability.service`) | `Appointment`, `AppointmentHold`, `ProviderSchedule`, `AvailabilityBlock` |
 | Patient intake & records | `intake`, `patients` | `IntakeDraft`, `IntakeSubmission`, `Patient` |
 | Document handling | `documents` | `Document` (S3) |
 | Billing & payments | `billing`, `payments`, `treatments` | `Invoice`, `PaymentRecord`, `TreatmentRecord` |
-| Insurance verification | `insurance` | `PatientInsurance` |
+| Insurance & claims | `insurance`, `claims` | `PatientInsurance`, `Claim`, `ClaimLine`, `ClaimStatusEvent` |
 | Notifications & reminders | `messaging`, `reminders` + worker | `Reminder`, `WebhookLog` |
 | Voice AI assistant | web `app/api/voice/**`, worker transcript processors | `CallTranscript`, `CallTranscriptSegment` |
 | Analytics & reporting | `analytics` + worker KPI processors | `PracticeKPI`, `AnalyticsResult` |
@@ -35,12 +37,13 @@ and *voice-assistant* both use Twilio but serve different capabilities).
 
 | Skill | Purpose | System dependency |
 |---|---|---|
-| [authentication](authentication/SKILL.md) | Log users in/out, manage sessions, enforce RBAC | `auth` API, argon2, Redis, Postgres |
+| [authentication](authentication/SKILL.md) | Log users in/out, self-serve signup, manage sessions, enforce RBAC | `auth` API, bcrypt, Redis, Postgres |
+| [team-management](team-management/SKILL.md) | Invite people to a practice by email; accept → new staff account | `invitations` API, SMTP, Postgres |
 | [scheduling](scheduling/SKILL.md) | Find open slots and book/reschedule/cancel appointments | `appointments` API, Redis cache, Postgres |
 | [patient-intake](patient-intake/SKILL.md) | Capture/submit new-patient intake and create patient records | `intake`/`patients` API, Postgres |
 | [document-handling](document-handling/SKILL.md) | Upload/retrieve patient documents via presigned S3 URLs | `documents` API, S3/MinIO |
 | [billing-and-payments](billing-and-payments/SKILL.md) | Issue invoices and record payments | `billing`/`payments` API, Postgres |
-| [insurance-verification](insurance-verification/SKILL.md) | Store/look up patient insurance coverage | `insurance` API, Postgres |
+| [insurance-verification](insurance-verification/SKILL.md) | Store/look up coverage, structured benefits, and file/track claims | `insurance`/`claims` API, Postgres |
 | [notifications-and-reminders](notifications-and-reminders/SKILL.md) | Send/schedule SMS + email reminders | `messaging`/`reminders` API, Twilio, SMTP, BullMQ |
 | [voice-assistant](voice-assistant/SKILL.md) | Drive AI phone calls: availability, booking, transcripts | web voice API, ElevenLabs, Twilio |
 | [analytics-reporting](analytics-reporting/SKILL.md) | Query practice KPIs and dashboards | `analytics` API, Postgres |

@@ -10,9 +10,13 @@ Authentication & session management.
 
 ## Dependencies
 - **API:** NestJS `auth` controller — base `/auth` (`apps/api/src/modules/auth/auth.controller.ts`)
-- **Services:** `PasswordService` (argon2id), `SessionService` (hashed token + CSRF secret)
-- **Tables:** `User`, `Session`, `UserRole`, `Role`, `AuditLog` (every auth event is audited)
-- **Infra:** Redis (throttling), Postgres
+- **Password hashing:** **bcrypt** via `auth.utils.ts` (`hashPassword`/`verifyPassword`) is the live
+  login path. `BCRYPT_ROUNDS` (default 12) is tunable; a successful login **rehashes in the background**
+  to the configured cost (`passwordNeedsRehash`). A separate argon2 `PasswordService` exists but is NOT
+  on the login path.
+- **Services:** `SessionService` (hashed token + CSRF secret, idle + absolute expiry, rotation)
+- **Tables:** `User`, `Session`, `UserRole`, `Role`, `Practice`, `AuditLog` (every auth event is audited)
+- **Infra:** Redis (session cache + throttling), Postgres
 
 ---
 
@@ -30,7 +34,7 @@ account is locked, and whether a session is still live (idle + absolute expiry).
 2. Validate shape (`email` is an email, `password` non-empty).
 3. POST to `/auth/login`. The service looks up the `User` by email, checks `status` and `lockedUntil`.
 4. If locked → stop, surface `423` (do not retry).
-5. On `argon2.verify` success → service creates a `Session` (hashed token + CSRF secret, idle + absolute expiry) and resets `failedLoginCount`.
+5. On `bcrypt.compare` success → service creates a `Session` (hashed token + CSRF secret, idle + absolute expiry), resets `failedLoginCount`, and **rehashes the password in the background** if its cost differs from `BCRYPT_ROUNDS` (non-blocking).
 6. Capture the `cl_session` cookie and the returned `user`. Store the cookie for subsequent calls.
 7. On failure → service increments `failedLoginCount`; surface `401`. Never reveal which of email/password was wrong.
 
@@ -56,9 +60,20 @@ account is locked, and whether a session is still live (idle + absolute expiry).
 
 ## 5. Tools / APIs Used
 - `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `GET /auth/session`, `POST /auth/refresh`
+- `POST /auth/signup` — **public** self-serve org signup: creates a new `Practice` + first admin
+  `User` + session in one atomic step (rate-limited). Distinct from `register`, which needs an
+  admin session and an existing `practiceId`.
 - `GET /auth/sessions`, `DELETE /auth/sessions` (all), `DELETE /auth/sessions/:id` (one)
 - `POST /auth/register`, `GET /auth/admin-overview`
-- Internal: `PasswordService.verify`, `SessionService.create/rotate/revoke`
+- Adding teammates without a shared password: use the **invitations** flow (`POST /invitations`
+  → `/join/<token>`), not `register`. See the `team-management` skill.
+- Internal: `verifyPassword`/`hashPassword` (bcrypt), `SessionService.create/rotate/revoke`
+
+### RBAC role groups (enforced by the global RolesGuard + `@RequireRole`)
+- **management** = `admin`, `manager` → analytics, audit log, destructive/void actions.
+- **front office** = `admin`, `manager`, `staff` → billing, payments, insurance writes.
+- **clinical** = `admin`, `manager`, `provider`, `hygienist` → EMR, treatments.
+- Endpoints with no `@RequireRole` are open to any authenticated staff (tenant-scoped).
 
 ## 6. Edge Cases & Failure Handling
 - **Locked account** → `423 Locked`: stop; do not brute-force. Inform the operator to wait for `lockedUntil`.
