@@ -14,6 +14,22 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
+/**
+ * Whether a stored hash's cost differs from the configured target. bcrypt.compare
+ * always runs at the cost baked into the STORED hash, so changing BCRYPT_ROUNDS
+ * only takes effect once existing users are re-hashed (see rehash-on-login). This
+ * lets ops tune the work factor for the deployment's CPU (e.g. Render free tier)
+ * and have it actually reduce login latency over time. Returns false on any parse
+ * error so a bad hash never forces a rehash loop.
+ */
+export function passwordNeedsRehash(hash: string): boolean {
+  try {
+    return bcrypt.getRounds(hash) !== BCRYPT_ROUNDS;
+  } catch {
+    return false;
+  }
+}
+
 export function randomToken(bytes = 48): string {
   return crypto.randomBytes(bytes).toString('hex');
 }

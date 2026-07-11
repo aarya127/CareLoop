@@ -13,7 +13,7 @@ import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type { SignupDto } from './dto/signup.dto';
 import { AUTH_ERRORS, AUTH_LIMITS, AUTH_ROLES } from './auth.constants';
-import { hashPassword, verifyPassword } from './auth.utils';
+import { hashPassword, passwordNeedsRehash, verifyPassword } from './auth.utils';
 import { SessionService } from './session.service';
 
 type SafeUser = {
@@ -326,6 +326,16 @@ export class AuthService {
           lastLoginAt: new Date(),
         },
       });
+
+      // Rehash to the configured BCRYPT_ROUNDS in the background — never blocks
+      // the login response. This migrates existing users to a cheaper (or
+      // stronger) cost over time so tuning the work factor actually affects login
+      // latency. No-op once the user is already on the target cost.
+      if (passwordNeedsRehash(user.passwordHash)) {
+        void hashPassword(dto.password)
+          .then((newHash) => prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } }))
+          .catch(() => undefined);
+      }
 
       const { rawToken, sessionId } = await this.sessionService.createSession({
         userId: user.id,
