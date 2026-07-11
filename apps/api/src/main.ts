@@ -78,7 +78,6 @@ async function bootstrap() {
   );
 
   // Register cookie plugin — required before any route handling
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(fastifyCookie as any, { secret: COOKIE_SECRET });
 
   // Global validation — strip unknown fields, auto-transform types, reject bad input

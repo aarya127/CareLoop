@@ -30,7 +30,6 @@ function computeSlots(
   duration: number,
   providerId = 'prov-1',
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (svc as any)._computeSlots(providerId, date, duration) as Promise<
     Array<{ start: string; end: string; available: boolean }>
   >;

@@ -16,7 +16,6 @@ function makeService() {
 
 // verifyStripeSignature is private; call it directly for a focused unit test.
 function verify(svc: WebhooksService, rawBody: string, header: string): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (svc as any).verifyStripeSignature(rawBody, header, SECRET) as boolean;
 }
 

@@ -29,11 +29,12 @@ export default function TreatmentPlansPanel({ patientId }: { patientId: string }
       .then((rows) => {
         setPlans(rows);
         setError('');
-        if (!selectedId && rows[0]) setSelectedId(rows[0].id);
+        // Functional update avoids closing over `selectedId`, so [patientId] is a
+        // complete dependency list (no exhaustive-deps suppression needed).
+        setSelectedId((cur) => cur ?? rows[0]?.id ?? cur);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load plans'))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
 
   useEffect(() => {

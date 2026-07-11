@@ -21,9 +21,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reply = ctx.getResponse<any>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const request = ctx.getRequest<any>();
 
     const status =
