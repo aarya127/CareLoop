@@ -1,0 +1,31 @@
+name: Deploy to OCI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-oci
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Enable once the OCI VM secrets are configured in repo settings.
+    if: ${{ vars.OCI_DEPLOY_ENABLED == 'true' }}
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.OCI_VM_HOST }}
+          username: ubuntu
+          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+            cd /opt/careloop/app
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose -f infrastructure/oci/docker-compose.yml --env-file /opt/careloop/.env up -d --build
+            docker image prune -f

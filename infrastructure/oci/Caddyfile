@@ -1,0 +1,6 @@
+# Caddy fronts the API with automatic Let's Encrypt HTTPS.
+# API_DOMAIN comes from /opt/careloop/.env via the compose file
+# (e.g. api.yourdomain.com — its DNS A record must point at this VM).
+{$API_DOMAIN} {
+	reverse_proxy api:3001
+}

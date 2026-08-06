@@ -1,0 +1,67 @@
+# Production stack for the OCI Always Free VM (2 OCPU / 12 GB, arm64).
+# Postgres lives on Neon and the web app on Vercel — neither runs here.
+# Usage (on the VM, from the repo root):
+#   docker compose -f infrastructure/oci/docker-compose.yml --env-file /opt/careloop/.env up -d --build
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - /opt/careloop/.env
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+      API_PORT: "3001"
+      API_HOST: 0.0.0.0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - /opt/careloop/.env
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  redis_data:
