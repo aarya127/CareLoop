@@ -37,7 +37,8 @@ export interface IntakeDraftData {
 export interface IntakeDraft {
   id: string;
   practiceId: string;
-  token: string;
+  accessToken?: string;
+  expiresAt: string;
   status: IntakeDraftStatus;
   data: IntakeDraftData;
   patientId?: string | null;

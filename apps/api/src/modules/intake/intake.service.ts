@@ -11,6 +11,7 @@ import { InsuranceService } from '../insurance/insurance.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { prisma } from '../../config/database';
 import type { CreateDraftDto, UpdateDraftDto, IntakeDraftData, DemographicsData } from './dto';
+import { hashDraftToken, IntakeTokenService } from './intake-token.service';
 
 @Injectable()
 export class IntakeService {
@@ -20,10 +21,16 @@ export class IntakeService {
     private readonly patientsService: PatientsService,
     private readonly insuranceService: InsuranceService,
     private readonly idempotencyService: IdempotencyService,
+    private readonly intakeTokenService: IntakeTokenService,
   ) {}
 
   async createDraft(dto: CreateDraftDto, actorUserId?: string): Promise<any> {
-    const draft = await this.intakeRepository.createDraft(dto.practiceId);
+    const capability = this.intakeTokenService.createDraftCapability();
+    const draft = await this.intakeRepository.createDraft(
+      dto.practiceId,
+      capability.tokenHash,
+      capability.expiresAt,
+    );
 
     void this.auditService.record({
       practiceId: dto.practiceId,
@@ -33,17 +40,37 @@ export class IntakeService {
       metadata: { draftId: draft.id, practiceId: dto.practiceId },
     });
 
-    return draft;
+    return { ...this.presentDraft(draft), accessToken: capability.accessToken };
   }
 
-  async findDraft(id: string): Promise<any> {
-    const draft = await this.intakeRepository.findDraftById(id);
+  async createDraftFromLink(linkToken: string): Promise<any> {
+    const { practiceId } = this.intakeTokenService.verifyPracticeLink(linkToken);
+    return this.createDraft({ practiceId });
+  }
+
+  createPracticeLink(practiceId: string) {
+    const link = this.intakeTokenService.createPracticeLink(practiceId);
+    const webUrl = (process.env.WEB_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+    return {
+      ...link,
+      url: `${webUrl}/intake/new?token=${encodeURIComponent(link.token)}`,
+    };
+  }
+
+  async findDraft(id: string, accessToken: string): Promise<any> {
+    const draft = await this.authorizedDraft(id, accessToken);
     if (!draft) throw new NotFoundException(`IntakeDraft ${id} not found`);
-    return draft;
+    if (draft.status === 'submitted') throw new NotFoundException(`IntakeDraft ${id} not found`);
+    return this.presentDraft(draft);
   }
 
-  async updateDraft(id: string, dto: UpdateDraftDto, actorUserId?: string): Promise<any> {
-    const existing = await this.intakeRepository.findDraftById(id);
+  async updateDraft(
+    id: string,
+    accessToken: string,
+    dto: UpdateDraftDto,
+    actorUserId?: string,
+  ): Promise<any> {
+    const existing = await this.authorizedDraft(id, accessToken);
     if (!existing) throw new NotFoundException(`IntakeDraft ${id} not found`);
     if (existing.status === 'submitted') {
       throw new BadRequestException('Cannot update a submitted draft');
@@ -69,18 +96,28 @@ export class IntakeService {
       metadata: { draftId: id },
     });
 
-    return draft;
+    return this.presentDraft(draft);
   }
 
-  async submitDraft(id: string, idempotencyKey: string, actorUserId?: string): Promise<any> {
+  async submitDraft(
+    id: string,
+    accessToken: string,
+    idempotencyKey: string,
+    actorUserId?: string,
+  ): Promise<any> {
+    // Authorize before claiming a key so anonymous callers cannot poison the
+    // global idempotency store. Namespace the key to this draft.
+    const authorized = await this.authorizedDraft(id, accessToken);
+    if (!authorized) throw new NotFoundException(`IntakeDraft ${id} not found`);
+    const scopedIdempotencyKey = `intake:${id}:${idempotencyKey}`;
+
     // 1. Idempotency check — return cached result on replay
-    const cached = await this.idempotencyService.claim(idempotencyKey);
+    const cached = await this.idempotencyService.claim(scopedIdempotencyKey);
     if (cached) return cached.body;
 
     try {
       // 2. Load and validate the draft
-      const draft = await this.intakeRepository.findDraftById(id);
-      if (!draft) throw new NotFoundException(`IntakeDraft ${id} not found`);
+      const draft = authorized;
       if (draft.status === 'submitted') {
         throw new ConflictException('Draft already submitted');
       }
@@ -129,7 +166,7 @@ export class IntakeService {
       });
 
       // 6. Mark draft as submitted
-      await this.intakeRepository.markSubmitted(id, patient.id, idempotencyKey);
+      await this.intakeRepository.markSubmitted(id, patient.id, scopedIdempotencyKey);
 
       const result = { patient, insurance: insuranceRecord, submission };
 
@@ -147,26 +184,30 @@ export class IntakeService {
       });
 
       // 8. Persist idempotency result
-      await this.idempotencyService.complete(idempotencyKey, 201, result);
+      await this.idempotencyService.complete(scopedIdempotencyKey, 201, result);
 
       return result;
     } catch (err) {
       // Release key so the caller can retry on transient errors
-      await this.idempotencyService.release(idempotencyKey);
+      await this.idempotencyService.release(scopedIdempotencyKey);
       throw err;
     }
   }
 
-  // ── Legacy shims kept for backward compat ──────────────────────────────────
-
-  async create(dto: any): Promise<any> {
-    return this.createDraft({
-      practiceId: String(dto?.practiceId ?? 'demo-practice'),
-    });
+  async findById(practiceId: string, id: string): Promise<any> {
+    const draft = await this.intakeRepository.findDraftByPractice(id, practiceId);
+    if (!draft) throw new NotFoundException(`IntakeDraft ${id} not found`);
+    return this.presentDraft(draft);
   }
 
-  async findById(id: string): Promise<any> {
-    return this.findDraft(id);
+  private authorizedDraft(id: string, accessToken: string) {
+    if (!accessToken?.trim()) return null;
+    return this.intakeRepository.findDraftByCapability(id, hashDraftToken(accessToken));
+  }
+
+  private presentDraft(draft: any): any {
+    const { tokenHash: _tokenHash, ...safeDraft } = draft;
+    return safeDraft;
   }
 
   // ── Validation ─────────────────────────────────────────────────────────────

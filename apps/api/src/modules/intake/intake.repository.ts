@@ -6,14 +6,20 @@ import type { IntakeDraftData } from './dto';
 export class IntakeRepository {
   readonly prisma = prisma;
 
-  async createDraft(practiceId: string): Promise<any> {
+  async createDraft(practiceId: string, tokenHash: string, expiresAt: Date): Promise<any> {
     return this.prisma.intakeDraft.create({
-      data: { practiceId, data: {} },
+      data: { practiceId, tokenHash, expiresAt, data: {} },
     });
   }
 
-  async findDraftById(id: string): Promise<any> {
-    return this.prisma.intakeDraft.findUnique({ where: { id } });
+  async findDraftByCapability(id: string, tokenHash: string): Promise<any> {
+    return this.prisma.intakeDraft.findFirst({
+      where: { id, tokenHash, expiresAt: { gt: new Date() } },
+    });
+  }
+
+  async findDraftByPractice(id: string, practiceId: string): Promise<any> {
+    return this.prisma.intakeDraft.findFirst({ where: { id, practiceId } });
   }
 
   async updateDraft(id: string, data: IntakeDraftData): Promise<any> {

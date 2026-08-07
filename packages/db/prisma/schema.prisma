@@ -728,7 +728,8 @@ model IntakeSubmission {
 model IntakeDraft {
   id             String    @id @default(cuid())
   practiceId     String
-  token          String    @unique @default(cuid())
+  tokenHash      String    @unique
+  expiresAt      DateTime
   status         String    @default("draft") // draft | submitted
   data           Json      @default("{}")
   patientId      String?
@@ -741,7 +742,7 @@ model IntakeDraft {
   patient  Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
 
   @@index([practiceId, status])
-  @@index([token])
+  @@index([expiresAt])
 }
 
 // ============================================================================

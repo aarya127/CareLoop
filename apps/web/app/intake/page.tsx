@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export default function IntakePage() {
-  const [practice, setPractice] = useState<string | null>(null);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
 
   useEffect(() => {
-    setPractice(new URLSearchParams(window.location.search).get('practice'));
+    setLinkToken(new URLSearchParams(window.location.search).get('token'));
   }, []);
 
-  // Carry the practice through so the clinic's link routes patients to the right office.
-  const newHref = practice ? `/intake/new?practice=${encodeURIComponent(practice)}` : '/intake/new';
+  const newHref = linkToken ? `/intake/new?token=${encodeURIComponent(linkToken)}` : '/intake/new';
 
   return (
     <main className="p-6 max-w-2xl mx-auto">

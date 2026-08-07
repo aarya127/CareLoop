@@ -7,18 +7,18 @@ import { intakeApi } from '@/lib/api/intake';
 /**
  * /intake/new — Creates a fresh draft then redirects to the multi-step form.
  *
- * The practice is taken from the `?practice=<id>` query param so a clinic can
- * hand out its own intake link (e.g. /intake/new?practice=acme-dental). Falls
- * back to the API's default only when omitted (dev/demo).
+ * The signed `?token=` capability identifies the clinic without exposing a
+ * client-controlled practice id. The resulting draft token stays in
+ * sessionStorage and is sent on every PHI read/write request.
  */
 export default function NewIntakePage() {
   const router = useRouter();
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    const practice = new URLSearchParams(window.location.search).get('practice') || undefined;
+    const linkToken = new URLSearchParams(window.location.search).get('token') ?? '';
     intakeApi
-      .createDraft(practice)
+      .createDraft(linkToken)
       .then((draft) => router.replace(`/intake/${draft.id}`))
       .catch(() => setFailed(true));
   }, [router]);
