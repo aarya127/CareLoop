@@ -47,6 +47,53 @@ export class AppointmentsRepository {
     return prisma.appointment.update({ where: { id }, data });
   }
 
+  /**
+   * Serialize bookings for one practice/provider with a transaction-scoped
+   * PostgreSQL advisory lock. The conflict read and insert then form one atomic
+   * decision, preventing two concurrent requests from both booking the slot.
+   */
+  async createIfAvailable(data: Prisma.AppointmentUncheckedCreateInput) {
+    return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${data.practiceId}), hashtext(${data.providerId}))`;
+      const conflict = await tx.appointment.findFirst({
+        where: {
+          practiceId: data.practiceId,
+          providerId: data.providerId,
+          status: { not: 'cancelled' },
+          AND: [{ start: { lt: data.end } }, { end: { gt: data.start } }],
+        },
+        select: { id: true },
+      });
+      if (conflict) return null;
+      return tx.appointment.create({ data });
+    });
+  }
+
+  async rescheduleIfAvailable(
+    practiceId: string,
+    id: string,
+    providerId: string,
+    start: Date,
+    end: Date,
+    data: Prisma.AppointmentUncheckedUpdateInput,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${practiceId}), hashtext(${providerId}))`;
+      const conflict = await tx.appointment.findFirst({
+        where: {
+          practiceId,
+          providerId,
+          id: { not: id },
+          status: { not: 'cancelled' },
+          AND: [{ start: { lt: end } }, { end: { gt: start } }],
+        },
+        select: { id: true },
+      });
+      if (conflict) return null;
+      return tx.appointment.update({ where: { id }, data });
+    });
+  }
+
   async findInvalidReferences(
     practiceId: string,
     refs: { userId: string; providerId: string; patientId?: string; roomId?: string },

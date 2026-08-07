@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import type { AppointmentsRepository } from './appointments.repository';
 import type { AvailabilityService } from './availability.service';
@@ -37,6 +37,8 @@ function makeService(
     findConflicting: vi.fn(async () => []),
     findInvalidReferences: vi.fn(async () => invalidReferences),
     create: vi.fn(async () => created),
+    createIfAvailable: vi.fn(async () => created),
+    rescheduleIfAvailable: vi.fn(async () => appt),
   } as unknown as AppointmentsRepository;
   const availability = { invalidateCache: vi.fn(async () => {}) } as unknown as AvailabilityService;
   const audit = { record: vi.fn(async () => {}) } as unknown as AuditService;
@@ -105,11 +107,10 @@ describe('AppointmentsService tenant isolation', () => {
         end: '2026-03-10T09:30:00Z',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(repo.create).not.toHaveBeenCalled();
-    expect(repo.findConflicting).not.toHaveBeenCalled();
+    expect(repo.createIfAvailable).not.toHaveBeenCalled();
   });
 
-  it('scopes conflict checks and idempotency keys to the caller practice', async () => {
+  it('scopes atomic booking and idempotency keys to the caller practice', async () => {
     const { service, repo, idempotency } = makeService(null);
 
     await service.create(
@@ -125,12 +126,33 @@ describe('AppointmentsService tenant isolation', () => {
       'admin-A',
     );
 
-    expect(repo.findConflicting).toHaveBeenCalledWith(
-      'practice-A',
-      'provider-A',
-      new Date('2026-03-10T09:00:00Z'),
-      new Date('2026-03-10T09:30:00Z'),
+    expect(repo.createIfAvailable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        practiceId: 'practice-A',
+        providerId: 'provider-A',
+        start: new Date('2026-03-10T09:00:00Z'),
+        end: new Date('2026-03-10T09:30:00Z'),
+      }),
     );
     expect(idempotency.claim).toHaveBeenCalledWith('appointments:practice-A:same-client-key');
+  });
+
+  it('returns a conflict and releases the claim when the atomic booking loses the race', async () => {
+    const { service, repo, idempotency } = makeService(null);
+    vi.mocked(repo.createIfAvailable).mockResolvedValueOnce(null);
+
+    await expect(
+      service.create(
+        'practice-A',
+        {
+          userId: 'user-A',
+          providerId: 'provider-A',
+          start: '2026-03-10T09:00:00Z',
+          end: '2026-03-10T09:30:00Z',
+        },
+        'request-1',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(idempotency.release).toHaveBeenCalledWith('appointments:practice-A:request-1');
   });
 });

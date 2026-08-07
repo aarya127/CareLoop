@@ -144,14 +144,7 @@ export class AppointmentsService {
       if (cached) return cached.body;
     }
 
-    // Conflict check
-    const conflicts = await this.repo.findConflicting(practiceId, dto.providerId, start, end);
-    if (conflicts.length > 0) {
-      if (scopedIdempotencyKey) await this.idempotency.release(scopedIdempotencyKey);
-      throw new ConflictException('Provider has a conflicting appointment at this time');
-    }
-
-    const appointment = await this.repo.create({
+    const appointment = await this.repo.createIfAvailable({
       practiceId,
       userId: dto.userId,
       providerId: dto.providerId,
@@ -166,6 +159,10 @@ export class AppointmentsService {
       source: dto.source ?? 'manual',
       status: 'confirmed',
     });
+    if (!appointment) {
+      if (scopedIdempotencyKey) await this.idempotency.release(scopedIdempotencyKey);
+      throw new ConflictException('Provider has a conflicting appointment at this time');
+    }
 
     await this.audit.record({
       practiceId,
@@ -219,30 +216,29 @@ export class AppointmentsService {
     }
     if (newEnd <= newStart) throw new BadRequestException('end must be after start');
 
-    const conflicts = await this.repo.findConflicting(
+    const updated = await this.repo.rescheduleIfAvailable(
       practiceId,
+      id,
       appt.providerId,
       newStart,
       newEnd,
-      id,
+      {
+        start: newStart,
+        end: newEnd,
+        extended: {
+          ...(typeof appt.extended === 'object' && appt.extended !== null
+            ? (appt.extended as object)
+            : {}),
+          previousStart: appt.start.toISOString(),
+          previousEnd: appt.end.toISOString(),
+          rescheduleReason: dto.reason,
+          rescheduledAt: new Date().toISOString(),
+        },
+      },
     );
-    if (conflicts.length > 0) {
+    if (!updated) {
       throw new ConflictException('Provider has a conflicting appointment at this time');
     }
-
-    const updated = await this.repo.update(id, {
-      start: newStart,
-      end: newEnd,
-      extended: {
-        ...(typeof appt.extended === 'object' && appt.extended !== null
-          ? (appt.extended as object)
-          : {}),
-        previousStart: appt.start.toISOString(),
-        previousEnd: appt.end.toISOString(),
-        rescheduleReason: dto.reason,
-        rescheduledAt: new Date().toISOString(),
-      },
-    });
 
     await this.audit.record({
       practiceId,
