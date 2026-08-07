@@ -63,26 +63,33 @@ export class AppointmentsRepository {
 
   // ── Availability data ────────────────────────────────────────────────────
 
-  async findSchedule(providerId: string, dayOfWeek: number) {
-    const today = new Date();
+  async findSchedule(
+    practiceId: string,
+    providerId: string,
+    dayOfWeek: number,
+    dayStart: Date,
+    dayEnd: Date,
+  ) {
     return prisma.providerSchedule.findMany({
       where: {
+        practiceId,
         providerId,
         dayOfWeek,
         isActive: true,
-        OR: [{ effectiveTo: null }, { effectiveTo: { gte: today } }],
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: dayStart } }],
         AND: [
           {
-            OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: today } }],
+            OR: [{ effectiveFrom: null }, { effectiveFrom: { lt: dayEnd } }],
           },
         ],
       },
     });
   }
 
-  async findBlocks(providerId: string, start: Date, end: Date) {
+  async findBlocks(practiceId: string, providerId: string, start: Date, end: Date) {
     return prisma.availabilityBlock.findMany({
       where: {
+        practiceId,
         providerId,
         isActive: true,
         AND: [{ start: { lt: end } }, { end: { gt: start } }],
@@ -90,9 +97,10 @@ export class AppointmentsRepository {
     });
   }
 
-  async findHolds(providerId: string, start: Date, end: Date) {
+  async findHolds(practiceId: string, providerId: string, start: Date, end: Date) {
     return prisma.appointmentHold.findMany({
       where: {
+        practiceId,
         providerId,
         expiresAt: { gt: new Date() },
         AND: [{ start: { lt: end } }, { end: { gt: start } }],
@@ -100,14 +108,28 @@ export class AppointmentsRepository {
     });
   }
 
-  async findAppointmentsForDay(providerId: string, dayStart: Date, dayEnd: Date) {
+  async findAppointmentsForDay(
+    practiceId: string,
+    providerId: string,
+    dayStart: Date,
+    dayEnd: Date,
+  ) {
     return prisma.appointment.findMany({
       where: {
+        practiceId,
         providerId,
         status: { not: 'cancelled' },
-        AND: [{ start: { gte: dayStart } }, { start: { lt: dayEnd } }],
+        AND: [{ start: { lt: dayEnd } }, { end: { gt: dayStart } }],
       },
       orderBy: { start: 'asc' },
     });
+  }
+
+  async findPracticeTimeZone(practiceId: string): Promise<string | null> {
+    const practice = await prisma.practice.findUnique({
+      where: { id: practiceId },
+      select: { timeZone: true },
+    });
+    return practice?.timeZone ?? null;
   }
 }

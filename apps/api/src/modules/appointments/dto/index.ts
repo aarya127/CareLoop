@@ -1,5 +1,15 @@
 // Appointment DTOs — validated via the global ValidationPipe (whitelist + transform).
-import { IsISO8601, IsOptional, IsString, IsNotEmpty } from 'class-validator';
+import {
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  Min,
+  Max,
+  Matches,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateAppointmentDto {
   // practiceId is derived from the session, not the body — accepted but ignored.
@@ -80,10 +90,14 @@ export class GetSlotsDto {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   date!: string; // YYYY-MM-DD
 
-  @IsNotEmpty()
-  duration!: string | number; // minutes
+  @Type(() => Number)
+  @IsInt()
+  @Min(5)
+  @Max(480)
+  duration!: number; // minutes
 }
 
 export interface TimeSlot {

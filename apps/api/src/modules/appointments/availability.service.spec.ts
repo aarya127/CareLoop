@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { BadRequestException } from '@nestjs/common';
 import { AvailabilityService } from './availability.service';
 import type { AppointmentsRepository } from './appointments.repository';
 
@@ -12,12 +13,14 @@ function makeService(over: {
   appointments?: Array<{ start: Date; end: Date }>;
   blocks?: Array<{ start: Date; end: Date }>;
   holds?: Array<{ start: Date; end: Date }>;
+  timeZone?: string;
 }): AvailabilityService {
   const repo = {
-    findSchedule: async () => over.schedules ?? [],
-    findAppointmentsForDay: async () => over.appointments ?? [],
-    findBlocks: async () => over.blocks ?? [],
-    findHolds: async () => over.holds ?? [],
+    findPracticeTimeZone: vi.fn(async () => over.timeZone ?? 'UTC'),
+    findSchedule: vi.fn(async () => over.schedules ?? []),
+    findAppointmentsForDay: vi.fn(async () => over.appointments ?? []),
+    findBlocks: vi.fn(async () => over.blocks ?? []),
+    findHolds: vi.fn(async () => over.holds ?? []),
   } as unknown as AppointmentsRepository;
 
   return new AvailabilityService(repo);
@@ -29,8 +32,9 @@ function computeSlots(
   date: string,
   duration: number,
   providerId = 'prov-1',
+  practiceId = 'practice-A',
 ) {
-  return (svc as any)._computeSlots(providerId, date, duration) as Promise<
+  return (svc as any)._computeSlots(practiceId, providerId, date, duration) as Promise<
     Array<{ start: string; end: string; available: boolean }>
   >;
 }
@@ -102,5 +106,50 @@ describe('AvailabilityService._computeSlots', () => {
 
     expect(slots).toHaveLength(2);
     expect(slots.every((s) => !s.available)).toBe(true);
+  });
+
+  it.each([0, -30, Number.NaN, 4, 481, 12.5])(
+    'rejects pathological duration %s instead of entering an unbounded loop',
+    async (duration) => {
+      const svc = makeService({ schedules: [{ startMin: 0, endMin: 1440 }] });
+      await expect(computeSlots(svc, DATE, duration)).rejects.toBeInstanceOf(BadRequestException);
+    },
+  );
+
+  it.each(['not-a-date', '2026-02-29', '2026-13-01', '2026-01-00'])(
+    'rejects malformed or impossible date %s before querying',
+    async (date) => {
+      const svc = makeService({ schedules: [{ startMin: 540, endMin: 600 }] });
+      await expect(computeSlots(svc, date, 30)).rejects.toBeInstanceOf(BadRequestException);
+    },
+  );
+
+  it('merges overlapping schedule rows so slots are not duplicated', async () => {
+    const svc = makeService({
+      schedules: [
+        { startMin: 540, endMin: 600 },
+        { startMin: 570, endMin: 630 },
+        { startMin: 540, endMin: 600 },
+      ],
+    });
+    const slots = await computeSlots(svc, DATE, 30);
+    expect(slots.map((slot) => slot.start)).toEqual([
+      '2026-03-10T09:00:00.000Z',
+      '2026-03-10T09:30:00.000Z',
+      '2026-03-10T10:00:00.000Z',
+    ]);
+  });
+
+  it('converts practice-local schedules with the DST offset in effect that day', async () => {
+    const svc = makeService({
+      schedules: [{ startMin: 540, endMin: 600 }],
+      timeZone: 'America/Toronto',
+    });
+
+    const winter = await computeSlots(svc, '2026-01-12', 60);
+    const summer = await computeSlots(svc, '2026-07-13', 60);
+
+    expect(winter[0].start).toBe('2026-01-12T14:00:00.000Z');
+    expect(summer[0].start).toBe('2026-07-13T13:00:00.000Z');
   });
 });

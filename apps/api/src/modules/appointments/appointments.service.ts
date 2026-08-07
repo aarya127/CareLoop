@@ -82,14 +82,14 @@ export class AppointmentsService {
   }
 
   async getAvailability(practiceId: string, query: GetSlotsDto) {
-    if (!query.providerId || !query.date || !query.duration) {
+    if (!query.providerId || !query.date || query.duration == null) {
       throw new BadRequestException('providerId, date, and duration are required');
     }
     return this.availability.getSlots({
       practiceId,
       providerId: query.providerId,
       date: query.date,
-      duration: Number(query.duration),
+      duration: query.duration,
     });
   }
 
@@ -164,7 +164,7 @@ export class AppointmentsService {
 
     // Bust availability cache
     const dateStr = start.toISOString().split('T')[0];
-    await this.availability.invalidateCache(dto.providerId, dateStr);
+    await this.availability.invalidateCache(practiceId, dto.providerId, dateStr);
 
     if (idempotencyKey) {
       await this.idempotency.complete(idempotencyKey, 201, appointment);
@@ -238,9 +238,9 @@ export class AppointmentsService {
     const oldDate = appt.start.toISOString().split('T')[0];
     const newDate = newStart.toISOString().split('T')[0];
     await Promise.all([
-      this.availability.invalidateCache(appt.providerId, oldDate),
+      this.availability.invalidateCache(practiceId, appt.providerId, oldDate),
       oldDate !== newDate
-        ? this.availability.invalidateCache(appt.providerId, newDate)
+        ? this.availability.invalidateCache(practiceId, appt.providerId, newDate)
         : Promise.resolve(),
     ]);
 
@@ -293,7 +293,7 @@ export class AppointmentsService {
 
     // Bust availability cache
     const dateStr = appt.start.toISOString().split('T')[0];
-    await this.availability.invalidateCache(appt.providerId, dateStr);
+    await this.availability.invalidateCache(practiceId, appt.providerId, dateStr);
 
     this.publishEvent({
       type: 'cancelled',
