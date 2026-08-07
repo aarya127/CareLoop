@@ -115,20 +115,39 @@ export class AppointmentsService {
     }
     if (end <= start) throw new BadRequestException('end must be after start');
 
+    const invalidReferences = await this.repo.findInvalidReferences(practiceId, {
+      userId: dto.userId,
+      providerId: dto.providerId,
+      patientId: dto.patientId,
+      roomId: dto.roomId,
+    });
+    if (invalidReferences.length > 0) {
+      throw new BadRequestException(
+        `Invalid appointment references: ${invalidReferences.join(', ')}`,
+      );
+    }
+
+    if (dto.timeZone) {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: dto.timeZone }).format(start);
+      } catch {
+        throw new BadRequestException('timeZone must be a valid IANA time zone');
+      }
+    }
+
     // Idempotency — return cached result on replay
-    if (idempotencyKey) {
-      const cached = await this.idempotency.claim(idempotencyKey);
+    const scopedIdempotencyKey = idempotencyKey
+      ? `appointments:${practiceId}:${idempotencyKey}`
+      : undefined;
+    if (scopedIdempotencyKey) {
+      const cached = await this.idempotency.claim(scopedIdempotencyKey);
       if (cached) return cached.body;
     }
 
     // Conflict check
-    const conflicts = await this.repo.findConflicting(dto.providerId, start, end);
+    const conflicts = await this.repo.findConflicting(practiceId, dto.providerId, start, end);
     if (conflicts.length > 0) {
-      if (idempotencyKey) {
-        await this.idempotency.complete(idempotencyKey, 409, {
-          message: 'Scheduling conflict',
-        });
-      }
+      if (scopedIdempotencyKey) await this.idempotency.release(scopedIdempotencyKey);
       throw new ConflictException('Provider has a conflicting appointment at this time');
     }
 
@@ -166,8 +185,8 @@ export class AppointmentsService {
     const dateStr = start.toISOString().split('T')[0];
     await this.availability.invalidateCache(practiceId, dto.providerId, dateStr);
 
-    if (idempotencyKey) {
-      await this.idempotency.complete(idempotencyKey, 201, appointment);
+    if (scopedIdempotencyKey) {
+      await this.idempotency.complete(scopedIdempotencyKey, 201, appointment);
     }
 
     this.publishEvent({
@@ -200,7 +219,13 @@ export class AppointmentsService {
     }
     if (newEnd <= newStart) throw new BadRequestException('end must be after start');
 
-    const conflicts = await this.repo.findConflicting(appt.providerId, newStart, newEnd, id);
+    const conflicts = await this.repo.findConflicting(
+      practiceId,
+      appt.providerId,
+      newStart,
+      newEnd,
+      id,
+    );
     if (conflicts.length > 0) {
       throw new ConflictException('Provider has a conflicting appointment at this time');
     }

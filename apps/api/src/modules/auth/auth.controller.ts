@@ -108,8 +108,8 @@ export class AuthController {
   @UseGuards(RolesGuard)
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  async register(@Body() dto: RegisterDto, @Req() req: any) {
+    return this.authService.register(req.user.practiceId, req.user.id, dto);
   }
 
   @Post('logout')

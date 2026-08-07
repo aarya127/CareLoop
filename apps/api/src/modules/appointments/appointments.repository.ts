@@ -47,12 +47,54 @@ export class AppointmentsRepository {
     return prisma.appointment.update({ where: { id }, data });
   }
 
+  async findInvalidReferences(
+    practiceId: string,
+    refs: { userId: string; providerId: string; patientId?: string; roomId?: string },
+  ): Promise<string[]> {
+    const [user, provider, patient, room] = await Promise.all([
+      prisma.user.findFirst({
+        where: { id: refs.userId, practiceId, status: 'active', deletedAt: null },
+        select: { id: true },
+      }),
+      prisma.provider.findFirst({
+        where: { id: refs.providerId, practiceId, isActive: true },
+        select: { id: true },
+      }),
+      refs.patientId
+        ? prisma.patient.findFirst({
+            where: { id: refs.patientId, practiceId },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+      refs.roomId
+        ? prisma.room.findFirst({
+            where: { id: refs.roomId, practiceId, isActive: true },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+    ]);
+
+    return [
+      ...(!user ? ['userId'] : []),
+      ...(!provider ? ['providerId'] : []),
+      ...(!patient ? ['patientId'] : []),
+      ...(!room ? ['roomId'] : []),
+    ];
+  }
+
   // ── Conflict detection ────────────────────────────────────────────────────
 
   /** Returns appointments for providerId that overlap [start, end), excluding excludeId. */
-  async findConflicting(providerId: string, start: Date, end: Date, excludeId?: string) {
+  async findConflicting(
+    practiceId: string,
+    providerId: string,
+    start: Date,
+    end: Date,
+    excludeId?: string,
+  ) {
     return prisma.appointment.findMany({
       where: {
+        practiceId,
         providerId,
         status: { not: 'cancelled' },
         ...(excludeId ? { id: { not: excludeId } } : {}),

@@ -1,4 +1,5 @@
 import { IsEmail, IsString, MinLength, IsOptional, IsIn } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class RegisterDto {
   @IsEmail()
@@ -14,10 +15,8 @@ export class RegisterDto {
   @IsString()
   lastName!: string;
 
-  @IsString()
-  practiceId!: string;
-
   @IsOptional()
-  @IsIn(['STAFF', 'MANAGER', 'ADMIN', 'SERVICE_ACCOUNT'])
-  role?: 'STAFF' | 'MANAGER' | 'ADMIN' | 'SERVICE_ACCOUNT';
+  @Transform(({ value }) => String(value).trim().toLowerCase())
+  @IsIn(['staff', 'manager', 'admin'])
+  role?: 'staff' | 'manager' | 'admin';
 }

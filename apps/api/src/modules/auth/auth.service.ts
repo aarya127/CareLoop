@@ -470,53 +470,71 @@ export class AuthService {
     return { user };
   }
 
-  async register(dto: RegisterDto): Promise<{ userId: string }> {
+  async register(
+    practiceId: string,
+    actorUserId: string,
+    dto: RegisterDto,
+  ): Promise<{ userId: string }> {
     const email = dto.email.trim().toLowerCase();
     const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
 
     if (existing) {
-      throw new ForbiddenException('User already exists');
+      throw new ConflictException('User already exists');
     }
 
     const roleName = (dto.role ?? AUTH_ROLES.STAFF).trim().toLowerCase();
-
-    const role = await prisma.role.upsert({
-      where: { name: roleName },
-      update: {},
-      create: {
-        name: roleName,
-        description: `${roleName} role`,
-      },
-      select: { id: true },
-    });
+    const assignableRoles = [AUTH_ROLES.STAFF, AUTH_ROLES.MANAGER, AUTH_ROLES.ADMIN] as string[];
+    if (!assignableRoles.includes(roleName)) {
+      throw new ForbiddenException('Role cannot be assigned to a user account');
+    }
 
     const passwordHash = await hashPassword(dto.password);
+    let user: { id: string };
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        const role = await tx.role.upsert({
+          where: { name: roleName },
+          update: {},
+          create: {
+            name: roleName,
+            description: `${roleName} role`,
+          },
+          select: { id: true },
+        });
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        passwordHash,
-        passwordAlgo: 'bcrypt',
-        practiceId: dto.practiceId,
-        status: 'active',
-      },
-      select: { id: true },
-    });
+        const created = await tx.user.create({
+          data: {
+            email,
+            firstName: dto.firstName.trim(),
+            lastName: dto.lastName.trim(),
+            passwordHash,
+            passwordAlgo: 'bcrypt',
+            practiceId,
+            status: 'active',
+          },
+          select: { id: true },
+        });
 
-    await prisma.userRole.create({
-      data: {
-        userId: user.id,
-        roleId: role.id,
-      },
-    });
+        await tx.userRole.create({
+          data: {
+            userId: created.id,
+            roleId: role.id,
+          },
+        });
+        return created;
+      });
+    } catch (error) {
+      if ((error as { code?: string })?.code === 'P2002') {
+        throw new ConflictException('User already exists');
+      }
+      throw error;
+    }
 
     await this.addAuditLog({
-      practiceId: dto.practiceId,
+      practiceId,
       eventType: 'register_user',
       outcome: 'success',
-      actorUserId: user.id,
+      actorUserId,
       targetUserId: user.id,
       metadata: { roleName },
     });
