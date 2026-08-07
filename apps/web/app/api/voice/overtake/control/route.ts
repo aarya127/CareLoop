@@ -14,13 +14,17 @@ export async function POST(req: NextRequest) {
     const body = schema.parse(await req.json());
 
     let state;
-    if (body.action === 'handoff.request') state = requestHandoff(body.callId, user.id);
-    else if (body.action === 'handoff.accept') state = activateStaff(body.callId, user.id);
-    else if (body.action === 'handoff.resume_ai') state = resumeAi(body.callId, user.id);
-    else state = endCall(body.callId, user.id);
+    if (body.action === 'handoff.request')
+      state = requestHandoff(user.practiceId, body.callId, user.id);
+    else if (body.action === 'handoff.accept')
+      state = activateStaff(user.practiceId, body.callId, user.id);
+    else if (body.action === 'handoff.resume_ai')
+      state = resumeAi(user.practiceId, body.callId, user.id);
+    else state = endCall(user.practiceId, body.callId, user.id);
 
     return NextResponse.json({ ok: true, state });
   } catch (error: unknown) {
+    if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

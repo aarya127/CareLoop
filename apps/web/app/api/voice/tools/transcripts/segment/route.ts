@@ -21,17 +21,34 @@ export async function POST(req: NextRequest) {
     const user = await requireUser(req);
     const body = schema.parse(await req.json());
 
-    const transcript = await prisma.callTranscript.upsert({
+    if (body.patientId) {
+      const patient = await prisma.patient.findFirst({
+        where: { id: body.patientId, practiceId: user.practiceId },
+        select: { id: true },
+      });
+      if (!patient) {
+        return NextResponse.json({ ok: false, error: 'patient_not_found' }, { status: 404 });
+      }
+    }
+
+    const existing = await prisma.callTranscript.findUnique({
       where: { callSid: body.callSid },
-      update: {},
-      create: {
-        practiceId: user.practiceId,
-        callSid: body.callSid,
-        orchestrator: body.orchestrator,
-        startedAt: new Date(body.startedAt),
-        patientId: body.patientId,
-      },
     });
+    if (existing && existing.practiceId !== user.practiceId) {
+      return NextResponse.json({ ok: false, error: 'transcript_not_found' }, { status: 404 });
+    }
+
+    const transcript =
+      existing ??
+      (await prisma.callTranscript.create({
+        data: {
+          practiceId: user.practiceId,
+          callSid: body.callSid,
+          orchestrator: body.orchestrator,
+          startedAt: new Date(body.startedAt),
+          patientId: body.patientId,
+        },
+      }));
 
     const segment = await prisma.callTranscriptSegment.create({
       data: {
@@ -47,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, transcriptId: transcript.id, segmentId: segment.id });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'failed';
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    if (error instanceof Response) return error;
+    return NextResponse.json({ ok: false, error: 'failed' }, { status: 500 });
   }
 }

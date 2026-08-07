@@ -12,6 +12,14 @@ export interface SessionUser {
   practiceId: string;
 }
 
+/** Reject an authenticated user whose role is not permitted for the resource. */
+export function requireRole(user: SessionUser, allowedRoles: readonly string[]): SessionUser {
+  if (!allowedRoles.includes(user.role.toLowerCase())) {
+    throw NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  return user;
+}
+
 /**
  * Validates the session cookie by calling the API's /auth/me.
  * Returns the user or throws a 401 Response.

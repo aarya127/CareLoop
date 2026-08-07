@@ -3,17 +3,20 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { extractKpisFromTranscript } from '@/lib/services/analytics-engine';
+import { requireVoiceWebhookRequest } from '@/lib/services/voice-webhook-auth';
 
 const webhookSchema = z.object({
   event: z.enum(['call.completed', 'call.segment']),
   callSid: z.string(),
-  practiceId: z.string().default('default-practice'),
   payload: z.record(z.unknown()).default({}),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const body = webhookSchema.parse(await req.json());
+    const rawBody = await req.text();
+    const rejected = requireVoiceWebhookRequest(req, rawBody);
+    if (rejected) return rejected;
+    const body = webhookSchema.parse(JSON.parse(rawBody));
 
     if (body.event !== 'call.completed') {
       return NextResponse.json({ ok: true, ignored: true });
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest) {
     await prisma.practiceKPI.createMany({
       data: [
         {
-          practiceId: body.practiceId,
+          practiceId: transcript.practiceId,
           kpiDate: midnightUtc,
           metricName: 'avg_sentiment',
           metricValue: kpis.sentimentScore,
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
           transcriptId: transcript.id,
         },
         {
-          practiceId: body.practiceId,
+          practiceId: transcript.practiceId,
           kpiDate: midnightUtc,
           metricName: 'treatment_acceptance_rate',
           metricValue: kpis.treatmentAcceptance.accepted ? 1 : 0,
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
           transcriptId: transcript.id,
         },
         {
-          practiceId: body.practiceId,
+          practiceId: transcript.practiceId,
           kpiDate: midnightUtc,
           metricName: 'provider_satisfaction_dentist',
           metricValue: kpis.satisfactionByProvider.dentist,
@@ -83,7 +86,7 @@ export async function POST(req: NextRequest) {
           transcriptId: transcript.id,
         },
         {
-          practiceId: body.practiceId,
+          practiceId: transcript.practiceId,
           kpiDate: midnightUtc,
           metricName: 'provider_satisfaction_hygienist',
           metricValue: kpis.satisfactionByProvider.hygienist,

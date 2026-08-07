@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { requireRole, requireUser } from '@/lib/auth/server';
+
+const ANALYTICS_ROLES = ['admin', 'manager'] as const;
 
 function getRangeDays(range: string): number {
   if (range === '7d') return 7;
@@ -9,9 +12,10 @@ function getRangeDays(range: string): number {
 
 export async function GET(req: NextRequest) {
   try {
+    const user = requireRole(await requireUser(req), ANALYTICS_ROLES);
     const url = new URL(req.url);
     const range = url.searchParams.get('range') ?? '30d';
-    const practiceId = url.searchParams.get('practiceId') ?? 'default-practice';
+    const practiceId = user.practiceId;
     const days = getRangeDays(range);
 
     const from = new Date();
@@ -60,6 +64,7 @@ export async function GET(req: NextRequest) {
       recentCalls: transcripts,
     });
   } catch (error: unknown) {
+    if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : 'failed';
 
     // Fall back to an empty payload so analytics UI still loads in local/dev setups

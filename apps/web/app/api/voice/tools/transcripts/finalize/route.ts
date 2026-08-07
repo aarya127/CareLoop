@@ -26,6 +26,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'transcript_not_found' }, { status: 404 });
     }
 
+    if (body.appointmentId) {
+      const appointment = await prisma.appointment.findFirst({
+        where: { id: body.appointmentId, practiceId: user.practiceId },
+        select: { id: true },
+      });
+      if (!appointment) {
+        return NextResponse.json({ ok: false, error: 'appointment_not_found' }, { status: 404 });
+      }
+    }
+
     const transcript = await prisma.callTranscript.update({
       where: { id: existing.id },
       data: {
@@ -39,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, transcript });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'failed';
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    if (error instanceof Response) return error;
+    return NextResponse.json({ ok: false, error: 'failed' }, { status: 500 });
   }
 }

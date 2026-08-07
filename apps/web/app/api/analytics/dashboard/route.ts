@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRole, requireUser } from '@/lib/auth/server';
+
+const ANALYTICS_ROLES = ['admin', 'manager'] as const;
 
 function getRangeDays(range: string): number {
   if (range === '7d') return 7;
@@ -26,9 +29,9 @@ function resolveApiBase(): string {
 
 export async function GET(req: NextRequest) {
   try {
+    requireRole(await requireUser(req), ANALYTICS_ROLES);
     const url = new URL(req.url);
     const range = url.searchParams.get('range') ?? '30d';
-    const practiceId = url.searchParams.get('practiceId') ?? 'demo-practice';
     const rangeDays = getRangeDays(range);
     const apiBase = resolveApiBase();
 
@@ -41,10 +44,10 @@ export async function GET(req: NextRequest) {
       : {};
 
     const [dashboardRes, adminRes] = await Promise.all([
-      fetch(`${apiBase}/analytics/dashboard?practiceId=${practiceId}&rangeDays=${rangeDays}`, {
+      fetch(`${apiBase}/analytics/dashboard?rangeDays=${rangeDays}`, {
         headers: authHeaders,
       }),
-      fetch(`${apiBase}/auth/admin-overview?practiceId=${practiceId}`, { headers: authHeaders }),
+      fetch(`${apiBase}/auth/admin-overview`, { headers: authHeaders }),
     ]);
 
     const dashboardJson = dashboardRes.ok ? await dashboardRes.json() : null;
@@ -76,6 +79,7 @@ export async function GET(req: NextRequest) {
       generatedAt: dashboardJson.generatedAt,
     });
   } catch (error: unknown) {
+    if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : 'failed';
     return NextResponse.json(
       {
