@@ -84,6 +84,7 @@ export class InvitationsService {
     }
 
     void this.audit.record({
+      practiceId,
       eventType: 'invitation_created',
       outcome: 'success',
       actorUserId: invitedByUserId,
@@ -201,6 +202,7 @@ export class InvitationsService {
     });
 
     void this.audit.record({
+      practiceId: invite.practiceId,
       eventType: 'invitation_accepted',
       outcome: 'success',
       actorUserId: userId,

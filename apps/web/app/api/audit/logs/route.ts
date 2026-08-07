@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     if (body.logs.length > 0) {
       await prisma.auditLog.createMany({
         data: body.logs.map((log) => ({
+          practiceId: user.practiceId,
           eventType: log.action,
           outcome: log.result ?? 'success',
           actorUserId: user.id,
@@ -70,7 +71,8 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(sp.get('limit') ?? '100', 10) || 100, 500);
     const offset = parseInt(sp.get('offset') ?? '0', 10) || 0;
 
-    const where: Record<string, unknown> = {};
+    // Tenant scope is immutable and comes only from the validated session.
+    const where: Record<string, unknown> = { practiceId: user.practiceId };
     const action = sp.get('action');
     if (action) where.eventType = action;
     const actorId = sp.get('actor_id');

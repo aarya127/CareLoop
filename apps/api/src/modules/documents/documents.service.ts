@@ -108,6 +108,7 @@ export class DocumentsService {
     const uploadUrl = await this.storage.getPresignedUploadUrl(storageKey, dto.mimeType);
 
     void this.audit.record({
+      practiceId,
       eventType: 'document_upload_initiated',
       outcome: 'success',
       actorUserId: dto.uploadedBy,
@@ -132,6 +133,7 @@ export class DocumentsService {
     const active = await this.repo.activate(documentId, dto.checksumSha256);
 
     void this.audit.record({
+      practiceId,
       eventType: 'document_uploaded',
       outcome: 'success',
       actorUserId: dto.actorUserId,
@@ -172,6 +174,7 @@ export class DocumentsService {
     await this.repo.softDelete(documentId);
 
     void this.audit.record({
+      practiceId,
       eventType: 'document_deleted',
       outcome: 'success',
       actorUserId,
@@ -183,6 +186,7 @@ export class DocumentsService {
       await this.storage.deleteObject(doc.storageKey);
     } catch {
       void this.audit.record({
+        practiceId,
         eventType: 'document_storage_delete_failed',
         outcome: 'failure',
         metadata: { documentId, storageKey: doc.storageKey },

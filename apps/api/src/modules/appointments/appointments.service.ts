@@ -149,6 +149,7 @@ export class AppointmentsService {
     });
 
     await this.audit.record({
+      practiceId,
       eventType: 'appointment_created',
       outcome: 'success',
       actorUserId: actorUserId ?? dto.userId,
@@ -219,6 +220,7 @@ export class AppointmentsService {
     });
 
     await this.audit.record({
+      practiceId,
       eventType: 'appointment_rescheduled',
       outcome: 'success',
       actorUserId,
@@ -282,6 +284,7 @@ export class AppointmentsService {
     });
 
     await this.audit.record({
+      practiceId,
       eventType: 'appointment_cancelled',
       outcome: 'success',
       actorUserId,

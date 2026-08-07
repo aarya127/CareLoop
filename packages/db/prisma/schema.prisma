@@ -55,6 +55,7 @@ model Practice {
   treatmentPlans    TreatmentPlan[]
   invitations       Invitation[]
   claims            Claim[]
+  auditLogs         AuditLog[]
 
   @@index([name])
 }
@@ -245,6 +246,10 @@ model ServiceAccount {
 
 model AuditLog {
   id                   BigInt   @id @default(autoincrement())
+  // Null is reserved for platform-level events that genuinely have no tenant
+  // context (for example, a login attempt for an unknown email address).
+  // Every tenant-originated event must set this field.
+  practiceId           String?
   eventTime            DateTime @default(now())
   actorUserId          String?
   actorServiceAccountId String?
@@ -262,7 +267,9 @@ model AuditLog {
   actorServiceAccount ServiceAccount?  @relation(fields: [actorServiceAccountId], references: [id], onDelete: SetNull)
   targetUser          User?            @relation("AuditTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
   session             Session?         @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  practice            Practice?        @relation(fields: [practiceId], references: [id], onDelete: SetNull)
 
+  @@index([practiceId, eventTime])
   @@index([eventTime])
   @@index([eventType, eventTime])
   @@index([actorUserId, eventTime])

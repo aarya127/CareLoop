@@ -26,6 +26,7 @@ export class IntakeService {
     const draft = await this.intakeRepository.createDraft(dto.practiceId);
 
     void this.auditService.record({
+      practiceId: dto.practiceId,
       eventType: 'intake_draft_created',
       outcome: 'success',
       actorUserId,
@@ -61,6 +62,7 @@ export class IntakeService {
     const draft = await this.intakeRepository.updateDraft(id, merged);
 
     void this.auditService.record({
+      practiceId: existing.practiceId,
       eventType: 'intake_draft_updated',
       outcome: 'success',
       actorUserId,
@@ -133,6 +135,7 @@ export class IntakeService {
 
       // 7. Audit
       void this.auditService.record({
+        practiceId: draft.practiceId,
         eventType: 'intake_submitted',
         outcome: 'success',
         actorUserId,

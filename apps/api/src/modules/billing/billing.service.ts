@@ -39,6 +39,7 @@ export class BillingService {
     });
 
     await this.auditService.record({
+      practiceId,
       eventType: 'invoice_created',
       outcome: 'success',
       actorUserId,
@@ -63,6 +64,7 @@ export class BillingService {
     });
 
     await this.auditService.record({
+      practiceId,
       eventType: 'invoice_updated',
       outcome: 'success',
       actorUserId,
@@ -85,6 +87,7 @@ export class BillingService {
     });
 
     await this.auditService.record({
+      practiceId,
       eventType: 'invoice_sent',
       outcome: 'success',
       actorUserId,
@@ -103,6 +106,7 @@ export class BillingService {
     });
 
     await this.auditService.record({
+      practiceId,
       eventType: 'invoice_voided',
       outcome: 'success',
       actorUserId,

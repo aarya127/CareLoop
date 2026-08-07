@@ -157,6 +157,7 @@ export class AuthService {
   }
 
   private async addAuditLog(params: {
+    practiceId?: string;
     eventType: string;
     outcome: 'success' | 'failure';
     actorUserId?: string;
@@ -169,6 +170,7 @@ export class AuthService {
     try {
       await prisma.auditLog.create({
         data: {
+          practiceId: params.practiceId,
           eventType: params.eventType,
           outcome: params.outcome,
           actorUserId: params.actorUserId,
@@ -266,6 +268,7 @@ export class AuthService {
           status: true,
           lockedUntil: true,
           failedLoginCount: true,
+          practiceId: true,
         },
       });
 
@@ -273,6 +276,7 @@ export class AuthService {
         this.registerFailure(this.ipRateLimit, ipKey, AUTH_LIMITS.LOGIN_IP_WINDOW_MS);
         this.registerFailure(this.accountRateLimit, email, AUTH_LIMITS.LOGIN_ACCOUNT_WINDOW_MS);
         await this.addAuditLog({
+          practiceId: user?.practiceId,
           eventType: 'login_failed',
           outcome: 'failure',
           ip: context.ip,
@@ -305,6 +309,7 @@ export class AuthService {
         });
 
         await this.addAuditLog({
+          practiceId: user.practiceId,
           eventType: 'login_failed',
           outcome: 'failure',
           targetUserId: user.id,
@@ -346,6 +351,7 @@ export class AuthService {
       });
 
       await this.addAuditLog({
+        practiceId: user.practiceId,
         eventType: 'login_success',
         outcome: 'success',
         actorUserId: user.id,
@@ -423,6 +429,7 @@ export class AuthService {
     });
 
     await this.addAuditLog({
+      practiceId,
       eventType: 'signup',
       outcome: 'success',
       actorUserId: userId,
@@ -438,13 +445,14 @@ export class AuthService {
 
   async logout(
     sessionToken: string | undefined,
-    context: { userId?: string; ip?: string; userAgent?: string },
+    context: { userId?: string; practiceId?: string; ip?: string; userAgent?: string },
   ): Promise<void> {
     if (!sessionToken) return;
 
     await this.sessionService.revokeSession(sessionToken, 'logout');
 
     await this.addAuditLog({
+      practiceId: context.practiceId,
       eventType: 'logout',
       outcome: 'success',
       actorUserId: context.userId,
@@ -505,6 +513,7 @@ export class AuthService {
     });
 
     await this.addAuditLog({
+      practiceId: dto.practiceId,
       eventType: 'register_user',
       outcome: 'success',
       actorUserId: user.id,

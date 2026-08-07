@@ -87,6 +87,7 @@ export class PaymentsService {
     });
 
     await this.auditService.record({
+      practiceId,
       eventType: 'payment_created',
       outcome: 'success',
       actorUserId,
@@ -116,6 +117,7 @@ export class PaymentsService {
     });
 
     await this.auditService.record({
+      practiceId,
       eventType: 'payment_updated',
       outcome: 'success',
       actorUserId,

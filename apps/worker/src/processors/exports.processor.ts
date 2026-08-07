@@ -4,13 +4,14 @@ import type { Prisma } from '@careloop/db';
 import type { ExportDataJobData } from '@careloop/shared';
 
 async function auditExport(
+  practiceId: string,
   eventType: string,
   outcome: string,
   meta: Prisma.InputJsonValue,
 ): Promise<void> {
   try {
     await prisma.auditLog.create({
-      data: { eventType, outcome, authMethod: 'system', metadata: meta },
+      data: { practiceId, eventType, outcome, authMethod: 'system', metadata: meta },
     });
   } catch {
     /* never crash the worker */
@@ -130,7 +131,7 @@ export async function exportsProcessor(
   job.log(`Export complete: rows=${rows.length} bytes=${output.length}`);
   job.log(`Preview (first 200 chars): ${output.slice(0, 200)}`);
 
-  void auditExport('analytics_export_completed', 'success', {
+  void auditExport(practiceId, 'analytics_export_completed', 'success', {
     resource,
     format,
     requestedBy,

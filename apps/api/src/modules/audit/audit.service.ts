@@ -3,6 +3,7 @@ import { Prisma, prisma } from '@careloop/db';
 import { getRedisClient } from '../../config/redis';
 
 export interface AuditEntry {
+  practiceId: string;
   eventType: string;
   outcome: 'success' | 'failure';
   actorUserId?: string;
@@ -40,6 +41,7 @@ export class AuditService {
         data: {
           eventType: entry.eventType,
           outcome: entry.outcome,
+          practiceId: entry.practiceId,
           actorUserId: entry.actorUserId,
           targetUserId: entry.targetUserId,
           sessionId: entry.sessionId,
@@ -54,11 +56,13 @@ export class AuditService {
     }
   }
 
-  async getLog(query: AuditLogQuery) {
+  async getLog(practiceId: string, query: AuditLogQuery) {
     const limit = Math.min(Number(query.limit ?? 50), 200);
     const offset = Number(query.offset ?? 0);
 
-    const where: Prisma.AuditLogWhereInput = {};
+    // The tenant predicate is mandatory and is derived from the authenticated
+    // session by the controller. Audit filters may only narrow this scope.
+    const where: Prisma.AuditLogWhereInput = { practiceId };
     if (query.eventType) where.eventType = { contains: query.eventType, mode: 'insensitive' };
     if (query.outcome) where.outcome = query.outcome;
     if (query.actorUserId) where.actorUserId = query.actorUserId;

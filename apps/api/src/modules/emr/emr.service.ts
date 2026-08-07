@@ -68,7 +68,13 @@ export class EmrService {
   }
 
   private audify(eventType: string, actor: EmrActor, metadata: Record<string, unknown>) {
-    void this.audit.record({ eventType, outcome: 'success', actorUserId: actor.id, metadata });
+    void this.audit.record({
+      practiceId: actor.practiceId,
+      eventType,
+      outcome: 'success',
+      actorUserId: actor.id,
+      metadata,
+    });
   }
 
   // ── Encounters ───────────────────────────────────────────────────────────

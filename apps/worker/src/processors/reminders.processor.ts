@@ -8,6 +8,7 @@ import type { Prisma } from '@careloop/db';
 // ── Audit helper ─────────────────────────────────────────────────────────────
 
 async function auditReminder(
+  practiceId: string,
   eventType: string,
   outcome: string,
   meta: Prisma.InputJsonValue,
@@ -15,6 +16,7 @@ async function auditReminder(
   try {
     await prisma.auditLog.create({
       data: {
+        practiceId,
         eventType,
         outcome,
         authMethod: 'system',
@@ -65,7 +67,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<str
  * on thrown errors, updating retryCount + failReason on each failure.
  */
 export async function remindersProcessor(job: Job<AppointmentReminderJobData>): Promise<void> {
-  const { reminderId, channel, to, content, reminderType } = job.data;
+  const { reminderId, practiceId, channel, to, content, reminderType } = job.data;
   const effectiveChannel = channel ?? reminderType ?? 'sms';
 
   job.log(`[reminder:${reminderId}] Sending via ${effectiveChannel} to ${to}`);
@@ -92,7 +94,7 @@ export async function remindersProcessor(job: Job<AppointmentReminderJobData>): 
       data: { status: 'sent', sentAt: new Date() },
     });
 
-    void auditReminder('reminder_sent', 'success', {
+    void auditReminder(practiceId, 'reminder_sent', 'success', {
       reminderId,
       channel: effectiveChannel,
       messageId,

@@ -43,6 +43,7 @@ export class TreatmentsService {
     });
 
     void this.audit.record({
+      practiceId,
       eventType: 'treatment_created',
       outcome: 'success',
       actorUserId,
@@ -81,6 +82,7 @@ export class TreatmentsService {
     });
 
     void this.audit.record({
+      practiceId,
       eventType: 'treatment_updated',
       outcome: 'success',
       actorUserId,
@@ -98,6 +100,7 @@ export class TreatmentsService {
     await this.repo.remove(id);
 
     void this.audit.record({
+      practiceId,
       eventType: 'treatment_deleted',
       outcome: 'success',
       actorUserId,

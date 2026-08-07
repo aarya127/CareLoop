@@ -257,6 +257,7 @@ export class PatientsService {
       });
       // HIPAA: record every access to a patient record
       void this.audit.record({
+        practiceId,
         eventType: 'patient_viewed',
         outcome: 'success',
         actorUserId,
@@ -284,6 +285,7 @@ export class PatientsService {
       });
 
       void this.audit.record({
+        practiceId,
         eventType: 'patient_created',
         outcome: 'success',
         actorUserId,
@@ -296,6 +298,7 @@ export class PatientsService {
       // like success. Audit the failure and rethrow (the exception filter
       // returns a sanitized 500; the real error is logged server-side).
       void this.audit.record({
+        practiceId,
         eventType: 'patient_created',
         outcome: 'failure',
         actorUserId,
@@ -326,6 +329,7 @@ export class PatientsService {
       });
 
       void this.audit.record({
+        practiceId,
         eventType: 'patient_updated',
         outcome: 'success',
         actorUserId,
@@ -335,6 +339,7 @@ export class PatientsService {
       return patient;
     } catch (err) {
       void this.audit.record({
+        practiceId,
         eventType: 'patient_updated',
         outcome: 'failure',
         actorUserId,
@@ -352,6 +357,7 @@ export class PatientsService {
       }
       await this.patientsRepository.prisma.patient.delete({ where: { id } });
       void this.audit.record({
+        practiceId,
         eventType: 'patient_deleted',
         outcome: 'success',
         actorUserId,
@@ -359,6 +365,7 @@ export class PatientsService {
       });
     } catch (err) {
       void this.audit.record({
+        practiceId,
         eventType: 'patient_deleted',
         outcome: 'failure',
         actorUserId,

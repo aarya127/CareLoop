@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Req } from '@nestjs/common';
 import { AuditService, type AuditLogQuery } from './audit.service';
 import { RequireRole } from '../../common/guards';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
@@ -17,6 +17,7 @@ export class AuditController {
    */
   @Get()
   getLog(
+    @Req() req: { user: { practiceId: string } },
     @Query('eventType') eventType?: string,
     @Query('outcome') outcome?: string,
     @Query('actorUserId') actorUserId?: string,
@@ -36,6 +37,6 @@ export class AuditController {
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     };
-    return this.auditService.getLog(query);
+    return this.auditService.getLog(req.user.practiceId, query);
   }
 }

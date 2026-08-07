@@ -119,6 +119,7 @@ export class AuthController {
 
     await this.authService.logout(token, {
       userId: (req as any).user?.id,
+      practiceId: (req as any).user?.practiceId,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
