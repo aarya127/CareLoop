@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { prisma } from '@careloop/db';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PaymentsRepository } from './payments.repository';
 import { AuditService } from '../audit/audit.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -32,59 +36,50 @@ export class PaymentsService {
     idempotencyKey?: string,
     actorUserId?: string,
   ) {
-    // --- Idempotency check ---
-    if (idempotencyKey) {
-      const cached = await this.idempotencyService.claim(idempotencyKey);
+    const scopedIdempotencyKey = idempotencyKey
+      ? `payments:${practiceId}:${idempotencyKey}`
+      : undefined;
+    if (scopedIdempotencyKey) {
+      const cached = await this.idempotencyService.claim(scopedIdempotencyKey);
       if (cached) return cached.body;
     }
 
-    // Validate the invoice exists AND belongs to the caller's practice — a
-    // payment must never attach to another clinic's invoice.
-    const invoice = await prisma.invoice.findFirst({
-      where: { id: dto.invoiceId, practiceId },
-    });
-    if (!invoice) {
-      throw new NotFoundException(`Invoice ${dto.invoiceId} not found`);
+    let result;
+    try {
+      result = await this.paymentsRepo.createAndRecalculateInvoice({
+        practiceId,
+        invoiceId: dto.invoiceId,
+        patientId: dto.patientId,
+        payerType: dto.payerType ?? 'patient',
+        method: dto.method,
+        amountCents: dto.amountCents,
+        status: 'completed',
+        transactionRef: dto.transactionRef,
+        paidAt: dto.paidAt ? new Date(dto.paidAt) : new Date(),
+        createdBy: actorUserId,
+      });
+    } catch (error) {
+      if (scopedIdempotencyKey) await this.idempotencyService.release(scopedIdempotencyKey);
+      if ((error as { code?: string })?.code === 'P2002') {
+        throw new ConflictException('Payment transaction reference already processed');
+      }
+      throw error;
     }
-    if (invoice.status === 'void') {
-      throw new BadRequestException('Cannot add payment to a voided invoice');
+
+    if (!result.ok) {
+      if (scopedIdempotencyKey) await this.idempotencyService.release(scopedIdempotencyKey);
+      if (result.reason === 'invoice_not_found') {
+        throw new NotFoundException(`Invoice ${dto.invoiceId} not found`);
+      }
+      if (result.reason === 'invoice_void') {
+        throw new BadRequestException('Cannot add payment to a voided invoice');
+      }
+      if (result.reason === 'patient_mismatch') {
+        throw new BadRequestException('Payment patient must match the invoice patient');
+      }
+      throw new BadRequestException('Payment exceeds the invoice balance');
     }
-
-    // Create payment + conditionally update invoice status atomically
-    const payment = await prisma.$transaction(async (tx) => {
-      const newPayment = await tx.paymentRecord.create({
-        data: {
-          practiceId,
-          invoiceId: dto.invoiceId,
-          patientId: dto.patientId,
-          payerType: dto.payerType ?? 'patient',
-          method: dto.method,
-          amountCents: dto.amountCents,
-          status: 'completed',
-          transactionRef: dto.transactionRef,
-          paidAt: dto.paidAt ? new Date(dto.paidAt) : new Date(),
-          createdBy: actorUserId,
-        } as any,
-      });
-
-      // Sum all completed payments (including the one we just created) to determine invoice status
-      const agg = await tx.paymentRecord.aggregate({
-        where: { invoiceId: dto.invoiceId, status: 'completed' },
-        _sum: { amountCents: true },
-      });
-      const totalPaid = agg._sum.amountCents ?? 0;
-
-      const newStatus = totalPaid >= invoice.totalAmountCents ? 'paid' : 'sent';
-      await tx.invoice.update({
-        where: { id: dto.invoiceId },
-        data: {
-          status: newStatus,
-          ...(newStatus === 'paid' && { paidAt: new Date() }),
-        },
-      });
-
-      return newPayment;
-    });
+    const payment = result.payment;
 
     await this.auditService.record({
       practiceId,
@@ -99,22 +94,26 @@ export class PaymentsService {
       },
     });
 
-    if (idempotencyKey) {
-      await this.idempotencyService.complete(idempotencyKey, 201, payment);
+    if (scopedIdempotencyKey) {
+      await this.idempotencyService.complete(scopedIdempotencyKey, 201, payment);
     }
 
     return payment;
   }
 
   async updatePayment(practiceId: string, id: string, dto: UpdatePaymentDto, actorUserId?: string) {
-    // Scoped lookup — 404s if the payment belongs to another practice.
-    await this.getPayment(practiceId, id);
-
-    const payment = await this.paymentsRepo.update(id, {
+    const result = await this.paymentsRepo.updateAndRecalculateInvoice(practiceId, id, {
       ...(dto.status !== undefined && { status: dto.status }),
       ...(dto.transactionRef !== undefined && { transactionRef: dto.transactionRef }),
       ...(dto.paidAt !== undefined && { paidAt: dto.paidAt ? new Date(dto.paidAt) : null }),
     });
+    if (!result.ok) {
+      if (result.reason === 'payment_not_found') {
+        throw new NotFoundException(`Payment ${id} not found`);
+      }
+      throw new BadRequestException('Payment status would exceed the invoice balance');
+    }
+    const payment = result.payment;
 
     await this.auditService.record({
       practiceId,

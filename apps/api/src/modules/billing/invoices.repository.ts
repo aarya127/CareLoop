@@ -34,6 +34,31 @@ export class InvoicesRepository {
     });
   }
 
+  async findInvalidReferences(
+    practiceId: string,
+    patientId: string,
+    treatmentId?: string,
+  ): Promise<string[]> {
+    const [patient, treatment] = await Promise.all([
+      prisma.patient.findFirst({
+        where: { id: patientId, practiceId },
+        select: { id: true },
+      }),
+      treatmentId
+        ? prisma.treatmentRecord.findFirst({
+            where: { id: treatmentId, practiceId },
+            select: { id: true, patientId: true },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    return [
+      ...(!patient ? ['patientId'] : []),
+      ...(treatmentId && !treatment ? ['treatmentId'] : []),
+      ...(treatment && treatment.patientId !== patientId ? ['treatmentId(patient mismatch)'] : []),
+    ];
+  }
+
   create(data: Prisma.InvoiceUncheckedCreateInput) {
     return prisma.invoice.create({ data });
   }

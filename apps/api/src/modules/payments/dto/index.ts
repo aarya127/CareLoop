@@ -26,7 +26,7 @@ export class CreatePaymentDto {
   patientId!: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(['patient', 'insurance'])
   payerType?: string; // 'patient' | 'insurance'
 
   @IsIn(PAYMENT_METHODS)

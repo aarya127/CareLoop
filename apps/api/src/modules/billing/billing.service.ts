@@ -24,6 +24,23 @@ export class BillingService {
   }
 
   async createInvoice(practiceId: string, dto: CreateInvoiceDto, actorUserId?: string) {
+    const invalidReferences = await this.invoicesRepo.findInvalidReferences(
+      practiceId,
+      dto.patientId,
+      dto.treatmentId,
+    );
+    if (invalidReferences.length > 0) {
+      throw new BadRequestException(`Invalid invoice references: ${invalidReferences.join(', ')}`);
+    }
+
+    const lineItemTotal = dto.lineItems?.reduce(
+      (sum, item) => sum + item.qty * item.unitPriceCents,
+      0,
+    );
+    if (lineItemTotal != null && lineItemTotal !== dto.totalAmountCents) {
+      throw new BadRequestException('totalAmountCents must equal the sum of line items');
+    }
+
     const invoice = await this.invoicesRepo.create({
       practiceId,
       patientId: dto.patientId,

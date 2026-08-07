@@ -833,6 +833,7 @@ model PaymentRecord {
   @@index([practiceId, patientId, createdAt])
   @@index([practiceId, status, createdAt])
   @@index([invoiceId])
+  @@unique([practiceId, transactionRef])
 }
 
 // ============================================================================

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import type { InvoicesRepository } from './invoices.repository';
 import type { AuditService } from '../audit/audit.service';
@@ -8,10 +8,15 @@ import type { AuditService } from '../audit/audit.service';
  * Tenant-isolation guarantees for BillingService: invoices may only be read,
  * updated, sent, or voided by the practice that owns them.
  */
-function makeService(invoice: { id: string; practiceId: string; status?: string } | null) {
+function makeService(
+  invoice: { id: string; practiceId: string; status?: string } | null,
+  invalidReferences: string[] = [],
+) {
   const repo = {
     findById: vi.fn(async () => invoice),
     update: vi.fn(async () => invoice),
+    create: vi.fn(async (data) => ({ id: 'inv-new', ...data })),
+    findInvalidReferences: vi.fn(async () => invalidReferences),
   } as unknown as InvoicesRepository;
   const audit = { record: vi.fn(async () => {}) } as unknown as AuditService;
   return { service: new BillingService(repo, audit), repo };
@@ -46,5 +51,31 @@ describe('BillingService tenant isolation', () => {
       service.updateInvoice('practice-B', 'inv-1', { notes: 'x' }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects foreign or patient-mismatched treatment references before creating', async () => {
+    const { service, repo } = makeService(null, ['treatmentId(patient mismatch)']);
+
+    await expect(
+      service.createInvoice('practice-A', {
+        patientId: 'patient-A',
+        treatmentId: 'treatment-B',
+        totalAmountCents: 1000,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects invoice totals that do not equal the line-item sum', async () => {
+    const { service, repo } = makeService(null);
+
+    await expect(
+      service.createInvoice('practice-A', {
+        patientId: 'patient-A',
+        totalAmountCents: 999,
+        lineItems: [{ description: 'Exam', qty: 2, unitPriceCents: 500 }],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(repo.create).not.toHaveBeenCalled();
   });
 });

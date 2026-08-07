@@ -47,7 +47,7 @@ export class CreateInvoiceDto {
   treatmentId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(['patient', 'insurance'])
   payerType?: string; // 'patient' | 'insurance'
 
   @IsInt()
@@ -75,7 +75,7 @@ export class UpdateInvoiceDto {
   status?: string; // draft | sent | paid | overdue | void
 
   @IsOptional()
-  @IsString()
+  @IsIn(['patient', 'insurance'])
   payerType?: string;
 
   @IsOptional()
