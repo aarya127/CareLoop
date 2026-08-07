@@ -39,6 +39,40 @@ export class TreatmentsRepository {
     });
   }
 
+  async findInvalidReferences(
+    practiceId: string,
+    patientId: string,
+    refs: { appointmentId?: string; providerId?: string },
+  ): Promise<string[]> {
+    const [patient, appointment, provider] = await Promise.all([
+      prisma.patient.findFirst({
+        where: { id: patientId, practiceId },
+        select: { id: true },
+      }),
+      refs.appointmentId
+        ? prisma.appointment.findFirst({
+            where: { id: refs.appointmentId, practiceId },
+            select: { id: true, patientId: true },
+          })
+        : Promise.resolve(null),
+      refs.providerId
+        ? prisma.provider.findFirst({
+            where: { id: refs.providerId, practiceId, isActive: true },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+    ]);
+
+    return [
+      ...(!patient ? ['patientId'] : []),
+      ...(refs.appointmentId && !appointment ? ['appointmentId'] : []),
+      ...(appointment?.patientId && appointment.patientId !== patientId
+        ? ['appointmentId(patient mismatch)']
+        : []),
+      ...(!provider ? ['providerId'] : []),
+    ];
+  }
+
   create(data: Prisma.TreatmentRecordUncheckedCreateInput) {
     return prisma.treatmentRecord.create({ data });
   }

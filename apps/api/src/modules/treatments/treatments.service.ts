@@ -28,6 +28,16 @@ export class TreatmentsService {
       throw new BadRequestException('patientId is required');
     }
 
+    const invalidReferences = await this.repo.findInvalidReferences(practiceId, dto.patientId, {
+      appointmentId: dto.appointmentId,
+      providerId: dto.providerId,
+    });
+    if (invalidReferences.length > 0) {
+      throw new BadRequestException(
+        `Invalid treatment references: ${invalidReferences.join(', ')}`,
+      );
+    }
+
     const record = await this.repo.create({
       practiceId,
       patientId: dto.patientId,
@@ -60,7 +70,21 @@ export class TreatmentsService {
   }
 
   async update(practiceId: string, id: string, dto: UpdateTreatmentDto, actorUserId?: string) {
-    await this.findById(practiceId, id); // throws 404 if not found or cross-tenant
+    const existing = await this.findById(practiceId, id); // throws 404 if cross-tenant
+
+    const invalidReferences = await this.repo.findInvalidReferences(
+      practiceId,
+      existing.patientId,
+      {
+        appointmentId: dto.appointmentId,
+        providerId: dto.providerId,
+      },
+    );
+    if (invalidReferences.length > 0) {
+      throw new BadRequestException(
+        `Invalid treatment references: ${invalidReferences.join(', ')}`,
+      );
+    }
 
     const completedAt =
       dto.status === 'completed' && dto.completedAt
