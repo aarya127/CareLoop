@@ -15,7 +15,6 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { authConfig } from '../../config/auth';
 import { AuthGuard, RequireRole, RolesGuard } from '../../common/guards';
 import { AuthService } from './auth.service';
 import { AUTH_ROLES } from './auth.constants';
@@ -24,18 +23,7 @@ import { RegisterDto } from './dto/register.dto';
 import { SignupDto } from './dto/signup.dto';
 import { Public, CurrentUser } from '../../common/decorators';
 import { SESSION_COOKIE, SessionService } from './session.service';
-
-const COOKIE_OPTS = {
-  httpOnly: true,
-  // Allow runtime configuration of SameSite so cross-site clients can receive cookies
-  sameSite: (process.env.SESSION_COOKIE_SAME_SITE ?? 'lax') as 'lax' | 'strict' | 'none',
-  path: '/',
-  // Secure must be true for SameSite=None. Also set in production.
-  secure: process.env.NODE_ENV === 'production' || process.env.SESSION_COOKIE_SAME_SITE === 'none',
-  maxAge: 8 * 60 * 60, // 8 hours in seconds
-  // domain may be undefined (default), but can be set via SESSION_COOKIE_DOMAIN
-  domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
-};
+import { clearSessionCookie, setSessionCookie } from './session-cookie';
 
 @Controller('auth')
 export class AuthController {
@@ -43,28 +31,6 @@ export class AuthController {
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(SessionService) private readonly sessionService: SessionService,
   ) {}
-
-  private setSessionCookie(res: any, token: string): void {
-    // Use configured cookie options but ensure TTL/domain come from auth config.
-    // Cookie NAME must be SESSION_COOKIE (cl_session) — the same name login/me/logout
-    // read and the web app expects — not authConfig.sessionCookieName.
-    const opts = {
-      ...COOKIE_OPTS,
-      maxAge: authConfig.sessionTtlSeconds,
-      domain: authConfig.cookieDomain,
-    };
-    res.setCookie(SESSION_COOKIE, token, opts);
-  }
-
-  private clearSessionCookie(res: any): void {
-    const opts = {
-      ...COOKIE_OPTS,
-      domain: authConfig.cookieDomain,
-      expires: new Date(0),
-      maxAge: 0,
-    } as any;
-    res.setCookie(SESSION_COOKIE, '', opts);
-  }
 
   /** 10 attempts per minute per IP to prevent brute-force */
   @Public()
@@ -77,9 +43,9 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     });
 
-    res.setCookie(SESSION_COOKIE, data.sessionToken, COOKIE_OPTS);
+    setSessionCookie(res, data.sessionToken);
 
-    return { user: data.user, sessionToken: data.sessionToken };
+    return { user: data.user };
   }
 
   /**
@@ -95,8 +61,8 @@ export class AuthController {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
-    res.setCookie(SESSION_COOKIE, data.sessionToken, COOKIE_OPTS);
-    return { user: data.user, sessionToken: data.sessionToken };
+    setSessionCookie(res, data.sessionToken);
+    return { user: data.user };
   }
 
   /**
@@ -115,7 +81,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: any, @Res({ passthrough: true }) res: any) {
-    const token = req.cookies?.[SESSION_COOKIE];
+    const token = req.sessionToken ?? req.cookies?.[SESSION_COOKIE];
 
     await this.authService.logout(token, {
       userId: (req as any).user?.id,
@@ -124,7 +90,7 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     });
 
-    this.clearSessionCookie(res);
+    clearSessionCookie(res);
     return { ok: true };
   }
 
@@ -154,7 +120,7 @@ export class AuthController {
     const token = req.cookies?.[SESSION_COOKIE];
     const data = await this.authService.getSession(token);
     if (!data) {
-      this.clearSessionCookie(res);
+      clearSessionCookie(res);
       throw new UnauthorizedException('No active session');
     }
     return { user: data.user };

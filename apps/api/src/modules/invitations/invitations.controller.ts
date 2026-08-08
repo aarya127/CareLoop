@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { InvitationsService } from './invitations.service';
 import { AcceptInvitationDto, CreateInvitationDto } from './dto';
 import { RequireRole } from '../../common/guards';
 import { Public } from '../../common/decorators';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
+import { setSessionCookie } from '../auth/session-cookie';
 
 @Controller('invitations')
 export class InvitationsController {
@@ -15,7 +16,7 @@ export class InvitationsController {
   @RequireRole(...MANAGEMENT_ROLES)
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateInvitationDto, @Req() req: any) {
-    return this.invitations.create(req.user.practiceId, req.user.id, dto);
+    return this.invitations.create(req.user.practiceId, req.user.id, req.user.roles ?? [], dto);
   }
 
   /** List pending invites for the caller's practice (admin/manager). */
@@ -45,10 +46,17 @@ export class InvitationsController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('accept/:token')
   @HttpCode(HttpStatus.CREATED)
-  accept(@Param('token') token: string, @Body() dto: AcceptInvitationDto, @Req() req: any) {
-    return this.invitations.accept(token, dto, {
+  async accept(
+    @Param('token') token: string,
+    @Body() dto: AcceptInvitationDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const result = await this.invitations.accept(token, dto, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
+    setSessionCookie(res, result.sessionToken);
+    return { user: result.user };
   }
 }
