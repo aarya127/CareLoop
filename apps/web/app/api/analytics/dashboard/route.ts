@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole, requireUser } from '@/lib/auth/server';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 
 const ANALYTICS_ROLES = ['admin', 'manager'] as const;
 
@@ -26,10 +26,10 @@ export async function GET(req: NextRequest) {
       : {};
 
     const [dashboardRes, adminRes] = await Promise.all([
-      fetch(`${SERVER_API_URL}/analytics/dashboard?rangeDays=${rangeDays}`, {
+      fetch(`${getServerApiUrl()}/analytics/dashboard?rangeDays=${rangeDays}`, {
         headers: authHeaders,
       }),
-      fetch(`${SERVER_API_URL}/auth/admin-overview`, { headers: authHeaders }),
+      fetch(`${getServerApiUrl()}/auth/admin-overview`, { headers: authHeaders }),
     ]);
 
     const dashboardJson = dashboardRes.ok ? await dashboardRes.json() : null;

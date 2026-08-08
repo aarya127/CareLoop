@@ -1,10 +1,8 @@
 import 'server-only';
 
-function resolveServerApiUrl(): string {
+export function getServerApiUrl(): string {
   const configured =
-    process.env.API_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    process.env.NEXT_PUBLIC_API_BASE_URL;
+    process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!configured) {
     if (process.env.NODE_ENV !== 'production') return 'http://localhost:3001';
     throw new Error('API_URL is required in production');
@@ -22,5 +20,3 @@ function resolveServerApiUrl(): string {
   }
   return normalized;
 }
-
-export const SERVER_API_URL = resolveServerApiUrl();

@@ -345,11 +345,7 @@ export async function POST(req: NextRequest) {
       patientSummary = getAiTestPatientSummary();
     }
 
-    const availability = await getNextAvailability(
-      user.id,
-      user.practiceId,
-      body.lookaheadDays,
-    );
+    const availability = await getNextAvailability(user.id, user.practiceId, body.lookaheadDays);
     const answer = composeAnswer({
       intent,
       question: body.question,

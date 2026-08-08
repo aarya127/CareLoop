@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
+import { requireRole, type SessionUser } from './authorization';
+
+export { requireRole } from './authorization';
+export type { SessionUser } from './authorization';
 
 const SESSION_COOKIE = 'cl_session';
-
-export interface SessionUser {
-  id: string;
-  email: string;
-  role: string;
-  firstName: string;
-  lastName: string;
-  practiceId: string;
-}
-
-/** Reject an authenticated user whose role is not permitted for the resource. */
-export function requireRole(user: SessionUser, allowedRoles: readonly string[]): SessionUser {
-  if (!allowedRoles.includes(user.role.toLowerCase())) {
-    throw NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-  return user;
-}
 
 /**
  * Validates the session cookie by calling the API's /auth/me.
@@ -31,7 +18,7 @@ export async function requireUser(req: NextRequest): Promise<SessionUser> {
   // The NestJS API has no global prefix — the route is /auth/me (matching the
   // login/me BFF proxies). The previous /api/v1/auth/me 404'd, so requireUser
   // always threw; callers that didn't await it silently ran unauthenticated.
-  const res = await fetch(`${SERVER_API_URL}/auth/me`, {
+  const res = await fetch(`${getServerApiUrl()}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

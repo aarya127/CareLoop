@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/server';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 
 const SESSION_COOKIE = 'cl_session';
 
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     params.set('q', q);
     if (type) params.set('type', type);
 
-    const upstream = await fetch(`${SERVER_API_URL}/search?${params.toString()}`, {
+    const upstream = await fetch(`${getServerApiUrl()}/search?${params.toString()}`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,

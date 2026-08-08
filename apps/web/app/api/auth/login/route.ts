@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
   let res: Response;
   try {
-    res = await fetch(`${SERVER_API_URL}/auth/login`, {
+    res = await fetch(`${getServerApiUrl()}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
   } catch (err) {
-    console.error('[auth/login] fetch to API failed:', SERVER_API_URL, err);
+    console.error('[auth/login] fetch to API failed:', err);
     return NextResponse.json({ error: 'API unreachable', detail: String(err) }, { status: 502 });
   }
 

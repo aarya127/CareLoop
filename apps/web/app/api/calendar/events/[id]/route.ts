@@ -4,7 +4,7 @@ import { updateEvent, deleteEvent } from '@/lib/google/calendar';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import { SESSION_COOKIE } from '@/lib/auth/cookies';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 import { routeError } from '@/lib/http/route-error';
 
 const patchSchema = z.object({
@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     if (body.start || body.end) {
       const rescheduleResponse = await fetch(
-        `${SERVER_API_URL}/appointments/${encodeURIComponent(appointment.id)}/reschedule`,
+        `${getServerApiUrl()}/appointments/${encodeURIComponent(appointment.id)}/reschedule`,
         {
           method: 'PATCH',
           headers: {
@@ -109,7 +109,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     // Preserve the appointment as a cancelled clinical/audit record. Hard
     // deletion previously erased history and bypassed the appointment service.
     const cancelResponse = await fetch(
-      `${SERVER_API_URL}/appointments/${encodeURIComponent(appointment.id)}/cancel`,
+      `${getServerApiUrl()}/appointments/${encodeURIComponent(appointment.id)}/cancel`,
       {
         method: 'PATCH',
         headers: {

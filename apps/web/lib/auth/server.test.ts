@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import type { SessionUser } from './server';
-import { requireRole } from './server';
+import { requireRole, type SessionUser } from './authorization';
 
 function user(role: string): SessionUser {
   return {

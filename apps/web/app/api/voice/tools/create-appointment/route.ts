@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUser } from '@/lib/auth/server';
 import { SESSION_COOKIE } from '@/lib/auth/cookies';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 import { routeError } from '@/lib/http/route-error';
 
 const schema = z.object({
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const idempotencyKey = body.callSid
       ? `voice:${body.callSid}:${body.providerId}:${body.start}`
       : undefined;
-    const response = await fetch(`${SERVER_API_URL}/appointments`, {
+    const response = await fetch(`${getServerApiUrl()}/appointments`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

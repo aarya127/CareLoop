@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE } from '@/lib/auth/cookies';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 
 function authHeaders(req: NextRequest): HeadersInit {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
@@ -12,7 +12,7 @@ function authHeaders(req: NextRequest): HeadersInit {
 
 /** GET — list pending invites for the caller's practice (admin/manager). */
 export async function GET(req: NextRequest) {
-  const res = await fetch(`${SERVER_API_URL}/invitations`, {
+  const res = await fetch(`${getServerApiUrl()}/invitations`, {
     headers: authHeaders(req),
     cache: 'no-store',
   });
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 /** POST — create an invite (admin/manager). */
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const res = await fetch(`${SERVER_API_URL}/invitations`, {
+  const res = await fetch(`${getServerApiUrl()}/invitations`, {
     method: 'POST',
     headers: authHeaders(req),
     body: JSON.stringify(body),

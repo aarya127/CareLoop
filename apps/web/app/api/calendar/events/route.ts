@@ -4,7 +4,7 @@ import { deleteEvent, listEvents, insertEvent } from '@/lib/google/calendar';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import { SESSION_COOKIE } from '@/lib/auth/cookies';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 import { routeError } from '@/lib/http/route-error';
 
 const getSchema = z.object({
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     // Create the authoritative local appointment first. This enforces tenant
     // references, provider conflict locking, validation, audit, and cache busting.
-    const appointmentResponse = await fetch(`${SERVER_API_URL}/appointments`, {
+    const appointmentResponse = await fetch(`${getServerApiUrl()}/appointments`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

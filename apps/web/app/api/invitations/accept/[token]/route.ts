@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 
 /** GET — preview an invite (public). */
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
-  const res = await fetch(`${SERVER_API_URL}/invitations/accept/${encodeURIComponent(token)}`, {
+  const res = await fetch(`${getServerApiUrl()}/invitations/accept/${encodeURIComponent(token)}`, {
     cache: 'no-store',
   });
   const data = await res.json().catch(() => ({}));
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
 
   let res: Response;
   try {
-    res = await fetch(`${SERVER_API_URL}/invitations/accept/${encodeURIComponent(token)}`, {
+    res = await fetch(`${getServerApiUrl()}/invitations/accept/${encodeURIComponent(token)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

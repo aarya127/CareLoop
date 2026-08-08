@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SERVER_API_URL } from '@/lib/config/api-server';
+import { getServerApiUrl } from '@/lib/config/api-server';
 
 /**
  * BFF proxy for self-serve signup. Forwards to the NestJS API's /auth/signup,
@@ -10,13 +10,13 @@ export async function POST(request: NextRequest) {
 
   let res: Response;
   try {
-    res = await fetch(`${SERVER_API_URL}/auth/signup`, {
+    res = await fetch(`${getServerApiUrl()}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
   } catch (err) {
-    console.error('[auth/signup] fetch to API failed:', SERVER_API_URL, err);
+    console.error('[auth/signup] fetch to API failed:', err);
     return NextResponse.json({ error: 'API unreachable', detail: String(err) }, { status: 502 });
   }
 

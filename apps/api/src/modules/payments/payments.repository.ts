@@ -33,9 +33,7 @@ export class PaymentsRepository {
     return prisma.paymentRecord.update({ where: { id }, data });
   }
 
-  async createAndRecalculateInvoice(
-    data: Prisma.PaymentRecordUncheckedCreateInput,
-  ): Promise<
+  async createAndRecalculateInvoice(data: Prisma.PaymentRecordUncheckedCreateInput): Promise<
     | { ok: true; payment: Awaited<ReturnType<typeof prisma.paymentRecord.create>> }
     | {
         ok: false;
