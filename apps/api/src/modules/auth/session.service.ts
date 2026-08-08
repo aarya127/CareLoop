@@ -16,6 +16,15 @@ function sessionCacheKey(tokenHash: string): string {
   return `sess:${SESSION_CACHE_VERSION}:${tokenHash}`;
 }
 
+export function sessionCacheTtlSeconds(
+  expiresAt: Date,
+  idleExpiresAt: Date,
+  now = new Date(),
+): number {
+  const remainingMs = Math.min(expiresAt.getTime(), idleExpiresAt.getTime()) - now.getTime();
+  return Math.max(0, Math.min(SESSION_CACHE_TTL_SECONDS, Math.floor(remainingMs / 1000)));
+}
+
 export type SessionContext = {
   sessionId: string;
   userId: string;
@@ -70,7 +79,10 @@ export class SessionService {
         void prisma.session
           .updateMany({
             where: { sessionTokenHash: tokenHash, revokedAt: null },
-            data: { lastSeenAt: new Date() },
+            data: {
+              lastSeenAt: new Date(),
+              idleExpiresAt: new Date(Date.now() + authConfig.sessionIdleTtlSeconds * 1000),
+            },
           })
           .catch(() => {});
         return ctx;
@@ -130,11 +142,14 @@ export class SessionService {
     };
 
     // Cache the validated context for subsequent requests
-    try {
-      const redis = getRedisClient();
-      await redis.set(cacheKey, JSON.stringify(ctx), 'EX', SESSION_CACHE_TTL_SECONDS);
-    } catch {
-      // Non-fatal — next request will re-validate from DB
+    const cacheTtl = sessionCacheTtlSeconds(session.expiresAt, session.idleExpiresAt, now);
+    if (cacheTtl > 0) {
+      try {
+        const redis = getRedisClient();
+        await redis.set(cacheKey, JSON.stringify(ctx), 'EX', cacheTtl);
+      } catch {
+        // Non-fatal — next request will re-validate from DB
+      }
     }
 
     return ctx;
