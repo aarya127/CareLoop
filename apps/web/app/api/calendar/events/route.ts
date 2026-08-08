@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/server';
-import { listEvents, insertEvent } from '@/lib/google/calendar';
+import { deleteEvent, listEvents, insertEvent } from '@/lib/google/calendar';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
+import { SESSION_COOKIE } from '@/lib/auth/cookies';
+import { SERVER_API_URL } from '@/lib/config/api-server';
+import { routeError } from '@/lib/http/route-error';
 
 const getSchema = z.object({
-  calendarId: z.string().default('primary'),
-  timeMin: z.string(),
-  timeMax: z.string(),
+  calendarId: z.string().min(1).max(1024).default('primary'),
+  timeMin: z.string().datetime(),
+  timeMax: z.string().datetime(),
 });
 
 export async function GET(req: NextRequest) {
@@ -19,35 +22,82 @@ export async function GET(req: NextRequest) {
       timeMin: url.searchParams.get('timeMin'),
       timeMax: url.searchParams.get('timeMax'),
     });
+    const timeMin = new Date(parsed.timeMin);
+    const timeMax = new Date(parsed.timeMax);
+    if (timeMax <= timeMin || timeMax.getTime() - timeMin.getTime() > 366 * 24 * 60 * 60 * 1000) {
+      return NextResponse.json({ ok: false, error: 'invalid_calendar_range' }, { status: 400 });
+    }
     const items = await listEvents(user.id, parsed.calendarId, parsed.timeMin, parsed.timeMax);
     return NextResponse.json({ ok: true, events: items });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || 'failed' }, { status: 500 });
+  } catch (error: unknown) {
+    return routeError(error);
   }
 }
 
 const postSchema = z.object({
-  calendarId: z.string().default('primary'),
-  title: z.string(),
-  notes: z.string().optional(),
-  start: z.string(),
-  end: z.string(),
-  timeZone: z.string().default('America/Toronto'),
-  patientId: z.string().optional(),
-  procedureCode: z.string().optional(),
-  providerId: z.string().optional(),
-  roomId: z.string().optional(),
-  extended: z.record(z.any()).optional(),
+  calendarId: z.string().min(1).max(1024).default('primary'),
+  title: z.string().trim().min(1).max(200),
+  notes: z.string().max(5000).optional(),
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+  timeZone: z.string().max(100).default('America/Toronto'),
+  patientId: z.string().max(100).optional(),
+  procedureCode: z.string().max(100).optional(),
+  providerId: z.string().min(1).max(100),
+  roomId: z.string().max(100).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
     const body = postSchema.parse(await req.json());
+    if (new Date(body.end) <= new Date(body.start)) {
+      return NextResponse.json({ ok: false, error: 'invalid_event_range' }, { status: 400 });
+    }
+    const sessionToken = req.cookies.get(SESSION_COOKIE)?.value;
+    if (!sessionToken) {
+      return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+    }
+
+    // Create the authoritative local appointment first. This enforces tenant
+    // references, provider conflict locking, validation, audit, and cache busting.
+    const appointmentResponse = await fetch(`${SERVER_API_URL}/appointments`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${sessionToken}`,
+        'idempotency-key': `calendar:${body.calendarId}:${body.providerId}:${body.start}`,
+      },
+      body: JSON.stringify({
+        userId: user.id,
+        providerId: body.providerId,
+        patientId: body.patientId,
+        roomId: body.roomId,
+        title: body.title,
+        notes: body.notes,
+        start: body.start,
+        end: body.end,
+        timeZone: body.timeZone,
+        procedureCode: body.procedureCode,
+        source: 'google_calendar',
+      }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10_000),
+    });
+    const appointment = (await appointmentResponse.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+    if (!appointmentResponse.ok || typeof appointment.id !== 'string') {
+      return NextResponse.json(
+        { ok: false, error: appointment.message ?? 'appointment_create_failed' },
+        { status: appointmentResponse.status },
+      );
+    }
+
     const appt = {
-      id: crypto.randomUUID(),
+      id: appointment.id,
       userId: user.id,
-      practiceId: user.practiceId,
       calendarId: body.calendarId,
       title: body.title,
       notes: body.notes,
@@ -58,33 +108,19 @@ export async function POST(req: NextRequest) {
       procedureCode: body.procedureCode,
       providerId: body.providerId,
       roomId: body.roomId,
-      extended: body.extended,
     };
     const event = await insertEvent(user.id, appt);
-    // Best-effort local persistence
-    try {
-      await prisma.appointment.create({
-        data: {
-          id: appt.id,
-          practiceId: user.practiceId,
-          userId: user.id,
-          providerId: body.providerId || 'unknown',
-          roomId: body.roomId,
-          title: body.title,
-          notes: body.notes,
-          start: new Date(body.start),
-          end: new Date(body.end),
-          patientId: body.patientId,
-          procedureCode: body.procedureCode,
-          googleEventId: event.id || undefined,
-          calendarId: body.calendarId,
-          status: 'confirmed',
-          extended: body.extended as any,
-        },
-      });
-    } catch {}
+    if (!event.id) throw new Error('Google Calendar did not return an event id');
+    const linked = await prisma.appointment.updateMany({
+      where: { id: appt.id, practiceId: user.practiceId },
+      data: { googleEventId: event.id, calendarId: body.calendarId },
+    });
+    if (linked.count !== 1) {
+      await deleteEvent(user.id, body.calendarId, event.id).catch(() => undefined);
+      throw new Error('Unable to link Google event to appointment');
+    }
     return NextResponse.json({ ok: true, appointmentId: appt.id, googleEventId: event.id, event });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || 'failed' }, { status: 500 });
+  } catch (error: unknown) {
+    return routeError(error);
   }
 }
