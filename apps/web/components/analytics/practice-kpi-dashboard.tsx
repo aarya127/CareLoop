@@ -14,8 +14,6 @@ import {
   Bar,
 } from 'recharts';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001';
-
 type KpiRow = {
   id: number;
   kpiDate: string;
@@ -128,10 +126,6 @@ export function PracticeKpiDashboard() {
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [phaseOverview, setPhaseOverview] = useState<PhaseOverviewPayload | null>(null);
   const [phaseRoadmap, setPhaseRoadmap] = useState<PhaseRoadmapPayload | null>(null);
-  const [runningActionKey, setRunningActionKey] = useState<string | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({});
-  const [seedLoading, setSeedLoading] = useState(false);
-  const [seedFeedback, setSeedFeedback] = useState('');
 
   const loadAnalytics = async (activeRange: '7d' | '30d' | '90d') => {
     const res = await fetch(
@@ -151,60 +145,6 @@ export function PracticeKpiDashboard() {
     setOverview(payload.overview);
     setPhaseOverview(payload.phaseOverview);
     setPhaseRoadmap(payload.phaseRoadmap);
-  };
-
-  const triggerAutomation = async (actionKey: string) => {
-    setRunningActionKey(actionKey);
-    setActionFeedback((prev) => ({ ...prev, [actionKey]: '' }));
-    try {
-      const res = await fetch(`${API_BASE}/analytics/automation/trigger`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actionKey, practiceId: 'demo-practice' }),
-      });
-      const json = (await res.json()) as { ok?: boolean; message?: string };
-      setActionFeedback((prev) => ({
-        ...prev,
-        [actionKey]: json?.message ?? (json?.ok ? 'Automation triggered.' : 'Automation failed.'),
-      }));
-    } catch {
-      setActionFeedback((prev) => ({
-        ...prev,
-        [actionKey]: 'Unable to trigger automation right now.',
-      }));
-    } finally {
-      setRunningActionKey(null);
-    }
-  };
-
-  const seedPhase1Data = async () => {
-    setSeedLoading(true);
-    setSeedFeedback('');
-    try {
-      const res = await fetch(`${API_BASE}/analytics/seed-phase1`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ practiceId: 'demo-practice' }),
-      });
-      const json = (await res.json()) as { ok?: boolean; fallback?: string; message?: string };
-
-      if (json?.ok) {
-        await loadAnalytics(range);
-        setSeedFeedback(
-          json.fallback === 'synthetic'
-            ? 'Seeded synthetic Phase 1 data (DB unavailable).'
-            : 'Seeded Phase 1 data successfully.',
-        );
-      } else {
-        setSeedFeedback(json?.message ?? 'Unable to seed Phase 1 data.');
-      }
-    } catch {
-      setSeedFeedback('Unable to seed Phase 1 data right now.');
-    } finally {
-      setSeedLoading(false);
-    }
   };
 
   useEffect(() => {
@@ -272,16 +212,8 @@ export function PracticeKpiDashboard() {
           <p className="text-sm text-gray-600 mt-1">
             Voice call outcomes, sentiment, and treatment acceptance
           </p>
-          {seedFeedback && <p className="text-xs text-indigo-700 mt-1">{seedFeedback}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={seedPhase1Data}
-            disabled={seedLoading}
-            className="px-3 py-1.5 rounded-md text-sm border border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {seedLoading ? 'Seeding...' : 'Seed Phase 1 Test Data'}
-          </button>
           {(['7d', '30d', '90d'] as const).map((value) => (
             <button
               key={value}
@@ -463,20 +395,6 @@ export function PracticeKpiDashboard() {
                 <p className="text-sm text-indigo-700 mt-0.5">
                   <span className="font-medium">Automation:</span> {item.automation}
                 </p>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <button
-                    onClick={() => triggerAutomation(item.actionKey)}
-                    disabled={runningActionKey === item.actionKey}
-                    className="text-xs rounded-md px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {runningActionKey === item.actionKey ? 'Running...' : 'Run Automation'}
-                  </button>
-                  {actionFeedback[item.actionKey] && (
-                    <p className="text-xs text-gray-600 text-right">
-                      {actionFeedback[item.actionKey]}
-                    </p>
-                  )}
-                </div>
               </div>
             ))}
           </div>

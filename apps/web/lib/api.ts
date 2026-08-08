@@ -1,10 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://careloop-tf2l.onrender.com';
+import { PUBLIC_API_URL } from './config/api-client';
 
 type RequestOptions = Omit<RequestInit, 'body'> & { body?: unknown };
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, ...rest } = options;
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${PUBLIC_API_URL}${path}`, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',

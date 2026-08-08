@@ -15,6 +15,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
+import { PUBLIC_API_URL as API_URL } from '@/lib/config/api-client';
 
 type AdminOverview = {
   users: {
@@ -39,8 +40,6 @@ type AdminOverview = {
     conversationsThisMonth: number;
   };
 };
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 function StatTile({
   title,

@@ -40,6 +40,7 @@ import {
   type TreatmentRecord,
 } from '@/lib/api/treatments';
 import { documentsApi, computeSha256Hex } from '@/lib/api/documents';
+import { PUBLIC_API_URL } from '@/lib/config/api-client';
 import {
   loadEmrMedicalSlices,
   syncEmrMedicalSlices,
@@ -539,27 +540,11 @@ type ApiPatient = {
   insuranceRecords?: Array<{
     payerName: string;
     planName?: string | null;
-    memberIdEnc?: string | null;
+    memberIdMasked?: string | null;
   }>;
 };
 
 const GENDER_VALUES = ['male', 'female', 'other', 'prefer_not_to_say'] as const;
-
-function resolveApiBase(): string {
-  const configured = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-  if (!configured) return 'http://localhost:3001';
-
-  const normalized = configured.replace(/\/$/, '');
-  if (
-    normalized.includes('localhost:3000') ||
-    normalized.includes('127.0.0.1:3000') ||
-    normalized === '/'
-  ) {
-    return 'http://localhost:3001';
-  }
-
-  return normalized;
-}
 
 function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
   const dob = patient.dateOfBirth ? new Date(patient.dateOfBirth) : null;
@@ -573,7 +558,7 @@ function toPatientProfileFromApi(patient: ApiPatient): PatientProfile {
     ? {
         provider_name: patient.insuranceRecords[0].payerName,
         plan_id: patient.insuranceRecords[0].planName ?? 'Unknown Plan',
-        policy_number: patient.insuranceRecords[0].memberIdEnc ?? 'N/A',
+        policy_number: patient.insuranceRecords[0].memberIdMasked ?? 'N/A',
         coverage_type: 'private' as const,
         coverage_percent: 0,
         effective_date: '',
@@ -628,7 +613,7 @@ function PatientRecordContent() {
   const searchParams = useSearchParams();
   const patientId = searchParams.get('id');
   const isAdminContext = pathname?.startsWith('/admin');
-  const apiBaseUrl = resolveApiBase();
+  const apiBaseUrl = PUBLIC_API_URL;
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [patientRecord, setPatientRecord] = useState<PatientProfile | null>(null);
@@ -1026,7 +1011,10 @@ function PatientRecordContent() {
 
     const putRes = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'x-amz-server-side-encryption': 'AES256',
+      },
       body: file,
     });
     if (!putRes.ok) throw new Error(`Upload to storage failed (${putRes.status})`);

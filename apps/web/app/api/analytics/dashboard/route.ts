@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole, requireUser } from '@/lib/auth/server';
+import { SERVER_API_URL } from '@/lib/config/api-server';
 
 const ANALYTICS_ROLES = ['admin', 'manager'] as const;
 
@@ -9,31 +10,12 @@ function getRangeDays(range: string): number {
   return 30;
 }
 
-function resolveApiBase(): string {
-  const configured =
-    process.env.API_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    process.env.NEXT_PUBLIC_API_BASE_URL ??
-    '';
-  if (!configured) return 'https://careloop-tf2l.onrender.com';
-  const normalized = configured.replace(/\/$/, '');
-  if (
-    normalized.includes('localhost:3000') ||
-    normalized.includes('127.0.0.1:3000') ||
-    normalized === '/'
-  ) {
-    return 'https://careloop-tf2l.onrender.com';
-  }
-  return normalized;
-}
-
 export async function GET(req: NextRequest) {
   try {
     requireRole(await requireUser(req), ANALYTICS_ROLES);
     const url = new URL(req.url);
     const range = url.searchParams.get('range') ?? '30d';
     const rangeDays = getRangeDays(range);
-    const apiBase = resolveApiBase();
 
     // Forward the caller's session cookie to the API. This is a server-side
     // fetch, so `credentials: 'include'` does nothing — we must pass the cookie
@@ -44,10 +26,10 @@ export async function GET(req: NextRequest) {
       : {};
 
     const [dashboardRes, adminRes] = await Promise.all([
-      fetch(`${apiBase}/analytics/dashboard?rangeDays=${rangeDays}`, {
+      fetch(`${SERVER_API_URL}/analytics/dashboard?rangeDays=${rangeDays}`, {
         headers: authHeaders,
       }),
-      fetch(`${apiBase}/auth/admin-overview`, { headers: authHeaders }),
+      fetch(`${SERVER_API_URL}/auth/admin-overview`, { headers: authHeaders }),
     ]);
 
     const dashboardJson = dashboardRes.ok ? await dashboardRes.json() : null;

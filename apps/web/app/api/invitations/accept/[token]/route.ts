@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE } from '@/lib/auth/cookies';
-
-const API_URL = process.env.API_URL ?? 'https://careloop-tf2l.onrender.com';
-
-const COOKIE_OPTS = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
-  path: '/',
-  secure: process.env.NODE_ENV === 'production',
-  maxAge: 8 * 60 * 60,
-};
+import { SERVER_API_URL } from '@/lib/config/api-server';
 
 /** GET — preview an invite (public). */
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
-  const res = await fetch(`${API_URL}/invitations/accept/${encodeURIComponent(token)}`, {
+  const res = await fetch(`${SERVER_API_URL}/invitations/accept/${encodeURIComponent(token)}`, {
     cache: 'no-store',
   });
   const data = await res.json().catch(() => ({}));
@@ -28,7 +18,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
 
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/invitations/accept/${encodeURIComponent(token)}`, {
+    res = await fetch(`${SERVER_API_URL}/invitations/accept/${encodeURIComponent(token)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -46,6 +36,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
   }
 
   const response = NextResponse.json({ user: data.user });
-  response.cookies.set(SESSION_COOKIE, (data.sessionToken as string) ?? '', COOKIE_OPTS);
+  const sessionCookie = res.headers.get('set-cookie');
+  if (!sessionCookie) {
+    return NextResponse.json({ error: 'Invalid API response' }, { status: 502 });
+  }
+  response.headers.append('set-cookie', sessionCookie);
   return response;
 }

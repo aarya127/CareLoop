@@ -1,7 +1,7 @@
 // Typed client for the Treatment Plans API (grouped planned procedures with a
 // running estimate and an acceptance step). Session cookie via credentials.
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://careloop-tf2l.onrender.com';
+import { PUBLIC_API_URL as BASE } from '../config/api-client';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {

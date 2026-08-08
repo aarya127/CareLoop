@@ -1,8 +1,7 @@
-// API Base Configuration
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://careloop-tf2l.onrender.com';
-export const WS_BASE_URL =
-  process.env.NEXT_PUBLIC_WS_BASE_URL || 'wss://careloop-tf2l.onrender.com';
+import { PUBLIC_API_URL, PUBLIC_WS_URL } from './config/api-client';
+
+export const API_BASE_URL = PUBLIC_API_URL;
+export const WS_BASE_URL = PUBLIC_WS_URL;
 
 // API Endpoints
 export const ENDPOINTS = {

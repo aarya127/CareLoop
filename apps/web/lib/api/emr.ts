@@ -3,7 +3,7 @@
 // credentials:'include'; tenancy + author are derived server-side from the
 // session, so no practiceId/actor is sent from the browser.
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://careloop-tf2l.onrender.com';
+import { PUBLIC_API_URL as BASE } from '../config/api-client';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {

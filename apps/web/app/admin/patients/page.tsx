@@ -17,6 +17,7 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react';
+import { PUBLIC_API_URL } from '@/lib/config/api-client';
 
 type SortField = 'name' | 'age' | 'nextAppointment' | 'lastVisit';
 type SortDirection = 'asc' | 'desc';
@@ -46,7 +47,7 @@ interface AdminPatientCard {
 
 export default function AdminPatientsPage() {
   const router = useRouter();
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001';
+  const apiBaseUrl = PUBLIC_API_URL;
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -218,12 +219,11 @@ export default function AdminPatientsPage() {
     setIsCreatingPatient(true);
     try {
       const payload = {
-        practiceId: 'demo-practice',
         firstName: newPatientForm.firstName.trim(),
         lastName: newPatientForm.lastName.trim(),
         phone: newPatientForm.phone.trim() || null,
-        date_of_birth: newPatientForm.dateOfBirth || null,
-        patient_type: newPatientForm.patientType,
+        dateOfBirth: newPatientForm.dateOfBirth || null,
+        patientType: newPatientForm.patientType,
       };
 
       const res = await fetch(`${apiBaseUrl}/patients`, {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/server';
+import { SERVER_API_URL } from '@/lib/config/api-server';
 
-const API_URL = process.env.API_URL ?? 'https://careloop-tf2l.onrender.com';
 const SESSION_COOKIE = 'cl_session';
 
 // Search runs on the NestJS API on Render (which has persistent storage).
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     params.set('q', q);
     if (type) params.set('type', type);
 
-    const upstream = await fetch(`${API_URL}/search?${params.toString()}`, {
+    const upstream = await fetch(`${SERVER_API_URL}/search?${params.toString()}`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,

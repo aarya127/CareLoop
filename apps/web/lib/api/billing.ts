@@ -1,4 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://careloop-tf2l.onrender.com';
+import { PUBLIC_API_URL as BASE } from '../config/api-client';
 
 // ---------------------------------------------------------------------------
 // Types

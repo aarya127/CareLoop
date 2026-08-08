@@ -13,6 +13,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { useState } from 'react';
+import { PUBLIC_API_URL } from '@/lib/config/api-client';
 
 type NotificationItem = {
   id: string;
@@ -45,9 +46,9 @@ export default function TopNavigation() {
     setNotificationsLoading(true);
     setNotificationError('');
     try {
-      const res = await fetch(
-        'http://localhost:3001/analytics/decision-actions?practiceId=demo-practice&rangeDays=30',
-      );
+      const res = await fetch(`${PUBLIC_API_URL}/analytics/decision-actions?rangeDays=30`, {
+        credentials: 'include',
+      });
       const json = (await res.json()) as {
         ok?: boolean;
         actions?: Array<{ actionKey: string; title: string; why: string; expectedImpact: string }>;

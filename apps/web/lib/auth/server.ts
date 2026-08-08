@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SERVER_API_URL } from '@/lib/config/api-server';
 
 const SESSION_COOKIE = 'cl_session';
-const API_URL = process.env.API_URL ?? 'https://careloop-tf2l.onrender.com';
 
 export interface SessionUser {
   id: string;
@@ -31,7 +31,7 @@ export async function requireUser(req: NextRequest): Promise<SessionUser> {
   // The NestJS API has no global prefix — the route is /auth/me (matching the
   // login/me BFF proxies). The previous /api/v1/auth/me 404'd, so requireUser
   // always threw; callers that didn't await it silently ran unauthenticated.
-  const res = await fetch(`${API_URL}/auth/me`, {
+  const res = await fetch(`${SERVER_API_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

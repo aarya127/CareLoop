@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, LoaderCircle, UserMinus } from 'lucide-react';
+import { PUBLIC_API_URL } from '@/lib/config/api-client';
 
 type UserRow = {
   id: string;
@@ -16,20 +17,6 @@ type UserRow = {
   deletedReason: string | null;
 };
 
-function resolveApiBase(): string {
-  const configured = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-  if (!configured) return 'http://localhost:3001';
-  const normalized = configured.replace(/\/$/, '');
-  if (
-    normalized.includes('localhost:3000') ||
-    normalized.includes('127.0.0.1:3000') ||
-    normalized === '/'
-  ) {
-    return 'http://localhost:3001';
-  }
-  return normalized;
-}
-
 export default function LeaveUserPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -39,7 +26,7 @@ export default function LeaveUserPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const apiBaseUrl = resolveApiBase();
+  const apiBaseUrl = PUBLIC_API_URL;
 
   useEffect(() => {
     let mounted = true;
