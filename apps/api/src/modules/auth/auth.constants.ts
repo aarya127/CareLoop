@@ -26,10 +26,8 @@ export const MANAGEMENT_ROLES = ['admin', 'manager'] as const;
 export const FRONT_OFFICE_ROLES = ['admin', 'manager', 'staff'] as const;
 
 export const AUTH_LIMITS = {
-  LOGIN_IP_WINDOW_MS: 5 * 60 * 1000,
-  LOGIN_IP_MAX_ATTEMPTS: 20,
-  LOGIN_ACCOUNT_WINDOW_MS: 15 * 60 * 1000,
   LOGIN_ACCOUNT_MAX_ATTEMPTS: 5,
+  LOGIN_ACCOUNT_LOCK_MS: 15 * 60 * 1000,
 } as const;
 
 export const AUTH_ERRORS = {

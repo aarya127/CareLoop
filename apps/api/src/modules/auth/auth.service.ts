@@ -13,7 +13,7 @@ import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type { SignupDto } from './dto/signup.dto';
 import { AUTH_ERRORS, AUTH_LIMITS, AUTH_ROLES } from './auth.constants';
-import { hashPassword, passwordNeedsRehash, verifyPassword } from './auth.utils';
+import { hashPassword, hashUserAgent, passwordNeedsRehash, verifyPassword } from './auth.utils';
 import { SessionService } from './session.service';
 
 type SafeUser = {
@@ -53,12 +53,6 @@ type AdminOverview = {
   };
 };
 
-type RateLimitRecord = {
-  attempts: number;
-  windowStartMs: number;
-  lockedUntilMs: number;
-};
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -74,8 +68,6 @@ export interface AuthUser {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly ipRateLimit = new Map<string, RateLimitRecord>();
-  private readonly accountRateLimit = new Map<string, RateLimitRecord>();
 
   constructor(@Inject(SessionService) private readonly sessionService: SessionService) {}
 
@@ -95,65 +87,6 @@ export class AuthService {
 
   private nowMs(): number {
     return Date.now();
-  }
-
-  private getOrInitRecord(store: Map<string, RateLimitRecord>, key: string): RateLimitRecord {
-    const existing = store.get(key);
-    if (existing) return existing;
-
-    const created: RateLimitRecord = {
-      attempts: 0,
-      windowStartMs: this.nowMs(),
-      lockedUntilMs: 0,
-    };
-    store.set(key, created);
-    return created;
-  }
-
-  private enforceRateLimit(
-    store: Map<string, RateLimitRecord>,
-    key: string,
-    windowMs: number,
-    maxAttempts: number,
-  ): void {
-    const now = this.nowMs();
-    const record = this.getOrInitRecord(store, key);
-
-    if (record.lockedUntilMs > now) {
-      throw new HttpException(AUTH_ERRORS.ACCOUNT_LOCKED, HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    if (now - record.windowStartMs > windowMs) {
-      record.windowStartMs = now;
-      record.attempts = 0;
-    }
-
-    if (record.attempts >= maxAttempts) {
-      const multiplier = Math.max(1, record.attempts - maxAttempts + 1);
-      const backoffMs = Math.min(15 * 60 * 1000, multiplier * 60 * 1000);
-      record.lockedUntilMs = now + backoffMs;
-      throw new HttpException(AUTH_ERRORS.ACCOUNT_LOCKED, HttpStatus.TOO_MANY_REQUESTS);
-    }
-  }
-
-  private registerFailure(
-    store: Map<string, RateLimitRecord>,
-    key: string,
-    windowMs: number,
-  ): void {
-    const now = this.nowMs();
-    const record = this.getOrInitRecord(store, key);
-
-    if (now - record.windowStartMs > windowMs) {
-      record.windowStartMs = now;
-      record.attempts = 0;
-    }
-
-    record.attempts += 1;
-  }
-
-  private clearRateLimit(store: Map<string, RateLimitRecord>, key: string): void {
-    store.delete(key);
   }
 
   private async addAuditLog(params: {
@@ -177,7 +110,7 @@ export class AuthService {
           targetUserId: params.targetUserId,
           sessionId: params.sessionId,
           ip: params.ip,
-          userAgentHash: params.userAgent,
+          userAgentHash: params.userAgent ? hashUserAgent(params.userAgent) : undefined,
           authMethod: 'password',
           metadata: (params.metadata ?? {}) as Prisma.InputJsonValue,
         },
@@ -244,21 +177,6 @@ export class AuthService {
       if (!email) {
         throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
       }
-      const ipKey = context.ip ?? 'unknown-ip';
-
-      this.enforceRateLimit(
-        this.ipRateLimit,
-        ipKey,
-        AUTH_LIMITS.LOGIN_IP_WINDOW_MS,
-        AUTH_LIMITS.LOGIN_IP_MAX_ATTEMPTS,
-      );
-      this.enforceRateLimit(
-        this.accountRateLimit,
-        email,
-        AUTH_LIMITS.LOGIN_ACCOUNT_WINDOW_MS,
-        AUTH_LIMITS.LOGIN_ACCOUNT_MAX_ATTEMPTS,
-      );
-
       const user = await prisma.user.findUnique({
         where: { email },
         select: {
@@ -273,8 +191,6 @@ export class AuthService {
       });
 
       if (!user?.passwordHash || user.status !== 'active') {
-        this.registerFailure(this.ipRateLimit, ipKey, AUTH_LIMITS.LOGIN_IP_WINDOW_MS);
-        this.registerFailure(this.accountRateLimit, email, AUTH_LIMITS.LOGIN_ACCOUNT_WINDOW_MS);
         await this.addAuditLog({
           practiceId: user?.practiceId,
           eventType: 'login_failed',
@@ -292,21 +208,23 @@ export class AuthService {
 
       const valid = await verifyPassword(dto.password, user.passwordHash);
       if (!valid) {
-        this.registerFailure(this.ipRateLimit, ipKey, AUTH_LIMITS.LOGIN_IP_WINDOW_MS);
-        this.registerFailure(this.accountRateLimit, email, AUTH_LIMITS.LOGIN_ACCOUNT_WINDOW_MS);
-
-        // Only lock the account after N consecutive failures (not on a single
-        // typo). Locking-before-password-check means a lock would otherwise
-        // reject the correct password too, so keep the threshold meaningful.
-        const nextCount = (user.failedLoginCount ?? 0) + 1;
-        const shouldLock = nextCount >= AUTH_LIMITS.LOGIN_ACCOUNT_MAX_ATTEMPTS;
-        await prisma.user.update({
+        // Atomic increment prevents concurrent failures on separate replicas
+        // from overwriting one another. Per-IP throttling is handled globally
+        // by the Redis-backed ThrottlerGuard on the login route.
+        const failed = await prisma.user.update({
           where: { id: user.id },
-          data: {
-            failedLoginCount: shouldLock ? 0 : nextCount,
-            lockedUntil: shouldLock ? new Date(this.nowMs() + 60 * 1000) : null,
-          },
+          data: { failedLoginCount: { increment: 1 } },
+          select: { failedLoginCount: true },
         });
+        if (failed.failedLoginCount >= AUTH_LIMITS.LOGIN_ACCOUNT_MAX_ATTEMPTS) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginCount: 0,
+              lockedUntil: new Date(this.nowMs() + AUTH_LIMITS.LOGIN_ACCOUNT_LOCK_MS),
+            },
+          });
+        }
 
         await this.addAuditLog({
           practiceId: user.practiceId,
@@ -319,9 +237,6 @@ export class AuthService {
 
         throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
       }
-
-      this.clearRateLimit(this.ipRateLimit, ipKey);
-      this.clearRateLimit(this.accountRateLimit, email);
 
       await prisma.user.update({
         where: { id: user.id },
