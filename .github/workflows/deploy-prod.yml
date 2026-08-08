@@ -38,7 +38,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10.33.4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -76,8 +76,12 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          WEB_API_URL: ${{ vars.API_URL }}
         run: |
+          test -n "$WEB_API_URL"
           docker build -f infrastructure/docker/web.Dockerfile \
+            --build-arg API_URL="$WEB_API_URL" \
+            --build-arg NEXT_PUBLIC_API_URL="$WEB_API_URL" \
             -t $ECR_REGISTRY/careloop-web:$IMAGE_TAG \
             -t $ECR_REGISTRY/careloop-web:latest \
             .
@@ -105,7 +109,14 @@ jobs:
       - name: Run DB migrations
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: pnpm --filter @careloop/db exec prisma migrate deploy
+
+      - name: Encrypt legacy insurance identifiers
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: pnpm --filter @careloop/db run db:encrypt-insurance
 
       - name: Deploy to Kubernetes (production) — rolling update
         env:
