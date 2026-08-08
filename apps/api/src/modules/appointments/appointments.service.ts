@@ -9,7 +9,13 @@ import { AvailabilityService } from './availability.service';
 import { AuditService } from '../audit/audit.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { getRedisClient } from '../../config/redis';
-import type { CreateAppointmentDto, RescheduleDto, CancelDto, GetSlotsDto } from './dto';
+import type {
+  CreateAppointmentDto,
+  RescheduleDto,
+  CancelDto,
+  GetSlotsDto,
+  ListAppointmentsQueryDto,
+} from './dto';
 
 export const APPT_EVENTS_CHANNEL = (practiceId: string) => `appt-events:${practiceId}`;
 
@@ -53,18 +59,7 @@ export class AppointmentsService {
 
   // ── Queries ───────────────────────────────────────────────────────────────
 
-  async findAll(
-    practiceId: string,
-    query: {
-      providerId?: string;
-      patientId?: string;
-      from?: string;
-      to?: string;
-      status?: string;
-      limit?: string;
-      offset?: string;
-    },
-  ) {
+  async findAll(practiceId: string, query: ListAppointmentsQueryDto) {
     return this.repo.findAll({
       practiceId,
       providerId: query.providerId,
@@ -72,8 +67,8 @@ export class AppointmentsService {
       from: query.from ? new Date(query.from) : undefined,
       to: query.to ? new Date(query.to) : undefined,
       status: query.status,
-      limit: query.limit ? parseInt(query.limit, 10) : undefined,
-      offset: query.offset ? parseInt(query.offset, 10) : undefined,
+      limit: query.limit,
+      offset: query.offset,
     });
   }
 

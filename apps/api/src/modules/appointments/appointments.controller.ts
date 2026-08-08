@@ -16,7 +16,13 @@ import {
 import { AppointmentsService } from './appointments.service';
 import { APPT_EVENTS_CHANNEL } from './appointments.service';
 import { getRedisClient } from '../../config/redis';
-import type { CreateAppointmentDto, RescheduleDto, CancelDto, GetSlotsDto } from './dto';
+import {
+  CreateAppointmentDto,
+  RescheduleDto,
+  CancelDto,
+  GetSlotsDto,
+  ListAppointmentsQueryDto,
+} from './dto';
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -24,7 +30,7 @@ export class AppointmentsController {
 
   /** GET /appointments?providerId=&patientId=&from=&to=&status= (practice from session) */
   @Get()
-  findAll(@Query() query: any, @Req() req: any) {
+  findAll(@Query() query: ListAppointmentsQueryDto, @Req() req: any) {
     return this.appointmentsService.findAll(req.user.practiceId, query);
   }
 

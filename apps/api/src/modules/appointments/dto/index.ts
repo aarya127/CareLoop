@@ -8,8 +8,47 @@ import {
   Min,
   Max,
   Matches,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export class ListAppointmentsQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  providerId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  patientId?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  status?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  limit: number = 200;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset: number = 0;
+}
 
 export class CreateAppointmentDto {
   // practiceId is derived from the session, not the body — accepted but ignored.
