@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   reactStrictMode:
     process.env.NODE_ENV === 'production' ? true : process.env.NEXT_PUBLIC_STRICT_MODE !== 'false',
   poweredByHeader: false,
@@ -19,13 +20,6 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
-  },
-  typescript: {
-    // Disable type checking during build to avoid TS errors blocking the build.
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   // PWA support would be added via next-pwa
 };
