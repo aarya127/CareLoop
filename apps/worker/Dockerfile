@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS base
-RUN corepack enable && npm install -g turbo@latest
+RUN corepack enable && corepack prepare pnpm@10.33.4 --activate && npm install -g turbo@2.5.4
 
 FROM base AS pruner
 WORKDIR /app
@@ -10,7 +10,7 @@ RUN turbo prune @careloop/worker --docker
 FROM base AS installer
 WORKDIR /app
 COPY --from=pruner /app/out/json/ .
-RUN npm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM installer AS builder
 WORKDIR /app

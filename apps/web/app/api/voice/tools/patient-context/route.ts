@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db/prisma';
 import { requireUser } from '@/lib/auth/server';
 import { decrypt } from '@/lib/crypto/crypto';
+import { routeError } from '@/lib/http/route-error';
 
 const schema = z.object({
   patientId: z.string().min(1),
@@ -28,16 +29,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'patient_not_found' }, { status: 404 });
     }
 
-    const insurance = patient.insuranceRecords[0]
+    const insuranceRecord = patient.insuranceRecords[0];
+    const memberId = insuranceRecord ? decrypt(insuranceRecord.memberIdEnc) : null;
+    const insurance = insuranceRecord
       ? {
-          payerName: patient.insuranceRecords[0].payerName,
-          planName: patient.insuranceRecords[0].planName,
-          memberId: decrypt(patient.insuranceRecords[0].memberIdEnc),
-          groupNumber: patient.insuranceRecords[0].groupNumberEnc
-            ? decrypt(patient.insuranceRecords[0].groupNumberEnc)
-            : null,
-          coverageSummary: patient.insuranceRecords[0].coverageSummary,
-          verifiedAt: patient.insuranceRecords[0].verifiedAt,
+          payerName: insuranceRecord.payerName,
+          planName: insuranceRecord.planName,
+          memberIdMasked: memberId ? `••••${memberId.slice(-4)}` : null,
+          hasGroupNumber: Boolean(insuranceRecord.groupNumberEnc),
+          coverageSummary: insuranceRecord.coverageSummary,
+          verifiedAt: insuranceRecord.verifiedAt,
         }
       : null;
 
@@ -54,12 +55,6 @@ export async function POST(req: NextRequest) {
       insurance,
     });
   } catch (error: unknown) {
-    // requireUser throws a NextResponse — return it as-is (401) instead of a 500.
-    if (error instanceof Response) return error;
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'invalid_request' }, { status: 400 });
-    }
-    console.error('[voice/patient-context] failed:', error);
-    return NextResponse.json({ ok: false, error: 'failed' }, { status: 500 });
+    return routeError(error);
   }
 }

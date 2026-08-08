@@ -90,6 +90,7 @@ export function PatientDocuments({ patientId }: PatientDocumentsProps) {
         xhr.onerror = () => reject(new Error('Network error during upload'));
         xhr.open('PUT', uploadUrl);
         xhr.setRequestHeader('Content-Type', file.type);
+        xhr.setRequestHeader('x-amz-server-side-encryption', 'AES256');
         xhr.send(file);
       });
 

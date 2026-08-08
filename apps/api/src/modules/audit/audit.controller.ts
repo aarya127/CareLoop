@@ -1,7 +1,8 @@
 import { Controller, Get, Query, Req } from '@nestjs/common';
-import { AuditService, type AuditLogQuery } from './audit.service';
+import { AuditService } from './audit.service';
 import { RequireRole } from '../../common/guards';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
+import { AuditLogQueryDto } from './audit-query.dto';
 
 // Compliance audit trail — management only.
 @Controller('audit')
@@ -16,27 +17,7 @@ export class AuditController {
    * Results cached 30s in Redis.
    */
   @Get()
-  getLog(
-    @Req() req: { user: { practiceId: string } },
-    @Query('eventType') eventType?: string,
-    @Query('outcome') outcome?: string,
-    @Query('actorUserId') actorUserId?: string,
-    @Query('targetUserId') targetUserId?: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ) {
-    const query: AuditLogQuery = {
-      eventType,
-      outcome,
-      actorUserId,
-      targetUserId,
-      from,
-      to,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      offset: offset ? parseInt(offset, 10) : undefined,
-    };
+  getLog(@Req() req: { user: { practiceId: string } }, @Query() query: AuditLogQueryDto) {
     return this.auditService.getLog(req.user.practiceId, query);
   }
 }

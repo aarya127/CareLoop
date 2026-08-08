@@ -67,30 +67,70 @@ async function sendEmail(to: string, subject: string, html: string): Promise<str
  * on thrown errors, updating retryCount + failReason on each failure.
  */
 export async function remindersProcessor(job: Job<AppointmentReminderJobData>): Promise<void> {
-  const { reminderId, practiceId, channel, to, content, reminderType } = job.data;
-  const effectiveChannel = channel ?? reminderType ?? 'sms';
-
-  job.log(`[reminder:${reminderId}] Sending via ${effectiveChannel} to ${to}`);
+  const { reminderId, practiceId } = job.data;
 
   if (!reminderId) {
     job.log('No reminderId in job data — skipping DB update');
     return;
   }
 
+  const reminder = await prisma.reminder.findFirst({
+    where: { id: reminderId, practiceId },
+    select: { status: true, channel: true, metadata: true },
+  });
+  if (!reminder) throw new Error(`Reminder ${reminderId} not found for practice`);
+  if (reminder.status === 'sent' || reminder.status === 'cancelled') {
+    job.log(`[reminder:${reminderId}] already ${reminder.status}; skipping`);
+    return;
+  }
+
+  const claimed = await prisma.reminder.updateMany({
+    where: { id: reminderId, practiceId, status: { in: ['pending', 'failed'] } },
+    data: { status: 'sending', failReason: null },
+  });
+  if (claimed.count !== 1) {
+    job.log(`[reminder:${reminderId}] already claimed; skipping duplicate job`);
+    return;
+  }
+
+  // The database is authoritative. Queue data is only a record locator and
+  // must never be able to redirect a message or replace its content.
+  const metadata = (reminder.metadata ?? {}) as Record<string, unknown>;
+  const to = typeof metadata.to === 'string' ? metadata.to : '';
+  const content = typeof metadata.body === 'string' ? metadata.body : '';
+  const subject = typeof metadata.subject === 'string' ? metadata.subject : undefined;
+  const effectiveChannel = reminder.channel;
+  if (!to) {
+    await prisma.reminder.updateMany({
+      where: { id: reminderId, practiceId, status: 'sending' },
+      data: { status: 'failed', failReason: 'Reminder has no destination' },
+    });
+    throw new Error(`Reminder ${reminderId} has no destination`);
+  }
+  if (effectiveChannel !== 'sms' && effectiveChannel !== 'email') {
+    await prisma.reminder.updateMany({
+      where: { id: reminderId, practiceId, status: 'sending' },
+      data: { status: 'failed', failReason: 'Reminder has unsupported channel' },
+    });
+    throw new Error(`Reminder ${reminderId} has unsupported channel`);
+  }
+
+  job.log(`[reminder:${reminderId}] Sending via ${effectiveChannel}`);
+
   try {
     let messageId: string;
     if (effectiveChannel === 'email') {
       messageId = await sendEmail(
         to,
-        (job.data as any).subject ?? 'Your appointment reminder',
+        subject ?? 'Your appointment reminder',
         content || '<p>You have an upcoming appointment.</p>',
       );
     } else {
       messageId = await sendSms(to, content || 'You have an upcoming appointment.');
     }
 
-    await prisma.reminder.update({
-      where: { id: reminderId },
+    await prisma.reminder.updateMany({
+      where: { id: reminderId, practiceId, status: 'sending' },
       data: { status: 'sent', sentAt: new Date() },
     });
 
@@ -104,8 +144,8 @@ export async function remindersProcessor(job: Job<AppointmentReminderJobData>): 
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     await prisma.reminder
-      .update({
-        where: { id: reminderId },
+      .updateMany({
+        where: { id: reminderId, practiceId, status: 'sending' },
         data: {
           status: 'failed',
           failReason: reason,

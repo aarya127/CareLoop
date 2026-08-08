@@ -18,7 +18,6 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { SearchModule } from './modules/search/search.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
-import { AdminModule } from './modules/admin/admin.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { EmrModule } from './modules/emr/emr.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
@@ -53,7 +52,6 @@ import { IdempotencyService } from './common/services/idempotency.service';
     AuditModule,
     SearchModule,
     WebhooksModule,
-    AdminModule,
     RemindersModule,
     EmrModule,
     InvitationsModule,

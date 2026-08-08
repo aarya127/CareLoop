@@ -5,13 +5,23 @@ export const dynamic = 'force-dynamic';
 
 const startTime = Date.now();
 
+async function withTimeout<T>(operation: Promise<T>, timeoutMs = 2_000): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error('Database health check timed out')), timeoutMs);
+  });
+  return Promise.race([operation, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 export async function GET(): Promise<NextResponse<HealthStatus>> {
   let dbStatus: 'ok' | 'down' = 'down';
 
   try {
     // Lazy import to avoid build-time issues when DB is not available
     const { prisma } = await import('@/lib/db/prisma');
-    await prisma.$queryRaw`SELECT 1`;
+    await withTimeout(prisma.$queryRaw`SELECT 1`);
     dbStatus = 'ok';
   } catch {
     dbStatus = 'down';

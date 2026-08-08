@@ -112,7 +112,10 @@ export default function PatientDocumentsPage({ params }: Props) {
       setUploadProgress('Uploading to storage…');
       const putRes = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': file.type },
+        headers: {
+          'Content-Type': file.type,
+          'x-amz-server-side-encryption': 'AES256',
+        },
         body: file,
       });
       if (!putRes.ok) throw new Error('Storage PUT failed');

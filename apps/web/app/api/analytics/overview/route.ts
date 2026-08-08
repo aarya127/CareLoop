@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireRole, requireUser } from '@/lib/auth/server';
+import { routeError } from '@/lib/http/route-error';
 
 const ANALYTICS_ROLES = ['admin', 'manager'] as const;
 
@@ -64,22 +65,6 @@ export async function GET(req: NextRequest) {
       recentCalls: transcripts,
     });
   } catch (error: unknown) {
-    if (error instanceof Response) return error;
-    const message = error instanceof Error ? error.message : 'failed';
-
-    // Fall back to an empty payload so analytics UI still loads in local/dev setups
-    // where DATABASE_URL is not configured.
-    return NextResponse.json({
-      ok: true,
-      fallback: true,
-      warning: message,
-      summary: {
-        avgSentiment: 0,
-        acceptanceRate: 0,
-        totalCalls: 0,
-      },
-      timeline: [],
-      recentCalls: [],
-    });
+    return routeError(error);
   }
 }

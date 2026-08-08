@@ -71,6 +71,14 @@ export async function reminderScanProcessor(job: Job<ReminderScanJobData>): Prom
       const to = (meta['to'] as string | undefined) ?? '';
       const content = (meta['body'] as string | undefined) ?? '';
 
+      if (!to) {
+        await prisma.reminder.updateMany({
+          where: { id: reminder.id, practiceId: reminder.practiceId, status: 'pending' },
+          data: { status: 'failed', failReason: 'Reminder has no destination' },
+        });
+        return null;
+      }
+
       const data: AppointmentReminderJobData = {
         reminderId: reminder.id,
         appointmentId: reminder.appointmentId ?? '',

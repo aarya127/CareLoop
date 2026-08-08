@@ -22,6 +22,14 @@ export class DocumentsRepository {
     return this.prisma.document.findUnique({ where: { id } });
   }
 
+  async patientExists(practiceId: string, patientId: string): Promise<boolean> {
+    const patient = await this.prisma.patient.findFirst({
+      where: { id: patientId, practiceId },
+      select: { id: true },
+    });
+    return patient != null;
+  }
+
   async createPending(data: {
     practiceId: string;
     patientId?: string;

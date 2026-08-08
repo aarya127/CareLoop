@@ -15,12 +15,11 @@ export interface DocumentRecord {
 export interface UploadUrlResponse {
   uploadUrl: string;
   documentId: string;
-  storageKey: string;
 }
 
 export const documentsApi = {
-  listByPatient(patientId: string, practiceId = 'demo-practice'): Promise<DocumentRecord[]> {
-    return api.get<DocumentRecord[]>(`/documents/patient/${patientId}?practiceId=${practiceId}`);
+  listByPatient(patientId: string): Promise<DocumentRecord[]> {
+    return api.get<DocumentRecord[]>(`/documents/patient/${patientId}`);
   },
 
   getUploadUrl(payload: {
@@ -29,13 +28,9 @@ export const documentsApi = {
     fileName: string;
     mimeType: string;
     sizeBytes: number;
-    checksumSha256?: string;
-    practiceId?: string;
+    checksumSha256: string;
   }): Promise<UploadUrlResponse> {
-    return api.post<UploadUrlResponse>('/documents/upload-url', {
-      practiceId: payload.practiceId ?? 'demo-practice',
-      ...payload,
-    });
+    return api.post<UploadUrlResponse>('/documents/upload-url', payload);
   },
 
   confirmUpload(documentId: string, checksumSha256?: string): Promise<DocumentRecord> {

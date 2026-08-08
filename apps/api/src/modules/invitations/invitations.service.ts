@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   GoneException,
   Inject,
   Injectable,
@@ -32,7 +33,18 @@ export class InvitationsService {
   }
 
   /** Admin/manager invites someone to their practice. Returns the shareable accept link. */
-  async create(practiceId: string, invitedByUserId: string, dto: CreateInvitationDto) {
+  async create(
+    practiceId: string,
+    invitedByUserId: string,
+    actorRoles: string[],
+    dto: CreateInvitationDto,
+  ) {
+    if (
+      dto.role.toLowerCase() === 'admin' &&
+      !actorRoles.some((role) => role.toLowerCase() === 'admin')
+    ) {
+      throw new ForbiddenException('Only administrators can invite another administrator');
+    }
     const email = dto.email.trim().toLowerCase();
 
     // If they already have an account, they should just log in — don't invite.

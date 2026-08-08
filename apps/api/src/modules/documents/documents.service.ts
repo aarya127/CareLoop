@@ -9,6 +9,7 @@ import { StorageService } from './storage.service';
 import { DocumentsRepository } from './documents.repository';
 import { AuditService } from '../audit/audit.service';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from '../../config/storage';
+import type { RequestDocumentUploadDto } from './dto';
 
 const ALLOWED_DOCUMENT_CATEGORIES = new Set([
   'consent',
@@ -57,16 +58,8 @@ export class DocumentsService {
    */
   async getUploadUrl(
     practiceId: string,
-    dto: {
-      patientId?: string;
-      uploadedBy?: string;
-      category: string;
-      fileName: string;
-      mimeType: string;
-      sizeBytes?: number;
-      checksumSha256?: string;
-    },
-  ): Promise<{ uploadUrl: string; documentId: string; storageKey: string }> {
+    dto: RequestDocumentUploadDto & { uploadedBy?: string },
+  ): Promise<{ uploadUrl: string; documentId: string }> {
     // ── MIME validation ─────────────────────────────────────────────────────
     if (!dto.mimeType || !ALLOWED_MIME_TYPES.has(dto.mimeType)) {
       throw new BadRequestException(
@@ -76,7 +69,11 @@ export class DocumentsService {
     }
 
     // ── Size validation ─────────────────────────────────────────────────────
-    if (dto.sizeBytes && dto.sizeBytes > MAX_FILE_SIZE_BYTES) {
+    if (
+      !Number.isInteger(dto.sizeBytes) ||
+      dto.sizeBytes <= 0 ||
+      dto.sizeBytes > MAX_FILE_SIZE_BYTES
+    ) {
       throw new BadRequestException(
         `File exceeds maximum size of ${MAX_FILE_SIZE_BYTES / 1024 / 1024} MB`,
       );
@@ -84,9 +81,17 @@ export class DocumentsService {
 
     // ── File name sanitisation ───────────────────────────────────────────────
     const safeName = dto.fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
+    if (!safeName) throw new BadRequestException('A valid file name is required');
 
     if (!dto.category || !ALLOWED_DOCUMENT_CATEGORIES.has(dto.category)) {
       throw new BadRequestException(`Invalid document category: ${dto.category}`);
+    }
+
+    if (!/^[a-fA-F0-9]{64}$/.test(dto.checksumSha256)) {
+      throw new BadRequestException('A valid SHA-256 checksum is required');
+    }
+    if (dto.patientId && !(await this.repo.patientExists(practiceId, dto.patientId))) {
+      throw new NotFoundException(`Patient ${dto.patientId} not found`);
     }
 
     const storageKey = `${practiceId}/${dto.patientId ?? 'unassigned'}/${randomUUID()}/${safeName}`;
@@ -105,7 +110,11 @@ export class DocumentsService {
     });
 
     // ── Generate presigned PUT URL ───────────────────────────────────────────
-    const uploadUrl = await this.storage.getPresignedUploadUrl(storageKey, dto.mimeType);
+    const uploadUrl = await this.storage.getPresignedUploadUrl(
+      storageKey,
+      dto.mimeType,
+      dto.sizeBytes,
+    );
 
     void this.audit.record({
       practiceId,
@@ -115,7 +124,7 @@ export class DocumentsService {
       metadata: { documentId: doc.id, patientId: dto.patientId, category: dto.category },
     });
 
-    return { uploadUrl, documentId: doc.id, storageKey };
+    return { uploadUrl, documentId: doc.id };
   }
 
   /**
@@ -129,8 +138,34 @@ export class DocumentsService {
   ): Promise<any> {
     const doc = await this.getOwnedDoc(practiceId, documentId);
     if (doc.status === 'deleted') throw new ForbiddenException('Document has been deleted');
+    if (doc.status === 'active') return doc;
+    if (doc.status !== 'uploading')
+      throw new BadRequestException('Document is not awaiting upload');
+    if (!doc.sizeBytes || !doc.checksumSha256) {
+      throw new BadRequestException('Upload metadata is incomplete');
+    }
+    if (
+      dto.checksumSha256 &&
+      dto.checksumSha256.toLowerCase() !== doc.checksumSha256?.toLowerCase()
+    ) {
+      throw new BadRequestException('Checksum does not match the upload request');
+    }
 
-    const active = await this.repo.activate(documentId, dto.checksumSha256);
+    let verified = false;
+    try {
+      verified = await this.storage.verifyObject(doc.storageKey, {
+        sizeBytes: doc.sizeBytes,
+        mimeType: doc.mimeType,
+        checksumSha256: doc.checksumSha256,
+      });
+    } catch {
+      verified = false;
+    }
+    if (!verified) {
+      throw new BadRequestException('Uploaded object does not match the declared file');
+    }
+
+    const active = await this.repo.activate(documentId, doc.checksumSha256);
 
     void this.audit.record({
       practiceId,

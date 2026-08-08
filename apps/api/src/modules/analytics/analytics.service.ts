@@ -13,8 +13,6 @@ type CoreMetrics = {
   patientsTotal: number;
 };
 
-const syntheticPhase1Metrics = new Map<string, CoreMetrics>();
-
 function round2(value: number): number {
   return Number(value.toFixed(2));
 }
@@ -125,56 +123,24 @@ export class AnalyticsService {
       return cached;
     }
 
-    const synthetic = syntheticPhase1Metrics.get(practiceId);
-    if (synthetic) {
-      await this.setCachedMetrics(practiceId, rangeDays, synthetic);
-      return synthetic;
-    }
-
     const now = new Date();
     const since = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
 
     const [appointments, conversationsCount, patientsTotal, treatmentSignals] = await Promise.all([
-      this.safe(
-        () =>
-          prisma.appointment.findMany({
-            where: {
-              practiceId,
-              start: { gte: since },
-            },
-            select: {
-              id: true,
-              status: true,
-              start: true,
-              source: true,
-              patientId: true,
-            },
-          }),
-        [] as Array<{
-          id: string;
-          status: string;
-          start: Date;
-          source: string;
-          patientId: string | null;
-        }>,
-      ),
-      this.safe(
-        () => prisma.conversation.count({ where: { practiceId, createdAt: { gte: since } } }),
-        0,
-      ),
-      this.safe(() => prisma.patient.count({ where: { practiceId } }), 0),
-      this.safe(
-        () =>
-          prisma.callTranscript.findMany({
-            where: {
-              practiceId,
-              createdAt: { gte: since },
-              treatmentAcceptance: { not: null },
-            },
-            select: { treatmentAcceptance: true },
-          }),
-        [] as Array<{ treatmentAcceptance: boolean | null }>,
-      ),
+      prisma.appointment.findMany({
+        where: { practiceId, start: { gte: since } },
+        select: { id: true, status: true, start: true, source: true, patientId: true },
+      }),
+      prisma.conversation.count({ where: { practiceId, createdAt: { gte: since } } }),
+      prisma.patient.count({ where: { practiceId } }),
+      prisma.callTranscript.findMany({
+        where: {
+          practiceId,
+          createdAt: { gte: since },
+          treatmentAcceptance: { not: null },
+        },
+        select: { treatmentAcceptance: true },
+      }),
     ]);
 
     const noShows = appointments.filter((a) => a.status === 'no_show').length;
@@ -1049,8 +1015,6 @@ export class AnalyticsService {
         conversationsInRange: 34,
         patientsTotal: 96,
       };
-
-      syntheticPhase1Metrics.set(practiceId, seededSynthetic);
 
       return {
         ok: true,

@@ -30,15 +30,20 @@ spec:
                 configMapKeyRef:
                   name: careloop-config
                   key: API_URL
+            - name: API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: careloop-config
+                  key: API_URL
             - name: PORT
-              value: "3000"
+              value: '3000'
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
+              memory: '256Mi'
+              cpu: '100m'
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: '512Mi'
+              cpu: '500m'
           securityContext:
             runAsNonRoot: true
             runAsUser: 10001
@@ -49,13 +54,13 @@ spec:
                 - ALL
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health/live
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 5

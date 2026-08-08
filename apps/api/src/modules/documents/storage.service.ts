@@ -6,9 +6,11 @@ import {
   GetObjectCommand,
   CreateBucketCommand,
   HeadBucketCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { storageConfig } from '../../config/storage';
+import { createHash } from 'node:crypto';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -59,12 +61,15 @@ export class StorageService implements OnModuleInit {
   async getPresignedUploadUrl(
     key: string,
     contentType: string,
+    contentLength: number,
     ttlSeconds = storageConfig.signedUrlTtl,
   ): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: storageConfig.bucket,
       Key: key,
       ContentType: contentType,
+      ContentLength: contentLength,
+      ServerSideEncryption: 'AES256',
     });
     return getSignedUrl(this.client, command, { expiresIn: ttlSeconds });
   }
@@ -91,5 +96,27 @@ export class StorageService implements OnModuleInit {
    */
   async deleteObject(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: key }));
+  }
+
+  async verifyObject(
+    key: string,
+    expected: { sizeBytes: number; mimeType: string; checksumSha256: string },
+  ): Promise<boolean> {
+    const head = await this.client.send(
+      new HeadObjectCommand({ Bucket: storageConfig.bucket, Key: key }),
+    );
+    if (head.ContentLength !== expected.sizeBytes || head.ContentType !== expected.mimeType) {
+      return false;
+    }
+
+    const object = await this.client.send(
+      new GetObjectCommand({ Bucket: storageConfig.bucket, Key: key }),
+    );
+    if (!object.Body) return false;
+    const digest = createHash('sha256');
+    for await (const chunk of object.Body as AsyncIterable<Uint8Array>) {
+      digest.update(chunk);
+    }
+    return digest.digest('hex') === expected.checksumSha256.toLowerCase();
   }
 }

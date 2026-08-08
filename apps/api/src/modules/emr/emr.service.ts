@@ -77,6 +77,34 @@ export class EmrService {
     });
   }
 
+  private async assertClinicalReferences(
+    actor: EmrActor,
+    patientId: string,
+    refs: { appointmentId?: string; providerId?: string },
+  ): Promise<void> {
+    const [appointment, provider] = await Promise.all([
+      refs.appointmentId
+        ? prisma.appointment.findFirst({
+            where: { id: refs.appointmentId, practiceId: actor.practiceId },
+            select: { id: true, patientId: true },
+          })
+        : Promise.resolve(null),
+      refs.providerId
+        ? prisma.provider.findFirst({
+            where: { id: refs.providerId, practiceId: actor.practiceId, isActive: true },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+    ]);
+
+    if (refs.appointmentId && (!appointment || appointment.patientId !== patientId)) {
+      throw new BadRequestException('Appointment is not valid for this patient and practice');
+    }
+    if (!provider) {
+      throw new BadRequestException('Provider is not valid for this practice');
+    }
+  }
+
   // ── Encounters ───────────────────────────────────────────────────────────
   async listEncounters(actor: EmrActor, patientId: string) {
     await this.assertPatientInPractice(actor, patientId);
@@ -93,6 +121,10 @@ export class EmrService {
     idempotencyKey?: string,
   ) {
     await this.assertPatientInPractice(actor, patientId);
+    await this.assertClinicalReferences(actor, patientId, {
+      appointmentId: dto.appointmentId,
+      providerId: dto.providerId,
+    });
 
     if (idempotencyKey) {
       const cached = await this.idempotency.claim(idempotencyKey);
@@ -131,6 +163,10 @@ export class EmrService {
   async updateEncounter(actor: EmrActor, id: string, dto: UpdateEncounterDto) {
     const existing = await prisma.encounter.findUnique({ where: { id } });
     this.assertSamePractice(actor, existing, 'Encounter');
+    await this.assertClinicalReferences(actor, existing!.patientId, {
+      appointmentId: dto.appointmentId,
+      providerId: dto.providerId,
+    });
     if (existing!.status !== 'draft') {
       throw new BadRequestException('A signed encounter is immutable; create an amendment instead');
     }
@@ -565,6 +601,7 @@ export class EmrService {
 
   async createTreatmentPlan(actor: EmrActor, patientId: string, dto: CreateTreatmentPlanDto) {
     await this.assertPatientInPractice(actor, patientId);
+    await this.assertClinicalReferences(actor, patientId, { providerId: dto.providerId });
     const items = dto.items ?? [];
     const plan = await prisma.treatmentPlan.create({
       data: {
@@ -607,6 +644,9 @@ export class EmrService {
   async updateTreatmentPlan(actor: EmrActor, id: string, dto: UpdateTreatmentPlanDto) {
     const existing = await prisma.treatmentPlan.findUnique({ where: { id } });
     this.assertSamePractice(actor, existing, 'TreatmentPlan');
+    await this.assertClinicalReferences(actor, existing!.patientId, {
+      providerId: dto.providerId,
+    });
     const plan = await prisma.treatmentPlan.update({
       where: { id },
       data: {

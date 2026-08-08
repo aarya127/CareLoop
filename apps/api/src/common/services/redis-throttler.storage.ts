@@ -3,6 +3,28 @@ import type { ThrottlerStorage } from '@nestjs/throttler';
 import type { ThrottlerStorageRecord } from '@nestjs/throttler/dist/throttler-storage-record.interface';
 import { getRedisClient } from '../../config/redis';
 
+const INCREMENT_SCRIPT = `
+local blockTtl = redis.call('PTTL', KEYS[2])
+if blockTtl > 0 then
+  return { tonumber(ARGV[2]) + 1, 0, 1, blockTtl }
+end
+
+local hits = redis.call('INCR', KEYS[1])
+if hits == 1 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[1])
+end
+local hitTtl = math.max(redis.call('PTTL', KEYS[1]), 0)
+
+if hits > tonumber(ARGV[2]) then
+  local duration = tonumber(ARGV[3])
+  if duration <= 0 then duration = tonumber(ARGV[1]) end
+  redis.call('SET', KEYS[2], '1', 'PX', duration, 'NX')
+  return { hits, hitTtl, 1, math.max(redis.call('PTTL', KEYS[2]), 0) }
+end
+
+return { hits, hitTtl, 0, 0 }
+`;
+
 /**
  * Redis-backed throttler storage for @nestjs/throttler v6.
  *
@@ -26,43 +48,25 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
     const hitKey = `throttler:${throttlerName}:${key}`;
     const blockKey = `throttler:block:${throttlerName}:${key}`;
 
-    // Check if the client is currently in a block window
-    const blockTtlMs = await redis.pttl(blockKey);
-    if (blockTtlMs > 0) {
-      return {
-        totalHits: limit + 1,
-        timeToExpire: 0,
-        isBlocked: true,
-        timeToBlockExpire: blockTtlMs,
-      };
-    }
-
-    // Increment hit counter
-    const hits = await redis.incr(hitKey);
-
-    // Set TTL only on first hit (INCR on a new key returns 1)
-    if (hits === 1) {
-      await redis.pexpire(hitKey, ttl);
-    }
-
-    const timeToExpireMs = Math.max(await redis.pttl(hitKey), 0);
-
-    if (hits > limit) {
-      // Activate block window (only set once — NX prevents overwrite)
-      await redis.set(blockKey, '1', 'PX', blockDuration, 'NX');
-      return {
-        totalHits: hits,
-        timeToExpire: timeToExpireMs,
-        isBlocked: true,
-        timeToBlockExpire: blockDuration,
-      };
-    }
+    // One Lua operation makes INCR + expiry + blocking atomic. The previous
+    // multi-command sequence could leave an immortal counter if the process
+    // died after INCR but before PEXPIRE.
+    const result = (await redis.eval(
+      INCREMENT_SCRIPT,
+      2,
+      hitKey,
+      blockKey,
+      ttl,
+      limit,
+      blockDuration,
+    )) as [number, number, number, number];
+    const [hits, timeToExpireMs, blocked, timeToBlockExpire] = result.map(Number);
 
     return {
       totalHits: hits,
       timeToExpire: timeToExpireMs,
-      isBlocked: false,
-      timeToBlockExpire: 0,
+      isBlocked: blocked === 1,
+      timeToBlockExpire,
     };
   }
 }

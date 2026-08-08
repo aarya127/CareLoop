@@ -17,13 +17,24 @@ export function encrypt(plain: string): string {
 }
 
 export function decrypt(encoded: string): string {
-  const buf = Buffer.from(encoded, 'base64');
+  const versioned = encoded.startsWith('v1:');
+  const payload = versioned ? encoded.slice(3) : encoded;
+  const buf = Buffer.from(payload, 'base64');
+  if (buf.length < 29) {
+    if (!versioned) return encoded; // legacy plaintext insurance value
+    throw new Error('Encrypted value is malformed');
+  }
   const iv = buf.subarray(0, 12);
   const tag = buf.subarray(12, 28);
   const data = buf.subarray(28);
   const key = getKey();
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(tag);
-  const dec = Buffer.concat([decipher.update(data), decipher.final()]);
-  return dec.toString('utf8');
+  try {
+    const dec = Buffer.concat([decipher.update(data), decipher.final()]);
+    return dec.toString('utf8');
+  } catch (error) {
+    if (!versioned) return encoded; // pre-encryption legacy insurance value
+    throw error;
+  }
 }

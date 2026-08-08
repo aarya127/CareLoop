@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/server';
 import { listCalendars } from '@/lib/google/calendar';
+import { routeError } from '@/lib/http/route-error';
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,10 +11,10 @@ export async function GET(req: NextRequest) {
       id: c.id,
       summary: c.summary,
       timeZone: c.timeZone,
-      accessRole: (c as any).accessRole,
+      accessRole: c.accessRole,
     }));
     return NextResponse.json({ ok: true, calendars: mapped });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || 'failed' }, { status: 500 });
+  } catch (error: unknown) {
+    return routeError(error);
   }
 }

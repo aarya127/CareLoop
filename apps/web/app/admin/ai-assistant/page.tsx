@@ -261,16 +261,18 @@ export default function AdminAIAssistantPage() {
   };
 
   const overtakeCall = async (callId: string) => {
-    await fetch('/api/voice/overtake/control', {
+    const requested = await fetch('/api/voice/overtake/control', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ callId, action: 'handoff.request' }),
     });
-    await fetch('/api/voice/overtake/control', {
+    if (!requested.ok) return;
+    const accepted = await fetch('/api/voice/overtake/control', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ callId, action: 'handoff.accept' }),
     });
+    if (!accepted.ok) return;
 
     setManualOwners((prev) => ({ ...prev, [callId]: true }));
     setActiveCalls((prev) =>
@@ -279,11 +281,12 @@ export default function AdminAIAssistantPage() {
   };
 
   const resumeAiControl = async (callId: string) => {
-    await fetch('/api/voice/overtake/control', {
+    const response = await fetch('/api/voice/overtake/control', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ callId, action: 'handoff.resume_ai' }),
     });
+    if (!response.ok) return;
 
     setManualOwners((prev) => ({ ...prev, [callId]: false }));
     setActiveCalls((prev) =>
@@ -292,11 +295,12 @@ export default function AdminAIAssistantPage() {
   };
 
   const endActiveCall = async (callId: string) => {
-    await fetch('/api/voice/overtake/control', {
+    const response = await fetch('/api/voice/overtake/control', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ callId, action: 'call.end' }),
     });
+    if (!response.ok) return;
 
     setActiveCalls((prev) => prev.filter((call) => call.id !== callId));
   };

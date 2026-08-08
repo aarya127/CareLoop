@@ -14,13 +14,14 @@ import {
 import { PatientsService } from './patients.service';
 import { RequireRole } from '../../common/guards';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
+import { CreatePatientDto, ListPatientsQueryDto, UpdatePatientDto } from './dto';
 
 @Controller('patients')
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
   @Get()
-  findAll(@Query() query: any, @Req() req: any) {
+  findAll(@Query() query: ListPatientsQueryDto, @Req() req: any) {
     return this.patientsService.findAll(req.user.practiceId, query);
   }
 
@@ -81,7 +82,7 @@ export class PatientsController {
   }
 
   @Post()
-  async create(@Body() dto: any, @Req() req: any) {
+  async create(@Body() dto: CreatePatientDto, @Req() req: any) {
     const created = await this.patientsService.create(req.user.practiceId, dto, req.user.id);
     if (!created) {
       throw new BadRequestException('Unable to create patient');
@@ -90,7 +91,7 @@ export class PatientsController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+  async update(@Param('id') id: string, @Body() dto: UpdatePatientDto, @Req() req: any) {
     const updated = await this.patientsService.update(req.user.practiceId, id, dto, req.user.id);
     if (!updated) {
       throw new BadRequestException('Unable to update patient');

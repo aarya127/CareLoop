@@ -14,6 +14,7 @@ import { IntakeService } from './intake.service';
 import { Public } from '../../common/decorators';
 import { RequireRole } from '../../common/guards';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
+import { CreateDraftFromLinkDto, UpdateDraftDto } from './dto';
 
 /**
  * Intake draft API.
@@ -39,8 +40,8 @@ export class IntakeController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('drafts')
-  createDraft(@Body() body: any) {
-    return this.intakeService.createDraftFromLink(String(body?.linkToken ?? ''));
+  createDraft(@Body() body: CreateDraftFromLinkDto) {
+    return this.intakeService.createDraftFromLink(body.linkToken);
   }
 
   /** GET /intake/drafts/:id — fetch a draft */
@@ -57,7 +58,7 @@ export class IntakeController {
   updateDraft(
     @Param('id') id: string,
     @Headers('x-intake-token') accessToken: string,
-    @Body() dto: any,
+    @Body() dto: UpdateDraftDto,
   ) {
     return this.intakeService.updateDraft(id, accessToken, dto);
   }

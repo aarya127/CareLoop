@@ -13,6 +13,7 @@ import {
 import { DocumentsService } from './documents.service';
 import { RequireRole } from '../../common/guards';
 import { MANAGEMENT_ROLES } from '../auth/auth.constants';
+import { ConfirmDocumentUploadDto, RequestDocumentUploadDto } from './dto';
 
 @Controller('documents')
 export class DocumentsController {
@@ -31,7 +32,7 @@ export class DocumentsController {
    * practiceId + uploader are taken from the authenticated session.
    */
   @Post('upload-url')
-  getUploadUrl(@Body() dto: any, @Req() req: any) {
+  getUploadUrl(@Body() dto: RequestDocumentUploadDto, @Req() req: any) {
     return this.documentsService.getUploadUrl(req.user.practiceId, {
       ...dto,
       uploadedBy: req.user.id,
@@ -45,7 +46,7 @@ export class DocumentsController {
    */
   @Post(':id/confirm')
   @HttpCode(HttpStatus.OK)
-  confirmUpload(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+  confirmUpload(@Param('id') id: string, @Body() dto: ConfirmDocumentUploadDto, @Req() req: any) {
     return this.documentsService.confirmUpload(req.user.practiceId, id, {
       ...dto,
       actorUserId: req.user.id,
@@ -71,7 +72,7 @@ export class DocumentsController {
 
   /** Legacy POST /documents — alias for upload-url */
   @Post()
-  create(@Body() dto: any, @Req() req: any) {
+  create(@Body() dto: RequestDocumentUploadDto, @Req() req: any) {
     return this.documentsService.getUploadUrl(req.user.practiceId, {
       ...dto,
       uploadedBy: req.user.id,

@@ -16,48 +16,70 @@ generator client {
 // ============================================================================
 
 model Practice {
-  id                String                    @id @default(cuid())
-  name              String
-  address           String?
-  timeZone          String                    @default("America/New_York")
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  timeZone  String   @default("America/New_York")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  users             User[]
-  patients          Patient[]
-  appointments      Appointment[]
-  providers         Provider[]
-  rooms             Room[]
-  providerSchedules ProviderSchedule[]
+  users              User[]
+  patients           Patient[]
+  appointments       Appointment[]
+  providers          Provider[]
+  rooms              Room[]
+  providerSchedules  ProviderSchedule[]
   availabilityBlocks AvailabilityBlock[]
-  appointmentHolds  AppointmentHold[]
-  googleConnections GoogleCalendarConnection[]
-  callTranscripts   CallTranscript[]
-  practiceKpis      PracticeKPI[]
-  conversations     Conversation[]
-  promptVersions    AIPromptVersion[]
-  alertThresholds   AlertThreshold[]
-  routingPolicies   RoutingPolicy[]
-  intakeSubmissions IntakeSubmission[]
-  intakeDrafts      IntakeDraft[]
-  treatmentRecords  TreatmentRecord[]
-  invoices          Invoice[]
-  payments          PaymentRecord[]
-  documents         Document[]
-  reminders         Reminder[]
-  sensitiveNotes    PatientSensitiveNote[]
-  encounters        Encounter[]
-  allergies         Allergy[]
-  medications       Medication[]
-  conditions        Condition[]
-  toothChartEntries ToothChartEntry[]
-  periodontalExams  PeriodontalExam[]
-  treatmentPlans    TreatmentPlan[]
-  invitations       Invitation[]
-  claims            Claim[]
-  auditLogs         AuditLog[]
+  appointmentHolds   AppointmentHold[]
+  googleConnections  GoogleCalendarConnection[]
+  callTranscripts    CallTranscript[]
+  practiceKpis       PracticeKPI[]
+  conversations      Conversation[]
+  promptVersions     AIPromptVersion[]
+  alertThresholds    AlertThreshold[]
+  routingPolicies    RoutingPolicy[]
+  intakeSubmissions  IntakeSubmission[]
+  intakeDrafts       IntakeDraft[]
+  treatmentRecords   TreatmentRecord[]
+  invoices           Invoice[]
+  payments           PaymentRecord[]
+  documents          Document[]
+  reminders          Reminder[]
+  sensitiveNotes     PatientSensitiveNote[]
+  encounters         Encounter[]
+  allergies          Allergy[]
+  medications        Medication[]
+  conditions         Condition[]
+  toothChartEntries  ToothChartEntry[]
+  periodontalExams   PeriodontalExam[]
+  treatmentPlans     TreatmentPlan[]
+  invitations        Invitation[]
+  claims             Claim[]
+  auditLogs          AuditLog[]
 
   @@index([name])
+}
+
+model PatientMedicalHistory {
+  patientId String   @id
+  history   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model PatientRecordSection {
+  patientId String
+  section   String
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@id([patientId, section])
+  @@map("PatientRecordSectionsKv")
 }
 
 /// Team invitations — an admin/manager invites someone by email to join their
@@ -77,7 +99,7 @@ model Invitation {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   @@index([practiceId, status])
   @@index([email])
@@ -87,23 +109,23 @@ model Invitation {
 /// adjudication lifecycle (draft → submitted → accepted/rejected/paid) with a
 /// full status-event trail and rejection codes.
 model Claim {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   practiceId          String
   patientId           String
-  insuranceId         String?  // PatientInsurance used (soft ref — no FK)
+  insuranceId         String? // PatientInsurance used (soft ref — no FK)
   treatmentId         String?
   invoiceId           String?
-  claimNumber         String?  // external payer/clearinghouse claim number
-  status              String   @default("draft") // draft|submitted|accepted|rejected|paid|void
-  totalChargedCents   Int      @default(0)
+  claimNumber         String? // external payer/clearinghouse claim number
+  status              String    @default("draft") // draft|submitted|accepted|rejected|paid|void
+  totalChargedCents   Int       @default(0)
   approvedAmountCents Int?
   rejectionCode       String?
   notes               String?
   submittedAt         DateTime?
   resolvedAt          DateTime?
   createdBy           String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   practice Practice           @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   patient  Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -133,7 +155,7 @@ model ClaimStatusEvent {
   id          String   @id @default(cuid())
   claimId     String
   status      String
-  code        String?  // rejection / adjudication code
+  code        String? // rejection / adjudication code
   note        String?
   actorUserId String?
   createdAt   DateTime @default(now())
@@ -176,18 +198,18 @@ model User {
   uploadedDocuments  Document[]
   sensitiveNotes     PatientSensitiveNote[]
 
-  practice           Practice                   @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   @@index([practiceId])
   @@index([status, lockedUntil])
 }
 
 model Role {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
   description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   users       UserRole[]
 }
 
@@ -197,8 +219,8 @@ model UserRole {
   assignedBy String?
   assignedAt DateTime @default(now())
 
-  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role       Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user           User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
   assignedByUser User? @relation("RoleAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
 
   @@id([userId, roleId])
@@ -206,22 +228,22 @@ model UserRole {
 }
 
 model Session {
-  id                 String    @id @default(cuid())
-  userId             String
-  sessionTokenHash   String    @unique
-  csrfSecretHash     String
-  createdAt          DateTime  @default(now())
-  lastSeenAt         DateTime  @default(now())
-  expiresAt          DateTime
-  idleExpiresAt      DateTime
-  rotatedAt          DateTime?
-  revokedAt          DateTime?
-  revokeReason       String?
-  createdByIp        String?
+  id                     String    @id @default(cuid())
+  userId                 String
+  sessionTokenHash       String    @unique
+  csrfSecretHash         String
+  createdAt              DateTime  @default(now())
+  lastSeenAt             DateTime  @default(now())
+  expiresAt              DateTime
+  idleExpiresAt          DateTime
+  rotatedAt              DateTime?
+  revokedAt              DateTime?
+  revokeReason           String?
+  createdByIp            String?
   createdByUserAgentHash String?
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  auditLogs  AuditLog[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
 
   @@index([userId, revokedAt])
   @@index([expiresAt])
@@ -245,29 +267,29 @@ model ServiceAccount {
 }
 
 model AuditLog {
-  id                   BigInt   @id @default(autoincrement())
+  id                    BigInt   @id @default(autoincrement())
   // Null is reserved for platform-level events that genuinely have no tenant
   // context (for example, a login attempt for an unknown email address).
   // Every tenant-originated event must set this field.
-  practiceId           String?
-  eventTime            DateTime @default(now())
-  actorUserId          String?
+  practiceId            String?
+  eventTime             DateTime @default(now())
+  actorUserId           String?
   actorServiceAccountId String?
-  eventType            String
-  authMethod           String?
-  outcome              String
-  targetUserId         String?
-  sessionId            String?
-  ip                   String?
-  userAgentHash        String?
-  requestId            String?
-  metadata             Json     @default("{}")
+  eventType             String
+  authMethod            String?
+  outcome               String
+  targetUserId          String?
+  sessionId             String?
+  ip                    String?
+  userAgentHash         String?
+  requestId             String?
+  metadata              Json     @default("{}")
 
-  actorUser           User?            @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
-  actorServiceAccount ServiceAccount?  @relation(fields: [actorServiceAccountId], references: [id], onDelete: SetNull)
-  targetUser          User?            @relation("AuditTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
-  session             Session?         @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  practice            Practice?        @relation(fields: [practiceId], references: [id], onDelete: SetNull)
+  actorUser           User?           @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorServiceAccount ServiceAccount? @relation(fields: [actorServiceAccountId], references: [id], onDelete: SetNull)
+  targetUser          User?           @relation("AuditTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  session             Session?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  practice            Practice?       @relation(fields: [practiceId], references: [id], onDelete: SetNull)
 
   @@index([practiceId, eventTime])
   @@index([eventTime])
@@ -277,15 +299,15 @@ model AuditLog {
 }
 
 model AuthIdentity {
-  id                String   @id @default(cuid())
-  userId            String
-  provider          String
-  providerSubject   String
-  providerEmail     String?
-  providerEmailVerified Boolean @default(false)
-  linkedAt          DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  userId                String
+  provider              String
+  providerSubject       String
+  providerEmail         String?
+  providerEmailVerified Boolean  @default(false)
+  linkedAt              DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -298,24 +320,24 @@ model AuthIdentity {
 // ============================================================================
 
 model Patient {
-  id          String   @id @default(cuid())
-  practiceId  String
-  firstName   String
-  lastName    String
-  dateOfBirth DateTime?
-  phoneE164   String?
-  patientType String   @default("existing")
-  gender      String?
+  id                           String    @id @default(cuid())
+  practiceId                   String
+  firstName                    String
+  lastName                     String
+  dateOfBirth                  DateTime?
+  phoneE164                    String?
+  patientType                  String    @default("existing")
+  gender                       String?
   emergencyContactName         String?
   emergencyContactRelationship String?
   emergencyContactPhone        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
 
-  practice         Practice             @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  insuranceRecords PatientInsurance[]
-  transcripts      CallTranscript[]
-  participants     Participant[]
+  practice          Practice               @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  insuranceRecords  PatientInsurance[]
+  transcripts       CallTranscript[]
+  participants      Participant[]
   intakeSubmissions IntakeSubmission[]
   intakeDrafts      IntakeDraft[]
   treatmentRecords  TreatmentRecord[]
@@ -332,23 +354,25 @@ model Patient {
   periodontalExams  PeriodontalExam[]
   treatmentPlans    TreatmentPlan[]
   claims            Claim[]
+  medicalHistory    PatientMedicalHistory?
+  recordSections    PatientRecordSection[]
 
-  @@index([practiceId, lastName, firstName])
   @@unique([practiceId, phoneE164])
+  @@index([practiceId, lastName, firstName])
 }
 
 model PatientInsurance {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   patientId       String
   payerName       String
   planName        String?
   memberIdEnc     String
-  memberIdHash    String?  // SHA-256 of raw member ID for indexed lookup
+  memberIdHash    String? // SHA-256 of raw member ID for indexed lookup
   groupNumberEnc  String?
   coverageSummary Json?
-  active          Boolean  @default(true)
+  active          Boolean   @default(true)
   verifiedAt      DateTime?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -361,39 +385,39 @@ model PatientInsurance {
 // ============================================================================
 
 model Provider {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   practiceId String
-  name      String
-  license   String?
-  specialty String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  name       String
+  license    String?
+  specialty  String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  practice         Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  appointments     Appointment[]
-  schedules        ProviderSchedule[]
+  practice           Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  appointments       Appointment[]
+  schedules          ProviderSchedule[]
   availabilityBlocks AvailabilityBlock[]
-  holds            AppointmentHold[]
-  treatmentRecords TreatmentRecord[]
+  holds              AppointmentHold[]
+  treatmentRecords   TreatmentRecord[]
 
   @@unique([practiceId, name])
   @@index([practiceId, isActive])
 }
 
 model Room {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   practiceId String
-  name      String
-  capacity  Int      @default(1)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  name       String
+  capacity   Int      @default(1)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  practice            Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  appointments        Appointment[]
-  availabilityBlocks  AvailabilityBlock[]
-  appointmentHolds    AppointmentHold[]
+  practice           Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  appointments       Appointment[]
+  availabilityBlocks AvailabilityBlock[]
+  appointmentHolds   AppointmentHold[]
 
   @@unique([practiceId, name])
   @@index([practiceId, isActive])
@@ -404,7 +428,7 @@ model Room {
 // ============================================================================
 
 model Appointment {
-  id            String            @id @default(cuid())
+  id            String   @id @default(cuid())
   practiceId    String
   userId        String
   providerId    String
@@ -413,29 +437,29 @@ model Appointment {
   notes         String?
   start         DateTime
   end           DateTime
-  timeZone      String            @default("America/New_York")
+  timeZone      String   @default("America/New_York")
   patientId     String?
   procedureCode String?
   googleEventId String?
   calendarId    String?
-  status        String            @default("confirmed")
-  source        String            @default("manual")
-  createdBy     String            @default("system")
+  status        String   @default("confirmed")
+  source        String   @default("manual")
+  createdBy     String   @default("system")
   extended      Json?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Restrict)
-  room            Room?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  practice        Practice         @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        Provider         @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  room            Room?            @relation(fields: [roomId], references: [id], onDelete: SetNull)
   callTranscripts CallTranscript[]
   reminders       Reminder[]
 
+  @@unique([practiceId, calendarId, googleEventId])
   @@index([practiceId, patientId, start])
   @@index([practiceId, userId, start])
   @@index([practiceId, providerId, start])
-  @@unique([practiceId, calendarId, googleEventId])
 }
 
 // ============================================================================
@@ -443,20 +467,20 @@ model Appointment {
 // ============================================================================
 
 model GoogleCalendarConnection {
-  id             String   @id @default(cuid())
-  practiceId     String
-  userId         String
-  provider       String   @default("google")
-  calendarId     String
-  accessToken    String
-  refreshToken   String
-  tokenExpiry    DateTime
-  syncToken      String?
-  resourceId     String?
-  channelId      String?
-  channelExpiry  DateTime?
-  timeZone       String
-  color          String?
+  id            String    @id @default(cuid())
+  practiceId    String
+  userId        String
+  provider      String    @default("google")
+  calendarId    String
+  accessToken   String
+  refreshToken  String
+  tokenExpiry   DateTime
+  syncToken     String?
+  resourceId    String?
+  channelId     String?
+  channelExpiry DateTime?
+  timeZone      String
+  color         String?
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -470,20 +494,20 @@ model GoogleCalendarConnection {
 // ============================================================================
 
 model ProviderSchedule {
-  id         String   @id @default(cuid())
-  practiceId String
-  providerId String
-  dayOfWeek  Int
-  startMin   Int
-  endMin     Int
+  id            String    @id @default(cuid())
+  practiceId    String
+  providerId    String
+  dayOfWeek     Int
+  startMin      Int
+  endMin        Int
   effectiveFrom DateTime?
-  effectiveTo DateTime?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  effectiveTo   DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  provider  Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, dayOfWeek, startMin, endMin, effectiveFrom])
   @@index([practiceId, providerId])
@@ -503,9 +527,9 @@ model AvailabilityBlock {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  practice  Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  provider  Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  room      Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  practice Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  room     Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([practiceId, start, end])
   @@index([providerId, start, end])
@@ -525,9 +549,9 @@ model AppointmentHold {
   reason     String?
   createdAt  DateTime @default(now())
 
-  practice  Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  provider  Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  room      Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  practice Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  room     Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([practiceId, start, end, expiresAt])
   @@index([providerId, start, end])
@@ -538,11 +562,11 @@ model AppointmentHold {
 // ============================================================================
 
 model CallTranscript {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   practiceId          String
   patientId           String?
   appointmentId       String?
-  callSid             String   @unique
+  callSid             String    @unique
   orchestrator        String
   startedAt           DateTime
   endedAt             DateTime?
@@ -550,22 +574,22 @@ model CallTranscript {
   transcriptEmbedding String?
   sentimentScore      Float?
   treatmentAcceptance Boolean?
-  handoffOccurred     Boolean  @default(false)
-  createdAt           DateTime @default(now())
+  handoffOccurred     Boolean   @default(false)
+  createdAt           DateTime  @default(now())
 
-  practice     Practice              @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  patient      Patient?              @relation(fields: [patientId], references: [id], onDelete: SetNull)
-  appointment  Appointment?          @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  segments     CallTranscriptSegment[]
-  analytics    AnalyticsResult?
-  kpiRows      PracticeKPI[]
+  practice    Practice                @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient     Patient?                @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  appointment Appointment?            @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  segments    CallTranscriptSegment[]
+  analytics   AnalyticsResult?
+  kpiRows     PracticeKPI[]
 
   @@index([practiceId, patientId, createdAt])
   @@index([practiceId, appointmentId])
 }
 
 model CallTranscriptSegment {
-  id           Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   transcriptId String
   speaker      String
   text         String
@@ -605,7 +629,7 @@ model PracticeKPI {
   transcriptId String?
   createdAt    DateTime @default(now())
 
-  practice   Practice       @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  practice   Practice        @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   transcript CallTranscript? @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
 
   @@index([practiceId, kpiDate])
@@ -659,12 +683,12 @@ model RoutingPolicy {
 // ============================================================================
 
 model Conversation {
-  id         String   @id @default(cuid())
-  practiceId String
+  id           String        @id @default(cuid())
+  practiceId   String
   participants Participant[]
-  messages   Message[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  messages     Message[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
@@ -705,9 +729,9 @@ model IntakeSubmission {
   id          String    @id @default(cuid())
   practiceId  String
   patientId   String?
-  formType    String    // "new_patient", "medical_history", "consent", etc.
+  formType    String // "new_patient", "medical_history", "consent", etc.
   status      String    @default("pending") // pending, reviewed, archived
-  data        Json      // raw form fields
+  data        Json // raw form fields
   submittedAt DateTime  @default(now())
   reviewedAt  DateTime?
   reviewedBy  String?
@@ -761,15 +785,15 @@ model TreatmentRecord {
   notes         String?
   status        String    @default("planned") // planned, in_progress, completed, cancelled
   completedAt   DateTime?
-  createdBy     String?   // userId of the clinician who created this record
-  updatedBy     String?   // userId of the last person to update this record
+  createdBy     String? // userId of the clinician who created this record
+  updatedBy     String? // userId of the last person to update this record
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  practice    Practice     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  provider    Provider?    @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  invoice     Invoice?
+  practice Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  invoice  Invoice?
 
   @@index([practiceId, patientId, createdAt])
   @@index([practiceId, status, createdAt])
@@ -788,7 +812,7 @@ model Invoice {
   payerType        String    @default("patient") // patient | insurance
   status           String    @default("draft") // draft, sent, paid, overdue, void
   totalAmountCents Int
-  lineItems        Json?     // [{ description, procedureCode?, qty, unitPriceCents }]
+  lineItems        Json? // [{ description, procedureCode?, qty, unitPriceCents }]
   notes            String?
   dueDate          DateTime?
   issuedAt         DateTime?
@@ -798,8 +822,8 @@ model Invoice {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  practice  Practice        @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  practice  Practice         @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient   Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
   treatment TreatmentRecord? @relation(fields: [treatmentId], references: [id], onDelete: SetNull)
   payments  PaymentRecord[]
 
@@ -817,7 +841,7 @@ model PaymentRecord {
   invoiceId      String
   patientId      String
   payerType      String    @default("patient") // patient | insurance
-  method         String    // card | cash | insurance | check | ach
+  method         String // card | cash | insurance | check | ach
   amountCents    Int
   status         String    @default("pending") // pending, completed, refunded, failed
   transactionRef String?
@@ -830,10 +854,10 @@ model PaymentRecord {
   invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
+  @@unique([practiceId, transactionRef])
   @@index([practiceId, patientId, createdAt])
   @@index([practiceId, status, createdAt])
   @@index([invoiceId])
-  @@unique([practiceId, transactionRef])
 }
 
 // ============================================================================
@@ -853,20 +877,20 @@ enum DocumentCategory {
 }
 
 model Document {
-  id               String   @id @default(cuid())
-  practiceId       String
-  patientId        String?
-  uploadedBy       String?
-  category         DocumentCategory
-  fileName         String
-  mimeType         String
-  storageKey       String   // S3 key — never expose directly
-  sizeBytes        Int?
-  checksumSha256   String?  // hex SHA-256 of file bytes, client-supplied
-  status           String   @default("uploading") // uploading, active, deleted
-  uploadedAt       DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id             String           @id @default(cuid())
+  practiceId     String
+  patientId      String?
+  uploadedBy     String?
+  category       DocumentCategory
+  fileName       String
+  mimeType       String
+  storageKey     String // S3 key — never expose directly
+  sizeBytes      Int?
+  checksumSha256 String? // hex SHA-256 of file bytes, client-supplied
+  status         String           @default("uploading") // uploading, active, deleted
+  uploadedAt     DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   patient  Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
@@ -886,8 +910,8 @@ model Reminder {
   practiceId    String
   patientId     String
   appointmentId String?
-  channel       String    // "sms" | "email" | "push"
-  type          String    // "appointment_reminder" | "recall" | "payment_due"
+  channel       String // "sms" | "email" | "push"
+  type          String // "appointment_reminder" | "recall" | "payment_due"
   status        String    @default("pending") // pending, sent, failed, cancelled
   scheduledAt   DateTime
   sentAt        DateTime?
@@ -913,8 +937,8 @@ model Reminder {
 
 model WebhookLog {
   id             String    @id @default(cuid())
-  provider       String    // twilio | sendgrid | google_calendar | stripe
-  event          String    // e.g. "inbound_sms", "delivered", "calendar_push"
+  provider       String // twilio | sendgrid | google_calendar | stripe
+  event          String // e.g. "inbound_sms", "delivered", "calendar_push"
   idempotencyKey String    @unique // provider-scoped dedup key
   rawPayload     Json      @default("{}")
   status         String    @default("received") // received | processed | failed | duplicate
@@ -975,24 +999,24 @@ model PatientSensitiveNote {
 // ============================================================================
 
 model Encounter {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   practiceId     String
   patientId      String
   appointmentId  String?
   providerId     String?
-  authorId       String?  // clinician (User id) who wrote the note
-  encounterDate  DateTime @default(now())
-  type           String   @default("exam") // exam, cleaning, consult, procedure, followup
+  authorId       String? // clinician (User id) who wrote the note
+  encounterDate  DateTime  @default(now())
+  type           String    @default("exam") // exam, cleaning, consult, procedure, followup
   chiefComplaint String?
-  subjective     String?  // SOAP: S
-  objective      String?  // SOAP: O
-  assessment     String?  // SOAP: A
-  plan           String?  // SOAP: P
-  status         String   @default("draft") // draft, signed, amended
+  subjective     String? // SOAP: S
+  objective      String? // SOAP: O
+  assessment     String? // SOAP: A
+  plan           String? // SOAP: P
+  status         String    @default("draft") // draft, signed, amended
   signedAt       DateTime?
   signedBy       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -1047,7 +1071,7 @@ model Condition {
   practiceId   String
   patientId    String
   name         String
-  code         String?   // optional ICD/SNOMED code
+  code         String? // optional ICD/SNOMED code
   status       String    @default("active") // active, resolved, chronic
   onsetDate    DateTime?
   resolvedDate DateTime?
@@ -1066,9 +1090,9 @@ model ToothChartEntry {
   id          String   @id @default(cuid())
   practiceId  String
   patientId   String
-  toothNumber Int      // Universal numbering 1-32
+  toothNumber Int // Universal numbering 1-32
   surfaces    String[] // mesial, distal, occlusal, buccal, lingual
-  condition   String   // caries, filling, crown, missing, implant, ...
+  condition   String // caries, filling, crown, missing, implant, ...
   status      String   @default("active") // active, planned, resolved
   notes       String?
   chartedBy   String?
@@ -1132,18 +1156,18 @@ model TreatmentPlan {
 }
 
 model TreatmentPlanItem {
-  id            String   @id @default(cuid())
-  planId        String
-  toothNumber   Int?
-  surface       String?
-  procedureCode String?
-  description   String
-  feeCents      Int      @default(0)
-  status        String   @default("planned") // planned, approved, completed, declined
-  sortOrder     Int      @default(0)
-  treatmentRecordId String?  // set when completed → linked TreatmentRecord
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String   @id @default(cuid())
+  planId            String
+  toothNumber       Int?
+  surface           String?
+  procedureCode     String?
+  description       String
+  feeCents          Int      @default(0)
+  status            String   @default("planned") // planned, approved, completed, declined
+  sortOrder         Int      @default(0)
+  treatmentRecordId String? // set when completed → linked TreatmentRecord
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   plan TreatmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
