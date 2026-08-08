@@ -3,9 +3,14 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 // Shared mock of the global Prisma client. vi.hoisted lets the mock factory and
 // the tests reference the same object.
-const { prismaMock, state } = vi.hoisted(() => {
-  const state: { patient: any; claim: any } = { patient: { id: 'p1' }, claim: null };
+const { prismaMock, state, tx } = vi.hoisted(() => {
+  const state: { patient: any; claim: any; lockedClaim: any } = {
+    patient: { id: 'p1' },
+    claim: null,
+    lockedClaim: null,
+  };
   const tx = {
+    $queryRawUnsafe: vi.fn(async () => (state.lockedClaim ? [state.lockedClaim] : [])),
     claim: {
       create: vi.fn(async ({ data }: any) => ({ id: 'c1', lines: [], events: [], ...data })),
       update: vi.fn(async ({ data }: any) => ({ id: 'c1', lines: [], events: [], ...data })),
@@ -14,6 +19,9 @@ const { prismaMock, state } = vi.hoisted(() => {
   };
   const prismaMock = {
     patient: { findFirst: vi.fn(async () => state.patient) },
+    patientInsurance: { findFirst: vi.fn(async () => ({ id: 'insurance-1' })) },
+    treatmentRecord: { findFirst: vi.fn(async () => ({ id: 'treatment-1' })) },
+    invoice: { findFirst: vi.fn(async () => ({ id: 'invoice-1' })) },
     claim: {
       findFirst: vi.fn(async () => state.claim),
       findMany: vi.fn(async () => []),
@@ -32,6 +40,7 @@ const svc = new ClaimsService();
 beforeEach(() => {
   state.patient = { id: 'p1' };
   state.claim = null;
+  state.lockedClaim = null;
   vi.clearAllMocks();
 });
 
@@ -63,6 +72,17 @@ describe('ClaimsService.create', () => {
       svc.create('practice-A', 'user-1', { patientId: 'p1', lines: [] }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it('rejects a foreign insurance reference', async () => {
+    prismaMock.patientInsurance.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      svc.create('practice-A', 'user-1', {
+        patientId: 'p1',
+        insuranceId: 'insurance-from-B',
+        lines: [{ procedureCode: 'D', chargedCents: 1 }],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
 });
 
 describe('ClaimsService state machine', () => {
@@ -72,36 +92,55 @@ describe('ClaimsService state machine', () => {
   });
 
   it('submit only works from draft', async () => {
-    state.claim = { id: 'c1', status: 'submitted', lines: [], events: [] };
+    state.lockedClaim = { id: 'c1', status: 'submitted', lines: [], events: [] };
     await expect(svc.submit('practice-A', 'c1', 'u1')).rejects.toBeInstanceOf(BadRequestException);
 
-    state.claim = { id: 'c1', status: 'draft', lines: [], events: [] };
+    state.lockedClaim = { id: 'c1', status: 'draft', lines: [], events: [] };
     await expect(svc.submit('practice-A', 'c1', 'u1')).resolves.toMatchObject({
       status: 'submitted',
     });
   });
 
   it('cannot adjudicate a draft claim (must submit first)', async () => {
-    state.claim = { id: 'c1', status: 'draft', lines: [], events: [] };
+    state.lockedClaim = { id: 'c1', status: 'draft', lines: [], events: [] };
     await expect(
       svc.updateStatus('practice-A', 'c1', 'u1', { status: 'accepted' }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('cannot change a terminal (paid) claim', async () => {
-    state.claim = { id: 'c1', status: 'paid', lines: [], events: [] };
+    state.lockedClaim = { id: 'c1', status: 'paid', lines: [], events: [] };
     await expect(
       svc.updateStatus('practice-A', 'c1', 'u1', { status: 'rejected' }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('records an adjudication outcome on a submitted claim', async () => {
-    state.claim = { id: 'c1', status: 'submitted', lines: [], events: [] };
+    state.lockedClaim = {
+      id: 'c1',
+      status: 'submitted',
+      approvedAmountCents: null,
+      lines: [],
+      events: [],
+    };
     await expect(
       svc.updateStatus('practice-A', 'c1', 'u1', {
         status: 'accepted',
         approvedAmountCents: 15300,
       }),
     ).resolves.toMatchObject({ status: 'accepted' });
+  });
+
+  it('locks the claim row before validating a status transition', async () => {
+    state.lockedClaim = { id: 'c1', status: 'draft', approvedAmountCents: null };
+    await expect(
+      svc.updateStatus('practice-A', 'c1', 'u1', { status: 'accepted' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prismaMock.$transaction).toHaveBeenCalledOnce();
+    expect(tx.$queryRawUnsafe).toHaveBeenCalledWith(
+      expect.stringContaining('FOR UPDATE'),
+      'c1',
+      'practice-A',
+    );
   });
 });

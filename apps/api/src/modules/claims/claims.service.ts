@@ -23,6 +23,34 @@ export class ClaimsService {
     });
     if (!patient) throw new NotFoundException(`Patient ${dto.patientId} not found`);
 
+    const [insurance, treatment, invoice] = await Promise.all([
+      dto.insuranceId
+        ? prisma.patientInsurance.findFirst({
+            where: {
+              id: dto.insuranceId,
+              patientId: dto.patientId,
+              patient: { practiceId },
+            },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+      dto.treatmentId
+        ? prisma.treatmentRecord.findFirst({
+            where: { id: dto.treatmentId, patientId: dto.patientId, practiceId },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+      dto.invoiceId
+        ? prisma.invoice.findFirst({
+            where: { id: dto.invoiceId, patientId: dto.patientId, practiceId },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+    ]);
+    if (!insurance) throw new BadRequestException('Insurance is not valid for this patient');
+    if (!treatment) throw new BadRequestException('Treatment is not valid for this patient');
+    if (!invoice) throw new BadRequestException('Invoice is not valid for this patient');
+
     if (!dto.lines?.length) {
       throw new BadRequestException('A claim needs at least one line item');
     }
@@ -75,13 +103,19 @@ export class ClaimsService {
 
   /** draft → submitted. Records a status event. */
   async submit(practiceId: string, id: string, actorUserId: string) {
-    const claim = await this.getOwnedClaim(practiceId, id);
-    if (claim.status !== 'draft') {
-      throw new BadRequestException(
-        `Only draft claims can be submitted (current: ${claim.status})`,
-      );
-    }
     return prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRawUnsafe<Array<{ status: string }>>(
+        `SELECT "status" FROM "Claim" WHERE "id" = $1 AND "practiceId" = $2 FOR UPDATE`,
+        id,
+        practiceId,
+      );
+      const claim = rows[0];
+      if (!claim) throw new NotFoundException(`Claim ${id} not found`);
+      if (claim.status !== 'draft') {
+        throw new BadRequestException(
+          `Only draft claims can be submitted (current: ${claim.status})`,
+        );
+      }
       await tx.claimStatusEvent.create({ data: { claimId: id, status: 'submitted', actorUserId } });
       return tx.claim.update({
         where: { id },
@@ -98,17 +132,24 @@ export class ClaimsService {
     actorUserId: string,
     dto: UpdateClaimStatusDto,
   ) {
-    const claim = await this.getOwnedClaim(practiceId, id);
-
-    if (claim.status === 'draft' && dto.status !== 'void') {
-      throw new BadRequestException('Submit the claim before recording an adjudication outcome');
-    }
-    if (TERMINAL.has(claim.status)) {
-      throw new BadRequestException(`Claim is already ${claim.status} and cannot change`);
-    }
-
     const resolved = TERMINAL.has(dto.status);
     return prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRawUnsafe<
+        Array<{ status: string; approvedAmountCents: number | null }>
+      >(
+        `SELECT "status", "approvedAmountCents" FROM "Claim" WHERE "id" = $1 AND "practiceId" = $2 FOR UPDATE`,
+        id,
+        practiceId,
+      );
+      const claim = rows[0];
+      if (!claim) throw new NotFoundException(`Claim ${id} not found`);
+      if (claim.status === 'draft' && dto.status !== 'void') {
+        throw new BadRequestException('Submit the claim before recording an adjudication outcome');
+      }
+      if (TERMINAL.has(claim.status)) {
+        throw new BadRequestException(`Claim is already ${claim.status} and cannot change`);
+      }
+
       await tx.claimStatusEvent.create({
         data: { claimId: id, status: dto.status, code: dto.code, note: dto.note, actorUserId },
       });
