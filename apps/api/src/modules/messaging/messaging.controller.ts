@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Param, Body, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MessagingService } from './messaging.service';
-import type { SendMessageDto, ScheduleReminderDto } from './dto';
+import { SendMessageDto, ScheduleReminderDto } from './dto';
 
 @Controller('messaging')
 export class MessagingController {

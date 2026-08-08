@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { prisma } from '../../config/database';
 import { enqueueAppointmentReminder } from '../../jobs/producers';
 import { MessagingService } from '../messaging/messaging.service';
 import { renderReminder } from '../messaging/templates';
+import { CreateReminderDto, ReminderHistoryQueryDto } from './dto';
 
 @Injectable()
 export class RemindersService {
@@ -42,10 +43,7 @@ export class RemindersService {
   }
 
   /** History / delivery-status endpoint. practiceId is always the caller's. */
-  async getHistory(
-    practiceId: string,
-    filter: { patientId?: string; channel?: string; status?: string; from?: string; to?: string },
-  ) {
+  async getHistory(practiceId: string, filter: ReminderHistoryQueryDto) {
     return prisma.reminder.findMany({
       where: {
         practiceId,
@@ -62,24 +60,35 @@ export class RemindersService {
           : {}),
       },
       orderBy: { scheduledAt: 'desc' },
-      take: 200,
+      take: filter.limit,
+      skip: filter.offset,
     });
   }
 
-  async create(
-    practiceId: string,
-    dto: {
-      patientId: string;
-      appointmentId?: string;
-      channel: string;
-      type: string;
-      scheduledAt: string | Date;
-      to?: string;
-      metadata?: Record<string, unknown>;
-    },
-  ) {
+  async create(practiceId: string, dto: CreateReminderDto) {
     const scheduledAt = new Date(dto.scheduledAt);
-    const meta: Record<string, unknown> = { ...(dto.metadata ?? {}) };
+    const [patient, appointment] = await Promise.all([
+      prisma.patient.findFirst({
+        where: { id: dto.patientId, practiceId },
+        select: { id: true },
+      }),
+      dto.appointmentId
+        ? prisma.appointment.findFirst({
+            where: { id: dto.appointmentId, patientId: dto.patientId, practiceId },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+    ]);
+    if (!patient) throw new NotFoundException(`Patient ${dto.patientId} not found`);
+    if (!appointment) throw new BadRequestException('Appointment is not valid for this patient');
+
+    const validDestination =
+      dto.channel === 'email'
+        ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dto.to)
+        : /^\+[1-9]\d{7,14}$/.test(dto.to);
+    if (!validDestination) throw new BadRequestException(`Invalid ${dto.channel} destination`);
+
+    const meta: Record<string, unknown> = { ...(dto.metadata ?? {}), to: dto.to };
 
     // Templated content: if the caller didn't hand-build a body, render one from
     // the reminder type + structured inputs so every reminder has real content.
@@ -112,22 +121,20 @@ export class RemindersService {
     });
 
     // Enqueue with delay so worker fires at the right time
-    if (dto.to) {
-      const delayMs = Math.max(0, scheduledAt.getTime() - Date.now());
-      await enqueueAppointmentReminder(
-        {
-          appointmentId: dto.appointmentId ?? '',
-          patientId: dto.patientId,
-          practiceId,
-          reminderId: reminder.id,
-          channel: dto.channel as 'sms' | 'email',
-          to: dto.to,
-          reminderType: dto.channel as 'sms' | 'email',
-          content: (meta.body as string) ?? '',
-        },
-        { delay: delayMs },
-      );
-    }
+    const delayMs = Math.max(0, scheduledAt.getTime() - Date.now());
+    await enqueueAppointmentReminder(
+      {
+        appointmentId: dto.appointmentId ?? '',
+        patientId: dto.patientId,
+        practiceId,
+        reminderId: reminder.id,
+        channel: dto.channel,
+        to: dto.to,
+        reminderType: dto.channel,
+        content: (meta.body as string) ?? '',
+      },
+      { delay: delayMs, jobId: `reminder:${reminder.id}` },
+    );
 
     return reminder;
   }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { prisma } from '../../config/database';
 import { enqueueAppointmentReminder } from '../../jobs/producers';
 import { TwilioService } from './twilio.service';
@@ -13,6 +13,38 @@ export class MessagingService {
     private readonly twilioService: TwilioService,
     private readonly emailService: EmailService,
   ) {}
+
+  private async assertDeliveryReferences(
+    practiceId: string,
+    patientId: string,
+    appointmentId?: string,
+    reminderId?: string,
+  ): Promise<void> {
+    const [patient, appointment, reminder] = await Promise.all([
+      prisma.patient.findFirst({ where: { id: patientId, practiceId }, select: { id: true } }),
+      appointmentId
+        ? prisma.appointment.findFirst({
+            where: { id: appointmentId, patientId, practiceId },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+      reminderId
+        ? prisma.reminder.findFirst({
+            where: { id: reminderId, patientId, practiceId },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: 'not-requested' }),
+    ]);
+    if (!patient) throw new NotFoundException(`Patient ${patientId} not found`);
+    if (!appointment) throw new BadRequestException('Appointment is not valid for this patient');
+    if (!reminder) throw new BadRequestException('Reminder is not valid for this patient');
+  }
+
+  private validateDestination(channel: 'sms' | 'email', to: string): void {
+    const valid =
+      channel === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) : /^\+[1-9]\d{7,14}$/.test(to);
+    if (!valid) throw new BadRequestException(`Invalid ${channel} destination`);
+  }
 
   /**
    * Get message history for a patient (Reminder records in any terminal state).
@@ -39,6 +71,8 @@ export class MessagingService {
    * Updates the linked Reminder status if reminderId is provided.
    */
   async send(practiceId: string, dto: SendMessageDto): Promise<{ messageId: string }> {
+    await this.assertDeliveryReferences(practiceId, dto.patientId, undefined, dto.reminderId);
+    this.validateDestination(dto.channel, dto.to);
     let messageId: string;
 
     if (dto.channel === 'sms') {
@@ -71,7 +105,15 @@ export class MessagingService {
    */
   async scheduleReminder(practiceId: string, dto: ScheduleReminderDto) {
     const scheduledAt = new Date(dto.scheduledAt);
+    await this.assertDeliveryReferences(practiceId, dto.patientId, dto.appointmentId);
+    this.validateDestination(dto.channel, dto.to);
     const delayMs = Math.max(0, scheduledAt.getTime() - Date.now());
+    const metadata = {
+      ...(dto.metadata ?? {}),
+      to: dto.to,
+      subject: dto.subject,
+      body: dto.body,
+    };
 
     const reminder = await prisma.reminder.create({
       data: {
@@ -81,7 +123,7 @@ export class MessagingService {
         channel: dto.channel,
         type: dto.type,
         scheduledAt,
-        metadata: (dto.metadata ?? {}) as any,
+        metadata: metadata as any,
       },
     });
 
@@ -96,7 +138,7 @@ export class MessagingService {
         reminderType: dto.channel, // backward compat
         content: dto.body,
       },
-      { delay: delayMs },
+      { delay: delayMs, jobId: `reminder:${reminder.id}` },
     );
 
     this.logger.log(`Reminder ${reminder.id} scheduled for ${dto.scheduledAt} via ${dto.channel}`);

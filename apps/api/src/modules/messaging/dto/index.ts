@@ -1,25 +1,46 @@
+import { IsDateString, IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+
 export type MessageChannel = 'sms' | 'email';
 
-export interface SendMessageDto {
-  practiceId?: string; // derived from the session; accepted but ignored
-  patientId: string;
-  channel: MessageChannel;
-  to: string; // E.164 phone or email address
-  subject?: string; // required for email
-  body: string; // SMS text or HTML email body
-  reminderId?: string; // optional — link to Reminder row for status update
+export class SendMessageDto {
+  @IsString()
+  patientId!: string;
+
+  @IsIn(['sms', 'email'])
+  channel!: MessageChannel;
+
+  @IsString()
+  @MaxLength(320)
+  to!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(998)
+  subject?: string;
+
+  @IsString()
+  @MaxLength(20_000)
+  body!: string;
+
+  @IsOptional()
+  @IsString()
+  reminderId?: string;
 }
 
-export interface ScheduleReminderDto {
-  practiceId?: string; // derived from the session; accepted but ignored
-  patientId: string;
+export class ScheduleReminderDto extends SendMessageDto {
+  @IsOptional()
+  @IsString()
   appointmentId?: string;
-  channel: MessageChannel;
-  type: string; // appointment_reminder | recall | payment_due
-  to: string;
-  subject?: string;
-  body: string;
-  scheduledAt: string; // ISO-8601
+
+  @IsString()
+  @MaxLength(100)
+  type!: string;
+
+  @IsDateString()
+  scheduledAt!: string;
+
+  @IsOptional()
+  @IsObject()
   metadata?: Record<string, unknown>;
 }
 

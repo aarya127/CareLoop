@@ -1,27 +1,15 @@
 import { Controller, Get, Post, Patch, Param, Body, Query, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { RemindersService } from './reminders.service';
+import { CreateReminderDto, ReminderHistoryQueryDto } from './dto';
 
 @Controller('reminders')
 export class RemindersController {
   constructor(private readonly remindersService: RemindersService) {}
 
   @Get('history')
-  getHistory(
-    @Req() req: any,
-    @Query('patientId') patientId?: string,
-    @Query('channel') channel?: string,
-    @Query('status') status?: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    return this.remindersService.getHistory(req.user.practiceId, {
-      patientId,
-      channel,
-      status,
-      from,
-      to,
-    });
+  getHistory(@Req() req: any, @Query() query: ReminderHistoryQueryDto) {
+    return this.remindersService.getHistory(req.user.practiceId, query);
   }
 
   @Get('patient/:patientId')
@@ -40,7 +28,7 @@ export class RemindersController {
   }
 
   @Post()
-  create(@Body() dto: any, @Req() req: any) {
+  create(@Body() dto: CreateReminderDto, @Req() req: any) {
     return this.remindersService.create(req.user.practiceId, dto);
   }
 
