@@ -103,31 +103,27 @@ function generateCandidateSlots(startAt: Date, days: number): AvailabilitySlot[]
 
 async function getNextAvailability(
   userId: string,
+  practiceId: string,
   lookaheadDays: number,
 ): Promise<AvailabilitySlot[]> {
   const now = new Date();
   const until = new Date(now);
   until.setDate(now.getDate() + lookaheadDays);
 
-  let busy: Array<{ start: Date; end: Date }> = [];
-  try {
-    busy = await prisma.appointment.findMany({
-      where: {
-        userId,
-        status: { in: ['scheduled', 'confirmed', 'in_progress'] },
-        start: { gte: now },
-        end: { lte: until },
-      },
-      select: {
-        start: true,
-        end: true,
-      },
-      orderBy: { start: 'asc' },
-    });
-  } catch {
-    // If DB is unavailable (for local demo), continue with empty busy slots.
-    busy = [];
-  }
+  const busy = await prisma.appointment.findMany({
+    where: {
+      practiceId,
+      userId,
+      status: { in: ['scheduled', 'confirmed', 'in_progress'] },
+      start: { gte: now },
+      end: { lte: until },
+    },
+    select: {
+      start: true,
+      end: true,
+    },
+    orderBy: { start: 'asc' },
+  });
 
   const candidates = generateCandidateSlots(now, lookaheadDays);
   const open = candidates.filter((slot) => {
@@ -139,9 +135,9 @@ async function getNextAvailability(
   return open.slice(0, 5);
 }
 
-async function getDbPatientSummary(patientId: string) {
-  const patient = await prisma.patient.findUnique({
-    where: { id: patientId },
+async function getDbPatientSummary(patientId: string, practiceId: string) {
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, practiceId },
     include: {
       insuranceRecords: {
         where: { active: true },
@@ -158,7 +154,7 @@ async function getDbPatientSummary(patientId: string) {
   if (!patient) return null;
 
   const upcoming = await prisma.appointment.findFirst({
-    where: { patientId, start: { gte: new Date() } },
+    where: { patientId, practiceId, start: { gte: new Date() } },
     orderBy: { start: 'asc' },
   });
 
@@ -337,25 +333,23 @@ export async function POST(req: NextRequest) {
 
     const intent = detectIntent(body.question);
 
+    const allowTestData = process.env.NODE_ENV !== 'production';
     let patientSummary = null;
-    if (!body.patientId) {
-      patientSummary = getAiTestPatientSummary();
-    } else if (body.patientId.startsWith('ai-test-')) {
-      patientSummary = getAiTestPatientSummary(body.patientId);
-    } else {
-      try {
-        patientSummary =
-          (await getDbPatientSummary(body.patientId)) ||
-          getDemoPatientSummary(body.patientId) ||
-          getAiTestPatientSummary(body.patientId);
-      } catch {
-        // Local fallback when DB is not configured.
+    if (body.patientId) {
+      patientSummary = await getDbPatientSummary(body.patientId, user.practiceId);
+      if (!patientSummary && allowTestData) {
         patientSummary =
           getDemoPatientSummary(body.patientId) || getAiTestPatientSummary(body.patientId);
       }
+    } else if (allowTestData) {
+      patientSummary = getAiTestPatientSummary();
     }
 
-    const availability = await getNextAvailability(user.id, body.lookaheadDays);
+    const availability = await getNextAvailability(
+      user.id,
+      user.practiceId,
+      body.lookaheadDays,
+    );
     const answer = composeAnswer({
       intent,
       question: body.question,
@@ -393,7 +387,9 @@ export async function POST(req: NextRequest) {
       const explicit = status === 401 ? 'unauthorized' : 'request_failed';
       return NextResponse.json({ ok: false, error: explicit }, { status });
     }
-    const message = error instanceof Error ? error.message : 'failed';
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ ok: false, error: 'invalid_request' }, { status: 400 });
+    }
+    return NextResponse.json({ ok: false, error: 'internal_error' }, { status: 500 });
   }
 }
