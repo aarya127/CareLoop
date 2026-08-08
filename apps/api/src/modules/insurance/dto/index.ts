@@ -1,6 +1,88 @@
 // Insurance DTOs
 
-import { IsInt, IsISO8601, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateInsuranceDto {
+  @IsString()
+  patientId!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  payerName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  planName?: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(128)
+  memberIdEnc!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  groupNumberEnc?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CoverageSummaryDto)
+  coverageSummary?: CoverageSummaryDto;
+}
+
+export class UpdateInsuranceDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  payerName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  planName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(128)
+  memberIdEnc?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  groupNumberEnc?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CoverageSummaryDto)
+  coverageSummary?: CoverageSummaryDto;
+
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+}
+
+export class LookupInsuranceDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(128)
+  memberId!: string;
+}
 
 /**
  * Structured dental coverage. Stored in PatientInsurance.coverageSummary (JSON)
@@ -11,16 +93,19 @@ export class CoverageSummaryDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(2_147_483_647)
   annualMaximumCents?: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(2_147_483_647)
   deductibleCents?: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(2_147_483_647)
   usedToDateCents?: number;
 
   @IsOptional()

@@ -1,7 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import crypto from 'crypto';
+import type { Prisma } from '@careloop/db';
 import { prisma } from '../../config/database';
-import { CoverageSummaryDto, remainingBenefitCents } from './dto';
+import {
+  CoverageSummaryDto,
+  CreateInsuranceDto,
+  remainingBenefitCents,
+  UpdateInsuranceDto,
+} from './dto';
+import {
+  decryptSensitiveField,
+  encryptSensitiveField,
+} from '../../common/security/field-encryption';
 
 function hashMemberId(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
@@ -14,30 +24,32 @@ function hashMemberId(raw: string): string {
  */
 @Injectable()
 export class InsuranceService {
+  private present(record: any) {
+    const { memberIdEnc, groupNumberEnc, ...safe } = record;
+    const memberId = decryptSensitiveField(memberIdEnc);
+    return {
+      ...safe,
+      memberIdMasked: memberId ? `••••${memberId.slice(-4)}` : null,
+      hasGroupNumber: Boolean(groupNumberEnc),
+    };
+  }
+
   async findByPatientId(practiceId: string, patientId: string) {
-    return prisma.patientInsurance.findMany({
+    const records = await prisma.patientInsurance.findMany({
       where: { patientId, patient: { practiceId } },
       orderBy: { createdAt: 'desc' },
     });
+    return records.map((record) => this.present(record));
   }
 
   async findByMemberId(practiceId: string, rawMemberId: string) {
-    return prisma.patientInsurance.findMany({
+    const records = await prisma.patientInsurance.findMany({
       where: { memberIdHash: hashMemberId(rawMemberId), patient: { practiceId } },
     });
+    return records.map((record) => this.present(record));
   }
 
-  async create(
-    practiceId: string,
-    dto: {
-      patientId: string;
-      payerName: string;
-      planName?: string;
-      memberIdEnc: string;
-      groupNumberEnc?: string;
-      coverageSummary?: object;
-    },
-  ) {
+  async create(practiceId: string, dto: CreateInsuranceDto) {
     // Confirm the target patient belongs to the caller's practice.
     const patient = await prisma.patient.findFirst({
       where: { id: dto.patientId, practiceId },
@@ -45,45 +57,45 @@ export class InsuranceService {
     });
     if (!patient) throw new NotFoundException(`Patient ${dto.patientId} not found`);
 
-    return prisma.patientInsurance.create({
+    const record = await prisma.patientInsurance.create({
       data: {
         patientId: dto.patientId,
         payerName: dto.payerName,
         planName: dto.planName,
-        memberIdEnc: dto.memberIdEnc,
+        memberIdEnc: encryptSensitiveField(dto.memberIdEnc),
         memberIdHash: hashMemberId(dto.memberIdEnc),
-        groupNumberEnc: dto.groupNumberEnc,
-        coverageSummary: dto.coverageSummary ?? {},
+        groupNumberEnc: dto.groupNumberEnc ? encryptSensitiveField(dto.groupNumberEnc) : undefined,
+        coverageSummary: (dto.coverageSummary ?? {}) as Prisma.InputJsonValue,
       },
     });
+    return this.present(record);
   }
 
-  async update(
-    practiceId: string,
-    id: string,
-    dto: {
-      payerName?: string;
-      planName?: string;
-      memberIdEnc?: string;
-      groupNumberEnc?: string;
-      coverageSummary?: object;
-      active?: boolean;
-    },
-  ) {
+  async update(practiceId: string, id: string, dto: UpdateInsuranceDto) {
     const existing = await prisma.patientInsurance.findFirst({
       where: { id, patient: { practiceId } },
       select: { id: true },
     });
     if (!existing) throw new NotFoundException(`Insurance record ${id} not found`);
 
-    return prisma.patientInsurance.update({
+    const record = await prisma.patientInsurance.update({
       where: { id },
       data: {
-        ...dto,
+        payerName: dto.payerName,
+        planName: dto.planName,
+        coverageSummary: dto.coverageSummary as Prisma.InputJsonValue | undefined,
+        active: dto.active,
+        ...(dto.groupNumberEnc !== undefined
+          ? {
+              groupNumberEnc: dto.groupNumberEnc ? encryptSensitiveField(dto.groupNumberEnc) : null,
+            }
+          : {}),
+        ...(dto.memberIdEnc ? { memberIdEnc: encryptSensitiveField(dto.memberIdEnc) } : {}),
         // Recompute hash whenever memberIdEnc changes
         ...(dto.memberIdEnc ? { memberIdHash: hashMemberId(dto.memberIdEnc) } : {}),
       },
     });
+    return this.present(record);
   }
 
   async remove(practiceId: string, id: string) {

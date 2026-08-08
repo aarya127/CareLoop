@@ -1,8 +1,14 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { InsuranceService } from './insurance.service';
 import { RequireRole } from '../../common/guards';
 import { FRONT_OFFICE_ROLES, MANAGEMENT_ROLES } from '../auth/auth.constants';
-import { CoverageSummaryDto } from './dto';
+import {
+  CoverageSummaryDto,
+  CreateInsuranceDto,
+  LookupInsuranceDto,
+  UpdateInsuranceDto,
+} from './dto';
 
 @Controller('insurance')
 export class InsuranceController {
@@ -28,19 +34,20 @@ export class InsuranceController {
   }
 
   @Get('lookup')
-  findByMemberId(@Query('memberId') memberId: string, @Req() req: any) {
-    return this.insuranceService.findByMemberId(req.user.practiceId, memberId);
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  findByMemberId(@Query() query: LookupInsuranceDto, @Req() req: any) {
+    return this.insuranceService.findByMemberId(req.user.practiceId, query.memberId);
   }
 
   @Post()
   @RequireRole(...FRONT_OFFICE_ROLES)
-  create(@Body() dto: any, @Req() req: any) {
+  create(@Body() dto: CreateInsuranceDto, @Req() req: any) {
     return this.insuranceService.create(req.user.practiceId, dto);
   }
 
   @Put(':id')
   @RequireRole(...FRONT_OFFICE_ROLES)
-  update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+  update(@Param('id') id: string, @Body() dto: UpdateInsuranceDto, @Req() req: any) {
     return this.insuranceService.update(req.user.practiceId, id, dto);
   }
 
