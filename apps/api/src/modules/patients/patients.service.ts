@@ -1,58 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { Prisma } from '@careloop/db';
 import { PatientsRepository } from './patients.repository';
 import { AuditService } from '../audit/audit.service';
+import { decryptSensitiveField } from '../../common/security/field-encryption';
+import type { CreatePatientDto, ListPatientsQueryDto, UpdatePatientDto } from './dto';
 
 @Injectable()
 export class PatientsService {
-  private medicalHistoryTableReady = false;
-  private recordSectionsTableReady = false;
-
   constructor(
     private readonly patientsRepository: PatientsRepository,
     private readonly audit: AuditService,
   ) {}
-
-  private async ensureMedicalHistoryTable(): Promise<void> {
-    if (this.medicalHistoryTableReady) {
-      return;
-    }
-
-    await this.patientsRepository.prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "PatientMedicalHistory" (
-        "patientId" TEXT PRIMARY KEY,
-        "history" JSONB NOT NULL,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT "PatientMedicalHistory_patientId_fkey"
-          FOREIGN KEY ("patientId") REFERENCES "Patient"("id")
-          ON DELETE CASCADE ON UPDATE CASCADE
-      );
-    `);
-
-    this.medicalHistoryTableReady = true;
-  }
-
-  private async ensureRecordSectionsTable(): Promise<void> {
-    if (this.recordSectionsTableReady) {
-      return;
-    }
-
-    await this.patientsRepository.prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "PatientRecordSectionsKv" (
-        "patientId" TEXT NOT NULL,
-        "section" TEXT NOT NULL,
-        "payload" JSONB NOT NULL,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT "PatientRecordSectionsKv_patientId_fkey"
-          FOREIGN KEY ("patientId") REFERENCES "Patient"("id")
-          ON DELETE CASCADE ON UPDATE CASCADE,
-        CONSTRAINT "PatientRecordSectionsKv_pkey" PRIMARY KEY ("patientId", "section")
-      );
-    `);
-
-    this.recordSectionsTableReady = true;
-  }
 
   private normalizeDateInput(value: unknown): Date | null | undefined {
     if (value === undefined) return undefined;
@@ -68,6 +26,22 @@ export class PatientsService {
     const asIso = raw.length === 10 ? `${raw}T00:00:00.000Z` : raw;
     const parsed = new Date(asIso);
     if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  private birthDate(value: unknown): Date | null | undefined {
+    const parsed = this.normalizeDateInput(value);
+    if (
+      typeof value === 'string' &&
+      value.length === 10 &&
+      parsed &&
+      parsed.toISOString().slice(0, 10) !== value
+    ) {
+      throw new BadRequestException('Date of birth is not a valid calendar date');
+    }
+    if (parsed && parsed > new Date()) {
+      throw new BadRequestException('Date of birth cannot be in the future');
+    }
     return parsed;
   }
 
@@ -109,176 +83,182 @@ export class PatientsService {
     return Boolean(patient);
   }
 
-  async findAll(practiceId: string, query: any): Promise<any[]> {
-    try {
-      const search = String(query?.search ?? '').trim();
+  async findAll(practiceId: string, query: ListPatientsQueryDto): Promise<any[]> {
+    const search = String(query?.search ?? '').trim();
 
-      const where: any = { practiceId };
-      if (search) {
-        where.OR = [
-          { firstName: { contains: search, mode: 'insensitive' } },
-          { lastName: { contains: search, mode: 'insensitive' } },
-          { phoneE164: { contains: search } },
-        ];
-      }
-
-      const patients = await this.patientsRepository.prisma.patient.findMany({
-        where,
-        include: {
-          insuranceRecords: {
-            where: { active: true },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-        },
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-      });
-
-      const patientIds = patients.map((p) => p.id);
-      if (patientIds.length === 0) return [];
-
-      const appointments = await this.patientsRepository.prisma.appointment.findMany({
-        where: {
-          practiceId,
-          patientId: { in: patientIds },
-        },
-        select: {
-          patientId: true,
-          providerId: true,
-          start: true,
-          status: true,
-        },
-        orderBy: { start: 'desc' },
-      });
-
-      // Real clinical/billing flags — previously hardcoded, which is dangerous
-      // in a patient list (an allergy flag that is always "no" invites harm).
-      const [allergyRows, balanceRows] = await Promise.all([
-        this.patientsRepository.prisma.allergy.groupBy({
-          by: ['patientId'],
-          where: { practiceId, patientId: { in: patientIds }, status: 'active' },
-        }),
-        this.patientsRepository.prisma.invoice.groupBy({
-          by: ['patientId'],
-          where: { practiceId, patientId: { in: patientIds }, status: { in: ['sent', 'overdue'] } },
-          _sum: { totalAmountCents: true },
-        }),
-      ]);
-      const patientsWithAllergies = new Set(allergyRows.map((r) => r.patientId));
-      const outstandingCentsByPatient = new Map(
-        balanceRows.map((r) => [r.patientId, r._sum.totalAmountCents ?? 0]),
-      );
-
-      const providerIds = Array.from(new Set(appointments.map((a) => a.providerId)));
-      const providers = providerIds.length
-        ? await this.patientsRepository.prisma.provider.findMany({
-            where: { id: { in: providerIds } },
-            select: { id: true, name: true },
-          })
-        : [];
-      const providerNameById = new Map(providers.map((p) => [p.id, p.name]));
-
-      const now = new Date();
-      const appointmentMap = new Map<
-        string,
-        {
-          nextDate: Date | null;
-          lastDate: Date | null;
-          providerName: string | null;
-        }
-      >();
-
-      for (const appt of appointments) {
-        const key = String(appt.patientId ?? '');
-        if (!key) continue;
-
-        const existing = appointmentMap.get(key) ?? {
-          nextDate: null,
-          lastDate: null,
-          providerName: null,
-        };
-
-        const apptDate = new Date(appt.start);
-        if (apptDate >= now && (appt.status === 'scheduled' || appt.status === 'confirmed')) {
-          if (!existing.nextDate || apptDate < existing.nextDate) {
-            existing.nextDate = apptDate;
-          }
-        }
-
-        if (apptDate < now) {
-          if (!existing.lastDate || apptDate > existing.lastDate) {
-            existing.lastDate = apptDate;
-            existing.providerName = providerNameById.get(appt.providerId) ?? 'Unassigned';
-          }
-        }
-
-        appointmentMap.set(key, existing);
-      }
-
-      return patients.map((patient) => {
-        const appointmentMeta = appointmentMap.get(patient.id);
-        const primaryPayer = patient.insuranceRecords[0]?.payerName;
-
-        return {
-          id: patient.id,
-          first_name: patient.firstName,
-          last_name: patient.lastName,
-          // Patient has no email column yet; empty string beats a fabricated
-          // "@careloop.local" address that looks real in the UI.
-          email: '',
-          phone: patient.phoneE164 ?? 'N/A',
-          age: this.toAge(patient.dateOfBirth),
-          date_of_birth: patient.dateOfBirth,
-          primary_doctor_name: appointmentMeta?.providerName ?? 'Unassigned',
-          next_appointment_date: appointmentMeta?.nextDate ?? null,
-          last_visit_date: appointmentMeta?.lastDate ?? null,
-          has_allergies: patientsWithAllergies.has(patient.id),
-          requires_pre_medication: false,
-          has_outstanding_balance: outstandingCentsByPatient.get(patient.id) ?? 0,
-          patient_type: patient.patientType,
-          primary_insurance: primaryPayer ?? null,
-        };
-      });
-    } catch {
-      return [];
+    const where: any = { practiceId };
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { phoneE164: { contains: search } },
+      ];
     }
+
+    const patients = await this.patientsRepository.prisma.patient.findMany({
+      where,
+      include: {
+        insuranceRecords: {
+          where: { active: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      take: query.limit,
+      skip: query.offset,
+    });
+
+    const patientIds = patients.map((p) => p.id);
+    if (patientIds.length === 0) return [];
+
+    const appointments = await this.patientsRepository.prisma.appointment.findMany({
+      where: {
+        practiceId,
+        patientId: { in: patientIds },
+      },
+      select: {
+        patientId: true,
+        providerId: true,
+        start: true,
+        status: true,
+      },
+      orderBy: { start: 'desc' },
+    });
+
+    // Real clinical/billing flags — previously hardcoded, which is dangerous
+    // in a patient list (an allergy flag that is always "no" invites harm).
+    const [allergyRows, balanceRows] = await Promise.all([
+      this.patientsRepository.prisma.allergy.groupBy({
+        by: ['patientId'],
+        where: { practiceId, patientId: { in: patientIds }, status: 'active' },
+      }),
+      this.patientsRepository.prisma.invoice.groupBy({
+        by: ['patientId'],
+        where: { practiceId, patientId: { in: patientIds }, status: { in: ['sent', 'overdue'] } },
+        _sum: { totalAmountCents: true },
+      }),
+    ]);
+    const patientsWithAllergies = new Set(allergyRows.map((r) => r.patientId));
+    const outstandingCentsByPatient = new Map(
+      balanceRows.map((r) => [r.patientId, r._sum.totalAmountCents ?? 0]),
+    );
+
+    const providerIds = Array.from(new Set(appointments.map((a) => a.providerId)));
+    const providers = providerIds.length
+      ? await this.patientsRepository.prisma.provider.findMany({
+          where: { id: { in: providerIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const providerNameById = new Map(providers.map((p) => [p.id, p.name]));
+
+    const now = new Date();
+    const appointmentMap = new Map<
+      string,
+      {
+        nextDate: Date | null;
+        lastDate: Date | null;
+        providerName: string | null;
+      }
+    >();
+
+    for (const appt of appointments) {
+      const key = String(appt.patientId ?? '');
+      if (!key) continue;
+
+      const existing = appointmentMap.get(key) ?? {
+        nextDate: null,
+        lastDate: null,
+        providerName: null,
+      };
+
+      const apptDate = new Date(appt.start);
+      if (apptDate >= now && (appt.status === 'scheduled' || appt.status === 'confirmed')) {
+        if (!existing.nextDate || apptDate < existing.nextDate) {
+          existing.nextDate = apptDate;
+        }
+      }
+
+      if (apptDate < now) {
+        if (!existing.lastDate || apptDate > existing.lastDate) {
+          existing.lastDate = apptDate;
+          existing.providerName = providerNameById.get(appt.providerId) ?? 'Unassigned';
+        }
+      }
+
+      appointmentMap.set(key, existing);
+    }
+
+    return patients.map((patient) => {
+      const appointmentMeta = appointmentMap.get(patient.id);
+      const primaryPayer = patient.insuranceRecords[0]?.payerName;
+
+      return {
+        id: patient.id,
+        first_name: patient.firstName,
+        last_name: patient.lastName,
+        // Patient has no email column yet; empty string beats a fabricated
+        // "@careloop.local" address that looks real in the UI.
+        email: '',
+        phone: patient.phoneE164 ?? 'N/A',
+        age: this.toAge(patient.dateOfBirth),
+        date_of_birth: patient.dateOfBirth,
+        primary_doctor_name: appointmentMeta?.providerName ?? 'Unassigned',
+        next_appointment_date: appointmentMeta?.nextDate ?? null,
+        last_visit_date: appointmentMeta?.lastDate ?? null,
+        has_allergies: patientsWithAllergies.has(patient.id),
+        requires_pre_medication: false,
+        has_outstanding_balance: outstandingCentsByPatient.get(patient.id) ?? 0,
+        patient_type: patient.patientType,
+        primary_insurance: primaryPayer ?? null,
+      };
+    });
   }
 
   async findById(practiceId: string, id: string, actorUserId?: string): Promise<any> {
-    try {
-      const patient = await this.patientsRepository.prisma.patient.findFirst({
-        where: { id, practiceId },
-        include: {
-          insuranceRecords: {
-            where: { active: true },
-            orderBy: { createdAt: 'desc' },
-          },
+    const patient = await this.patientsRepository.prisma.patient.findFirst({
+      where: { id, practiceId },
+      include: {
+        insuranceRecords: {
+          where: { active: true },
+          orderBy: { createdAt: 'desc' },
         },
-      });
-      // HIPAA: record every access to a patient record
-      void this.audit.record({
-        practiceId,
-        eventType: 'patient_viewed',
-        outcome: 'success',
-        actorUserId,
-        metadata: { patientId: id, practiceId: patient?.practiceId },
-      });
-      return patient;
-    } catch {
-      return null;
-    }
+      },
+    });
+    void this.audit.record({
+      practiceId,
+      eventType: 'patient_viewed',
+      outcome: 'success',
+      actorUserId,
+      metadata: { patientId: id, practiceId: patient?.practiceId },
+    });
+    if (!patient) return null;
+
+    return {
+      ...patient,
+      insuranceRecords: patient.insuranceRecords.map((record) => {
+        const { memberIdEnc, groupNumberEnc, ...safe } = record;
+        const memberId = decryptSensitiveField(memberIdEnc);
+        return {
+          ...safe,
+          memberIdMasked: memberId ? `••••${memberId.slice(-4)}` : null,
+          hasGroupNumber: Boolean(groupNumberEnc),
+        };
+      }),
+    };
   }
 
-  async create(practiceId: string, dto: any, actorUserId?: string): Promise<any> {
+  async create(practiceId: string, dto: CreatePatientDto, actorUserId?: string): Promise<any> {
     try {
       const patient = await this.patientsRepository.prisma.patient.create({
         data: {
           practiceId,
-          firstName: String(dto?.firstName ?? dto?.first_name ?? ''),
-          lastName: String(dto?.lastName ?? dto?.last_name ?? ''),
-          dateOfBirth: this.normalizeDateInput(dto?.dateOfBirth ?? dto?.date_of_birth) ?? null,
-          phoneE164: dto?.phoneE164 ?? dto?.phone ?? null,
-          patientType: String(dto?.patientType ?? dto?.patient_type ?? 'existing'),
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          dateOfBirth: this.birthDate(dto.dateOfBirth) ?? null,
+          phoneE164: dto.phone ?? null,
+          patientType: dto.patientType ?? 'existing',
           gender: dto?.gender ?? null,
           ...this.emergencyContactData(dto),
         },
@@ -308,7 +288,12 @@ export class PatientsService {
     }
   }
 
-  async update(practiceId: string, id: string, dto: any, actorUserId?: string): Promise<any> {
+  async update(
+    practiceId: string,
+    id: string,
+    dto: UpdatePatientDto,
+    actorUserId?: string,
+  ): Promise<any> {
     try {
       // Tenant guard: refuse to update a record outside the caller's practice.
       if (!(await this.assertPatientInPractice(practiceId, id))) {
@@ -318,11 +303,11 @@ export class PatientsService {
       const patient = await this.patientsRepository.prisma.patient.update({
         where: { id },
         data: {
-          firstName: dto?.firstName ?? dto?.first_name,
-          lastName: dto?.lastName ?? dto?.last_name,
-          dateOfBirth: this.normalizeDateInput(dto?.dateOfBirth ?? dto?.date_of_birth),
-          phoneE164: dto?.phoneE164 ?? dto?.phone,
-          patientType: dto?.patientType ?? dto?.patient_type,
+          firstName: dto.firstName?.trim(),
+          lastName: dto.lastName?.trim(),
+          dateOfBirth: this.birthDate(dto.dateOfBirth),
+          phoneE164: dto.phone,
+          patientType: dto.patientType,
           gender: dto?.gender ?? undefined,
           ...this.emergencyContactData(dto),
         },
@@ -376,21 +361,12 @@ export class PatientsService {
   }
 
   async findMedicalHistory(practiceId: string, patientId: string): Promise<any> {
-    try {
-      await this.ensureMedicalHistoryTable();
-
-      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
-        return null;
-      }
-
-      const rows = await this.patientsRepository.prisma.$queryRawUnsafe<
-        Array<{ history: unknown }>
-      >(`SELECT "history" FROM "PatientMedicalHistory" WHERE "patientId" = $1 LIMIT 1`, patientId);
-
-      return rows[0]?.history ?? null;
-    } catch {
-      return null;
-    }
+    if (!(await this.assertPatientInPractice(practiceId, patientId))) return null;
+    const record = await this.patientsRepository.prisma.patientMedicalHistory.findUnique({
+      where: { patientId },
+      select: { history: true },
+    });
+    return record?.history ?? null;
   }
 
   async upsertMedicalHistory(
@@ -398,34 +374,16 @@ export class PatientsService {
     patientId: string,
     history: unknown,
   ): Promise<any> {
-    try {
-      if (!history || typeof history !== 'object') {
-        return null;
-      }
+    if (!history || typeof history !== 'object') return null;
+    if (!(await this.assertPatientInPractice(practiceId, patientId))) return null;
 
-      await this.ensureMedicalHistoryTable();
-
-      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
-        return null;
-      }
-
-      await this.patientsRepository.prisma.$executeRawUnsafe(
-        `
-          INSERT INTO "PatientMedicalHistory" ("patientId", "history", "createdAt", "updatedAt")
-          VALUES ($1, $2::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          ON CONFLICT ("patientId")
-          DO UPDATE SET
-            "history" = EXCLUDED."history",
-            "updatedAt" = CURRENT_TIMESTAMP
-        `,
-        patientId,
-        JSON.stringify(history),
-      );
-
-      return this.findMedicalHistory(practiceId, patientId);
-    } catch {
-      return null;
-    }
+    const record = await this.patientsRepository.prisma.patientMedicalHistory.upsert({
+      where: { patientId },
+      create: { patientId, history: history as Prisma.InputJsonValue },
+      update: { history: history as Prisma.InputJsonValue },
+      select: { history: true },
+    });
+    return record.history;
   }
 
   private isValidRecordSection(section: string): boolean {
@@ -439,27 +397,14 @@ export class PatientsService {
   }
 
   async findRecordSection(practiceId: string, patientId: string, section: string): Promise<any> {
-    try {
-      if (!this.isValidRecordSection(section)) {
-        return null;
-      }
+    if (!this.isValidRecordSection(section)) return null;
+    if (!(await this.assertPatientInPractice(practiceId, patientId))) return null;
 
-      await this.ensureRecordSectionsTable();
-
-      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
-        return null;
-      }
-
-      const rows = await this.patientsRepository.prisma.$queryRawUnsafe<Array<{ value: unknown }>>(
-        `SELECT "payload" as value FROM "PatientRecordSectionsKv" WHERE "patientId" = $1 AND "section" = $2 LIMIT 1`,
-        patientId,
-        section,
-      );
-
-      return rows[0]?.value ?? null;
-    } catch {
-      return null;
-    }
+    const record = await this.patientsRepository.prisma.patientRecordSection.findUnique({
+      where: { patientId_section: { patientId, section } },
+      select: { payload: true },
+    });
+    return record?.payload ?? null;
   }
 
   async upsertRecordSection(
@@ -468,34 +413,15 @@ export class PatientsService {
     section: string,
     payload: unknown,
   ): Promise<any> {
-    try {
-      if (!this.isValidRecordSection(section) || payload === undefined) {
-        return null;
-      }
+    if (!this.isValidRecordSection(section) || payload === undefined) return null;
+    if (!(await this.assertPatientInPractice(practiceId, patientId))) return null;
 
-      await this.ensureRecordSectionsTable();
-
-      if (!(await this.assertPatientInPractice(practiceId, patientId))) {
-        return null;
-      }
-
-      await this.patientsRepository.prisma.$executeRawUnsafe(
-        `
-          INSERT INTO "PatientRecordSectionsKv" ("patientId", "section", "payload", "createdAt", "updatedAt")
-          VALUES ($1, $2, $3::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          ON CONFLICT ("patientId", "section")
-          DO UPDATE SET
-            "payload" = EXCLUDED."payload",
-            "updatedAt" = CURRENT_TIMESTAMP
-        `,
-        patientId,
-        section,
-        JSON.stringify(payload),
-      );
-
-      return this.findRecordSection(practiceId, patientId, section);
-    } catch {
-      return null;
-    }
+    const record = await this.patientsRepository.prisma.patientRecordSection.upsert({
+      where: { patientId_section: { patientId, section } },
+      create: { patientId, section, payload: payload as Prisma.InputJsonValue },
+      update: { payload: payload as Prisma.InputJsonValue },
+      select: { payload: true },
+    });
+    return record.payload;
   }
 }
