@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/auth/server';
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -15,7 +16,13 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  try {
+    await requireUser(req);
+  } catch (err) {
+    if (err instanceof Response) return err;
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const clientUrl = process.env.PIPECAT_CLIENT_URL || 'http://localhost:7860/client';
   const healthUrl =
     process.env.PIPECAT_HEALTH_URL || process.env.PIPECAT_BASE_URL || 'http://localhost:7860';

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { requireUser } from '@/lib/auth/server';
+import { prisma } from '@/lib/db/prisma';
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await requireUser(req);
     const {
-      practiceId,
       providerId,
       roomId,
       durationMinutes = '30',
@@ -15,19 +14,31 @@ export async function GET(req: NextRequest) {
       numSlots = '10',
     } = Object.fromEntries(req.nextUrl.searchParams);
 
-    if (!practiceId) {
-      return NextResponse.json({ error: 'practiceId is required' }, { status: 400 });
-    }
-
     if (!fromISO || !toISO) {
       return NextResponse.json({ error: 'fromISO and toISO are required' }, { status: 400 });
     }
 
-    const duration = parseInt(durationMinutes, 10) || 30;
-    const slotsToReturn = parseInt(numSlots, 10) || 10;
+    const duration = parseInt(durationMinutes, 10);
+    const slotsToReturn = parseInt(numSlots, 10);
 
     const from = new Date(fromISO);
     const to = new Date(toISO);
+    if (
+      !Number.isInteger(duration) ||
+      duration < 5 ||
+      duration > 480 ||
+      !Number.isInteger(slotsToReturn) ||
+      slotsToReturn < 1 ||
+      slotsToReturn > 100 ||
+      Number.isNaN(from.getTime()) ||
+      Number.isNaN(to.getTime()) ||
+      from >= to ||
+      to.getTime() - from.getTime() > 31 * 24 * 60 * 60 * 1000
+    ) {
+      return NextResponse.json({ error: 'Invalid or excessive slot range' }, { status: 400 });
+    }
+
+    const practiceId = user.practiceId;
 
     const providerSchedules = providerId
       ? await prisma.providerSchedule.findMany({
@@ -120,6 +131,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ slots, totalSlots: slots.length });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error(error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

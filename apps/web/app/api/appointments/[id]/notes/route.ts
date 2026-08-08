@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/auth/server';
 
-export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;
-  // TODO: append immutable note with author + timestamp
-  return NextResponse.json({ ok: true, id });
+export async function POST(req: NextRequest) {
+  try {
+    await requireUser(req);
+  } catch (err) {
+    if (err instanceof Response) return err;
+    return NextResponse.json({ error: 'Authentication unavailable' }, { status: 503 });
+  }
+  return NextResponse.json({ error: 'Not implemented' }, { status: 501 });
 }
