@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -18,6 +19,26 @@ export class SessionAuthGuard implements CanActivate {
   // undefined here. Matches the pattern used in AuthController.
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
+  private assertTrustedCookieOrigin(req: FastifyRequest): void {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase())) return;
+
+    const origin = req.headers.origin;
+    if (!origin) throw new ForbiddenException('Origin header required');
+
+    const configuredOrigins = (process.env.WEB_URL ?? 'http://localhost:3000')
+      .split(',')
+      .map((value) => value.trim().replace(/\/$/, ''))
+      .filter(Boolean);
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    const isDevelopmentOrigin =
+      process.env.NODE_ENV !== 'production' &&
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalizedOrigin);
+
+    if (!configuredOrigins.includes(normalizedOrigin) && !isDevelopmentOrigin) {
+      throw new ForbiddenException('Untrusted request origin');
+    }
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Use Reflect.getMetadata directly — avoids Reflector DI issues with tsx/esbuild
     const isPublic =
@@ -25,7 +46,9 @@ export class SessionAuthGuard implements CanActivate {
       Reflect.getMetadata(IS_PUBLIC_KEY, context.getClass());
     if (isPublic) return true;
 
-    const req = context.switchToHttp().getRequest<FastifyRequest & { user?: unknown }>();
+    const req = context
+      .switchToHttp()
+      .getRequest<FastifyRequest & { user?: unknown; sessionToken?: string }>();
 
     // Accept session token from: 1) HTTP-only cookie, 2) Authorization Bearer header
     const cookieToken: string | undefined = ((req as any).cookies as Record<string, string>)[
@@ -36,6 +59,7 @@ export class SessionAuthGuard implements CanActivate {
     const token = cookieToken ?? bearerToken;
 
     if (!token) throw new UnauthorizedException('No session cookie');
+    if (cookieToken && !bearerToken) this.assertTrustedCookieOrigin(req);
 
     const session = await this.authService.validateSession(token);
     if (!session) throw new UnauthorizedException('Session invalid or expired');
@@ -49,8 +73,11 @@ export class SessionAuthGuard implements CanActivate {
       firstName: session.user.firstName,
       lastName: session.user.lastName,
       practiceId: session.user.practiceId,
-      sessionToken: token,
+      sessionId: session.sessionId,
     };
+    // Keep credentials separate from the serializable user object. Endpoints
+    // such as /auth/me return req.user directly and must never echo the token.
+    req.sessionToken = token;
 
     return true;
   }

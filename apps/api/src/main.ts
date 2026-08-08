@@ -43,7 +43,10 @@ function validateSecrets(): void {
     { key: 'COOKIE_SECRET', value: process.env.COOKIE_SECRET },
     { key: 'DATABASE_URL', value: process.env.DATABASE_URL },
     { key: 'REDIS_URL', value: process.env.REDIS_URL },
+    { key: 'WEB_URL', value: process.env.WEB_URL },
     { key: 'SESSION_TTL_SECONDS', value: process.env.SESSION_TTL_SECONDS },
+    { key: 'SESSION_IDLE_TTL_SECONDS', value: process.env.SESSION_IDLE_TTL_SECONDS },
+    { key: 'ENCRYPTION_KEY', value: process.env.ENCRYPTION_KEY },
   ];
 
   const problems: string[] = [];
@@ -52,6 +55,45 @@ function validateSecrets(): void {
     if (!value || INSECURE_DEFAULTS.has(value.trim())) {
       problems.push(`  - ${key} is missing or set to an insecure default`);
     }
+  }
+
+  const sessionTtl = Number(process.env.SESSION_TTL_SECONDS);
+  const idleTtl = Number(process.env.SESSION_IDLE_TTL_SECONDS);
+  const bcryptRounds = Number(process.env.BCRYPT_ROUNDS ?? 12);
+  if (!Number.isInteger(sessionTtl) || sessionTtl < 300 || sessionTtl > 2_592_000) {
+    problems.push('  - SESSION_TTL_SECONDS must be an integer between 300 and 2592000');
+  }
+  if (!Number.isInteger(idleTtl) || idleTtl < 60 || idleTtl > sessionTtl) {
+    problems.push('  - SESSION_IDLE_TTL_SECONDS must be an integer between 60 and the session TTL');
+  }
+  if (!Number.isInteger(bcryptRounds) || bcryptRounds < 10 || bcryptRounds > 15) {
+    problems.push('  - BCRYPT_ROUNDS must be an integer between 10 and 15');
+  }
+  if ((process.env.COOKIE_SECRET?.trim().length ?? 0) < 32) {
+    problems.push('  - COOKIE_SECRET must contain at least 32 characters');
+  }
+  if ((process.env.ENCRYPTION_KEY?.trim().length ?? 0) < 32) {
+    problems.push('  - ENCRYPTION_KEY must contain at least 32 characters');
+  }
+  if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65_535) {
+    problems.push('  - PORT/API_PORT must be an integer between 1 and 65535');
+  }
+  const webOrigins = (process.env.WEB_URL ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (
+    webOrigins.length === 0 ||
+    webOrigins.some((origin) => {
+      try {
+        const url = new URL(origin);
+        return url.protocol !== 'https:' || url.origin !== origin.replace(/\/$/, '');
+      } catch {
+        return true;
+      }
+    })
+  ) {
+    problems.push('  - WEB_URL must contain comma-separated HTTPS origins without paths');
   }
 
   if (problems.length > 0) {
@@ -109,7 +151,10 @@ async function bootstrap() {
         return;
       }
 
-      if (configuredOrigins.includes(origin) || devOriginPattern.test(origin)) {
+      if (
+        configuredOrigins.includes(origin) ||
+        (process.env.NODE_ENV !== 'production' && devOriginPattern.test(origin))
+      ) {
         callback(null, true);
         return;
       }
