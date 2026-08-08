@@ -130,27 +130,14 @@ export async function freebusy(
   return res.data;
 }
 
-export async function watchCalendar(
+export async function stopChannel(
   userId: string,
   calendarId: string,
+  resourceId: string,
   channelId: string,
-  webhookUrl: string,
 ) {
   const auth = await getOAuthClientForUser(userId, calendarId);
   if (!auth) throw new Error('No Google connection for user');
   const cal = google.calendar({ version: 'v3', auth: auth.client });
-  const res = await cal.events.watch({
-    calendarId,
-    requestBody: {
-      id: channelId,
-      type: 'web_hook',
-      address: webhookUrl,
-    },
-  });
-  return res.data;
-}
-
-export async function stopChannel(resourceId: string, channelId: string) {
-  const cal = google.calendar('v3');
   await cal.channels.stop({ requestBody: { id: channelId, resourceId } });
 }
