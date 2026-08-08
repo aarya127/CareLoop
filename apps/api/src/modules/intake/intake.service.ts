@@ -6,10 +6,7 @@ import {
 } from '@nestjs/common';
 import { IntakeRepository } from './intake.repository';
 import { AuditService } from '../audit/audit.service';
-import { PatientsService } from '../patients/patients.service';
-import { InsuranceService } from '../insurance/insurance.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
-import { prisma } from '../../config/database';
 import type { CreateDraftDto, UpdateDraftDto, IntakeDraftData, DemographicsData } from './dto';
 import { hashDraftToken, IntakeTokenService } from './intake-token.service';
 
@@ -18,8 +15,6 @@ export class IntakeService {
   constructor(
     private readonly intakeRepository: IntakeRepository,
     private readonly auditService: AuditService,
-    private readonly patientsService: PatientsService,
-    private readonly insuranceService: InsuranceService,
     private readonly idempotencyService: IdempotencyService,
     private readonly intakeTokenService: IntakeTokenService,
   ) {}
@@ -125,50 +120,18 @@ export class IntakeService {
       const data = (draft.data as IntakeDraftData) ?? {};
       this.validateDraftData(data);
 
-      const { demographics, insurance } = data;
+      const dateOfBirth = this.parseDateOfBirth(data.demographics!.dateOfBirth!);
 
-      // 3. Create the patient record. Tenancy comes from the draft's practiceId
-      // (intake is a public, session-less flow), not from client input at submit.
-      const patient = await this.patientsService.create(draft.practiceId, {
-        firstName: demographics!.firstName,
-        lastName: demographics!.lastName,
-        dateOfBirth: demographics!.dateOfBirth,
-        phone: demographics!.phone,
-        patientType: 'new',
-      });
-
-      if (!patient) {
-        throw new BadRequestException('Failed to create patient record');
-      }
-
-      // 4. Create insurance policy (when insurance section is complete)
-      let insuranceRecord: any = null;
-      if (insurance?.payerName && insurance?.memberId) {
-        insuranceRecord = await this.insuranceService.create(draft.practiceId, {
-          patientId: patient.id,
-          payerName: insurance.payerName,
-          planName: insurance.planName,
-          memberIdEnc: insurance.memberId,
-          groupNumberEnc: insurance.groupNumber,
-          coverageSummary: {},
-        });
-      }
-
-      // 5. Create the intake submission record
-      const submission = await prisma.intakeSubmission.create({
-        data: {
-          practiceId: draft.practiceId,
-          patientId: patient.id,
-          formType: 'new_patient',
-          status: 'pending',
-          data: draft.data as object,
-        },
-      });
-
-      // 6. Mark draft as submitted
-      await this.intakeRepository.markSubmitted(id, patient.id, scopedIdempotencyKey);
-
-      const result = { patient, insurance: insuranceRecord, submission };
+      // Patient, insurance, submission, and final draft state commit atomically.
+      // The repository locks the draft row so distinct concurrent idempotency
+      // keys cannot create duplicate patient records.
+      const result = await this.intakeRepository.submitDraft(
+        id,
+        draft.practiceId,
+        data,
+        dateOfBirth,
+        scopedIdempotencyKey,
+      );
 
       // 7. Audit
       void this.auditService.record({
@@ -178,8 +141,8 @@ export class IntakeService {
         actorUserId,
         metadata: {
           draftId: id,
-          patientId: patient.id,
-          submissionId: submission.id,
+          patientId: result.patient.id,
+          submissionId: result.submission.id,
         },
       });
 
@@ -231,5 +194,20 @@ export class IntakeService {
         throw new BadRequestException('Insurance member ID is required');
       }
     }
+  }
+
+  private parseDateOfBirth(value: string): Date {
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+      Number.isNaN(parsed.getTime()) ||
+      parsed.toISOString().slice(0, 10) !== value
+    ) {
+      throw new BadRequestException('Date of birth must be a valid YYYY-MM-DD date');
+    }
+    if (parsed > new Date()) {
+      throw new BadRequestException('Date of birth cannot be in the future');
+    }
+    return parsed;
   }
 }

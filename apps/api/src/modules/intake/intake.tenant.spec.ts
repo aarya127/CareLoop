@@ -4,8 +4,6 @@ import { IntakeService } from './intake.service';
 import { hashDraftToken } from './intake-token.service';
 import type { IntakeRepository } from './intake.repository';
 import type { AuditService } from '../audit/audit.service';
-import type { PatientsService } from '../patients/patients.service';
-import type { InsuranceService } from '../insurance/insurance.service';
 import type { IdempotencyService } from '../../common/services/idempotency.service';
 import type { IntakeTokenService } from './intake-token.service';
 
@@ -18,8 +16,6 @@ function makeService(draft: Record<string, unknown> | null) {
   const service = new IntakeService(
     repository,
     { record: vi.fn() } as unknown as AuditService,
-    {} as PatientsService,
-    {} as InsuranceService,
     {} as IdempotencyService,
     {} as IntakeTokenService,
   );
