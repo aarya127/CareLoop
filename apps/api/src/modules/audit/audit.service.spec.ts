@@ -74,6 +74,7 @@ describe('AuditService tenant isolation', () => {
       eventType: 'patient_viewed',
       outcome: 'success',
       actorUserId: 'user-1',
+      userAgent: 'Mozilla/5.0 raw value',
     });
 
     expect(mocks.create).toHaveBeenCalledWith({
@@ -81,7 +82,9 @@ describe('AuditService tenant isolation', () => {
         practiceId: 'practice-A',
         eventType: 'patient_viewed',
         actorUserId: 'user-1',
+        userAgentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
       }),
     });
+    expect(mocks.create.mock.calls[0][0].data.userAgentHash).not.toContain('Mozilla');
   });
 });

@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Prisma, prisma } from '@careloop/db';
 import { getRedisClient } from '../../config/redis';
+import type { AuditLogQueryDto } from './audit-query.dto';
+import { hashUserAgent } from '../auth/auth.utils';
 
 export interface AuditEntry {
   practiceId: string;
@@ -12,17 +14,6 @@ export interface AuditEntry {
   ip?: string;
   userAgent?: string;
   metadata?: Record<string, unknown>;
-}
-
-export interface AuditLogQuery {
-  eventType?: string;
-  outcome?: string;
-  actorUserId?: string;
-  targetUserId?: string;
-  from?: string;
-  to?: string;
-  limit?: number;
-  offset?: number;
 }
 
 @Injectable()
@@ -46,7 +37,7 @@ export class AuditService {
           targetUserId: entry.targetUserId,
           sessionId: entry.sessionId,
           ip: entry.ip,
-          userAgentHash: entry.userAgent,
+          userAgentHash: entry.userAgent ? hashUserAgent(entry.userAgent) : undefined,
           authMethod: 'password',
           metadata: (entry.metadata ?? {}) as Prisma.InputJsonValue,
         },
@@ -56,9 +47,12 @@ export class AuditService {
     }
   }
 
-  async getLog(practiceId: string, query: AuditLogQuery) {
-    const limit = Math.min(Number(query.limit ?? 50), 200);
-    const offset = Number(query.offset ?? 0);
+  async getLog(practiceId: string, query: AuditLogQueryDto) {
+    const limit = query.limit ?? 50;
+    const offset = query.offset ?? 0;
+    if (query.from && query.to && new Date(query.from) > new Date(query.to)) {
+      throw new BadRequestException('Audit date range is invalid');
+    }
 
     // The tenant predicate is mandatory and is derived from the authenticated
     // session by the controller. Audit filters may only narrow this scope.
