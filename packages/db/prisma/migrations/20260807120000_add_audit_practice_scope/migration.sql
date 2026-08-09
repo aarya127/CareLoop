@@ -8,14 +8,14 @@ UPDATE "AuditLog" AS audit
 SET "practiceId" = COALESCE(
   actor."practiceId",
   target."practiceId",
-  session_user."practiceId",
+  session_actor."practiceId",
   metadata_practice."id"
 )
 FROM "AuditLog" AS source
 LEFT JOIN "User" AS actor ON actor."id" = source."actorUserId"
 LEFT JOIN "User" AS target ON target."id" = source."targetUserId"
-LEFT JOIN "Session" AS session ON session."id" = source."sessionId"
-LEFT JOIN "User" AS session_user ON session_user."id" = session."userId"
+LEFT JOIN "Session" AS audit_session ON audit_session."id" = source."sessionId"
+LEFT JOIN "User" AS session_actor ON session_actor."id" = audit_session."userId"
 LEFT JOIN "Practice" AS metadata_practice
   ON metadata_practice."id" = NULLIF(source."metadata" ->> 'practiceId', '')
 WHERE audit."id" = source."id"
