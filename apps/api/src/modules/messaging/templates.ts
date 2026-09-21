@@ -69,6 +69,25 @@ export function renderInvite(input: {
   return { subject, text, html };
 }
 
+export function renderPatientPortalInvite(input: {
+  practiceName: string;
+  patientName?: string;
+  acceptUrl: string;
+}): RenderedMessage {
+  const hi = input.patientName ? `Hi ${input.patientName},` : 'Hello,';
+  const subject = `${input.practiceName} has invited you to their patient portal`;
+  const text = `${hi} ${input.practiceName} has invited you to create a patient portal account.\n\nAccept your invitation: ${input.acceptUrl}\n\nThis link expires in 7 days.`;
+  const html = htmlShell(
+    'Patient portal invitation',
+    [
+      `${hi} <strong>${input.practiceName}</strong> has invited you to create a patient portal account.`,
+      'This invitation link expires in 7 days.',
+    ],
+    { label: 'Set up your account', url: input.acceptUrl },
+  );
+  return { subject, text, html };
+}
+
 export function renderAppointmentReminder(input: {
   patientName?: string;
   practiceName: string;

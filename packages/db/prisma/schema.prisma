@@ -56,6 +56,8 @@ model Practice {
   invitations        Invitation[]
   claims             Claim[]
   auditLogs          AuditLog[]
+  patientCredentials PatientCredential[]
+  patientInvitations PatientInvitation[]
 
   @@index([name])
 }
@@ -356,9 +358,85 @@ model Patient {
   claims            Claim[]
   medicalHistory    PatientMedicalHistory?
   recordSections    PatientRecordSection[]
+  portalCredential  PatientCredential?
+  portalSessions    PatientSession[]
+  portalInvitations PatientInvitation[]
 
   @@unique([practiceId, phoneE164])
   @@index([practiceId, lastName, firstName])
+}
+
+// ============================================================================
+// PATIENT PORTAL AUTH (scoped to Patient, kept separate from User/Session so a
+// patient principal can never be confused with a staff principal)
+// ============================================================================
+
+/// Login credential for a patient portal account. Deliberately a separate table
+/// from Patient (PHI/clinical record) — same reasoning as AuthIdentity being kept
+/// off User. One credential per Patient (practice-invited only, see
+/// PatientInvitation); there is no open self-serve patient signup.
+model PatientCredential {
+  id               String    @id @default(cuid())
+  patientId        String    @unique
+  practiceId       String
+  email            String    @unique
+  passwordHash     String
+  passwordAlgo     String    @default("bcrypt")
+  status           String    @default("active") // active | disabled
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, status, lockedUntil])
+}
+
+/// Patient portal session — mirrors Session (staff), but FK'd to Patient only.
+model PatientSession {
+  id                     String    @id @default(cuid())
+  patientId              String
+  sessionTokenHash       String    @unique
+  csrfSecretHash         String
+  createdAt              DateTime  @default(now())
+  lastSeenAt             DateTime  @default(now())
+  expiresAt              DateTime
+  idleExpiresAt          DateTime
+  revokedAt              DateTime?
+  revokeReason           String?
+  createdByIp            String?
+  createdByUserAgentHash String?
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, revokedAt])
+  @@index([expiresAt])
+  @@index([idleExpiresAt])
+}
+
+/// Staff-initiated invite for a patient to create a portal login, tied to a
+/// specific existing Patient record. Mirrors Invitation (staff-to-staff).
+model PatientInvitation {
+  id              String    @id @default(cuid())
+  practiceId      String
+  patientId       String
+  email           String
+  tokenHash       String    @unique
+  status          String    @default("pending") // pending | accepted | revoked | expired
+  invitedByUserId String?
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, status])
+  @@index([patientId, status])
 }
 
 model PatientInsurance {
