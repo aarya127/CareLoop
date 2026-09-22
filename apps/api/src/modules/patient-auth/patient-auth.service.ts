@@ -125,7 +125,10 @@ export class PatientAuthService {
   private async loadValidInvite(rawToken: string) {
     const invite = await prisma.patientInvitation.findUnique({
       where: { tokenHash: hashToken(rawToken) },
-      include: { practice: { select: { name: true } }, patient: { select: { firstName: true, lastName: true } } },
+      include: {
+        practice: { select: { name: true } },
+        patient: { select: { firstName: true, lastName: true } },
+      },
     });
     if (!invite || invite.status === 'revoked' || invite.status === 'accepted') {
       throw new NotFoundException('Invitation not found');
@@ -302,7 +305,9 @@ export class PatientAuthService {
     };
   }
 
-  async getSession(sessionToken: string | undefined): Promise<{ patient: SafePatientPrincipal } | null> {
+  async getSession(
+    sessionToken: string | undefined,
+  ): Promise<{ patient: SafePatientPrincipal } | null> {
     if (!sessionToken) return null;
     try {
       const session = await this.sessions.validateSession(sessionToken);

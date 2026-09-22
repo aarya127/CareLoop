@@ -76,6 +76,7 @@ describe('patient portal tenant/record isolation', () => {
     const guard = new PatientAuthGuard(new PatientSessionService());
     const req: any = {
       cookies: { cl_patient_session: 'raw-token' },
+      headers: {},
     };
     const ctx: any = {
       switchToHttp: () => ({ getRequest: () => req }),
@@ -107,7 +108,7 @@ describe('patient portal tenant/record isolation', () => {
     });
 
     const guard = new PatientAuthGuard(new PatientSessionService());
-    const req: any = { cookies: { cl_patient_session: 'raw-token' } };
+    const req: any = { cookies: { cl_patient_session: 'raw-token' }, headers: {} };
     const ctx: any = { switchToHttp: () => ({ getRequest: () => req }) };
 
     await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);
@@ -115,7 +116,7 @@ describe('patient portal tenant/record isolation', () => {
 
   it('a missing patient session cookie is rejected outright (no fallback to a staff cookie)', async () => {
     const guard = new PatientAuthGuard(new PatientSessionService());
-    const req: any = { cookies: { cl_session: 'staff-token-only' } };
+    const req: any = { cookies: { cl_session: 'staff-token-only' }, headers: {} };
     const ctx: any = { switchToHttp: () => ({ getRequest: () => req }) };
 
     await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);

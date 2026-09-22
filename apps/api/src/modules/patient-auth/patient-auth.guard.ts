@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { PatientSessionService } from './patient-session.service';
 import { PATIENT_SESSION_COOKIE } from './patient-auth.constants';

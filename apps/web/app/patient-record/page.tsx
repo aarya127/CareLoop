@@ -23,6 +23,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import ChartHeader from '@/components/emr/chart-header';
+import InviteToPortalButton from '@/components/emr/invite-to-portal-button';
 import EncountersPanel from '@/components/emr/encounters-panel';
 import TimelinePanel from '@/components/emr/timeline-panel';
 import TreatmentPlansPanel from '@/components/emr/treatment-plans-panel';
@@ -1184,6 +1185,9 @@ function PatientRecordContent() {
               onBack={handleClose}
               onQuickAdd={(kind) => setActiveTab(kind === 'note' ? 'encounters' : 'history')}
             />
+            <div className="mt-3 flex justify-end">
+              <InviteToPortalButton patientId={patientRecord.patient_id} />
+            </div>
           </div>
 
           {/* Tab Navigation */}

@@ -84,7 +84,10 @@ describe('PatientAuthService.invite', () => {
     const { svc } = service();
 
     await expect(
-      svc.invite('practice-A', 'staff-A', { patientId: 'patient-in-practice-B', email: 'p@example.com' }),
+      svc.invite('practice-A', 'staff-A', {
+        patientId: 'patient-in-practice-B',
+        email: 'p@example.com',
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(mocks.patientFindFirst).toHaveBeenCalledWith(
@@ -149,7 +152,9 @@ describe('PatientAuthService.accept', () => {
   }
 
   it('rejects an expired invite token and marks it expired', async () => {
-    mocks.invitationFindUnique.mockResolvedValue(validInvite({ expiresAt: new Date(Date.now() - 1000) }));
+    mocks.invitationFindUnique.mockResolvedValue(
+      validInvite({ expiresAt: new Date(Date.now() - 1000) }),
+    );
     mocks.invitationUpdate.mockResolvedValue({});
     const { svc } = service();
 
