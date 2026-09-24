@@ -21,6 +21,8 @@ import { AUTH_ROLES } from './auth.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { SignupDto } from './dto/signup.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public, CurrentUser } from '../../common/decorators';
 import { SESSION_COOKIE, SessionService } from './session.service';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
@@ -58,6 +60,45 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   async signup(@Body() dto: SignupDto, @Req() req: any, @Res({ passthrough: true }) res: any) {
     const data = await this.authService.signup(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    setSessionCookie(res, data.sessionToken);
+    return { user: data.user };
+  }
+
+  /** Always responds the same way whether or not the email matches an account. */
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: any) {
+    await this.authService.forgotPassword(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    return { ok: true };
+  }
+
+  /** Public: preview a reset link (email) before the user sets a new password. */
+  @Public()
+  @Get('reset-password/:token')
+  previewResetPassword(@Param('token') token: string) {
+    return this.authService.previewResetToken(token);
+  }
+
+  /** Public: consume a reset link — sets the new password and starts a fresh session. */
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('reset-password/:token')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Param('token') token: string,
+    @Body() dto: ResetPasswordDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const data = await this.authService.resetPassword(token, dto, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

@@ -47,6 +47,27 @@ function formatWhen(startsAt: Date, timeZone?: string): string {
   }
 }
 
+// Shared by both staff (auth.service.ts) and patient portal (patient-auth.service.ts)
+// password resets — the recipient already knows which account they're resetting,
+// so no practice branding is needed here (unlike invites).
+export function renderPasswordReset(input: {
+  resetUrl: string;
+  recipientName?: string;
+}): RenderedMessage {
+  const hi = input.recipientName ? `Hi ${input.recipientName},` : 'Hello,';
+  const subject = 'Reset your CareLoop password';
+  const text = `${hi} we received a request to reset your CareLoop password.\n\nReset it here: ${input.resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, you can ignore this email.`;
+  const html = htmlShell(
+    'Reset your password',
+    [
+      `${hi} we received a request to reset your CareLoop password.`,
+      'This link expires in 1 hour. If you did not request this, you can safely ignore this email.',
+    ],
+    { label: 'Reset password', url: input.resetUrl },
+  );
+  return { subject, text, html };
+}
+
 export function renderInvite(input: {
   practiceName: string;
   role: string;

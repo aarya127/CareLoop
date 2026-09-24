@@ -13,3 +13,5 @@ export const PATIENT_AUTH_ERRORS = {
 } as const;
 
 export const PATIENT_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+export const PATIENT_PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour

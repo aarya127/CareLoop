@@ -4,9 +4,11 @@ import { AuthService } from './auth.service';
 import { PasswordService } from './password.service';
 import { SessionService } from './session.service';
 import { AuthGuard, RolesGuard, ServiceAccountGuard } from '../../common/guards';
+import { MessagingModule } from '../messaging/messaging.module';
 
 @Global()
 @Module({
+  imports: [MessagingModule],
   controllers: [AuthController],
   providers: [
     AuthService,

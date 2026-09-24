@@ -1,20 +1,38 @@
 import {
   ConflictException,
   ForbiddenException,
+  GoneException,
   HttpException,
   HttpStatus,
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma, prisma } from '@careloop/db';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type { SignupDto } from './dto/signup.dto';
-import { AUTH_ERRORS, AUTH_LIMITS, AUTH_ROLES } from './auth.constants';
-import { hashPassword, hashUserAgent, passwordNeedsRehash, verifyPassword } from './auth.utils';
+import type { ForgotPasswordDto } from './dto/forgot-password.dto';
+import type { ResetPasswordDto } from './dto/reset-password.dto';
+import {
+  AUTH_ERRORS,
+  AUTH_LIMITS,
+  AUTH_ROLES,
+  PASSWORD_RESET_TOKEN_TTL_MS,
+} from './auth.constants';
+import {
+  hashPassword,
+  hashToken,
+  hashUserAgent,
+  passwordNeedsRehash,
+  randomToken,
+  verifyPassword,
+} from './auth.utils';
 import { SessionService } from './session.service';
+import { EmailService } from '../messaging/email.service';
+import { renderPasswordReset } from '../messaging/templates';
 
 type SafeUser = {
   id: string;
@@ -69,7 +87,14 @@ export interface AuthUser {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(@Inject(SessionService) private readonly sessionService: SessionService) {}
+  constructor(
+    @Inject(SessionService) private readonly sessionService: SessionService,
+    @Inject(EmailService) private readonly email: EmailService,
+  ) {}
+
+  private appBaseUrl(): string {
+    return process.env.APP_BASE_URL ?? process.env.WEB_URL ?? 'http://localhost:3000';
+  }
 
   private monthStartFor(date: Date): Date {
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
@@ -375,6 +400,113 @@ export class AuthService {
       ip: context.ip,
       userAgent: context.userAgent,
     });
+  }
+
+  /**
+   * Request a password-reset email. Always returns successfully regardless of
+   * whether the email matches an account — same no-enumeration principle as
+   * login's identical error for "unknown email" vs "wrong password".
+   */
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+    context: { ip?: string; userAgent?: string },
+  ): Promise<void> {
+    const email = dto.email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, firstName: true, status: true },
+    });
+
+    if (!user || user.status !== 'active') {
+      return;
+    }
+
+    const rawToken = randomToken();
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(rawToken),
+        expiresAt: new Date(this.nowMs() + PASSWORD_RESET_TOKEN_TTL_MS),
+        createdByIp: context.ip,
+      },
+    });
+
+    const resetUrl = `${this.appBaseUrl()}/reset-password/${rawToken}`;
+
+    try {
+      const msg = renderPasswordReset({ recipientName: user.firstName ?? undefined, resetUrl });
+      await this.email.send({ to: email, subject: msg.subject, html: msg.html, text: msg.text });
+    } catch (err) {
+      this.logger.warn(
+        `Password reset email to ${email} not sent: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }
+
+  /** Public: what the reset page shows before the user sets a new password. */
+  async previewResetToken(rawToken: string): Promise<{ email: string }> {
+    const token = await this.loadValidResetToken(rawToken);
+    return { email: token.user.email };
+  }
+
+  private async loadValidResetToken(rawToken: string) {
+    const token = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash: hashToken(rawToken) },
+      include: { user: { select: { id: true, email: true, practiceId: true } } },
+    });
+    if (!token || token.usedAt) {
+      throw new NotFoundException('Reset link not found');
+    }
+    if (token.expiresAt.getTime() <= this.nowMs()) {
+      throw new GoneException('This reset link has expired');
+    }
+    return token;
+  }
+
+  /**
+   * Consume a reset token: set the new password, revoke every existing session
+   * (a leaked old session must not survive a reset), then log the user in fresh.
+   */
+  async resetPassword(
+    rawToken: string,
+    dto: ResetPasswordDto,
+    context: { ip?: string; userAgent?: string },
+  ): Promise<LoginResult> {
+    const token = await this.loadValidResetToken(rawToken);
+    const passwordHash = await hashPassword(dto.password);
+
+    const consumed = await prisma.passwordResetToken.updateMany({
+      where: { id: token.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (consumed.count !== 1) {
+      throw new GoneException('This reset link has already been used');
+    }
+
+    await prisma.user.update({
+      where: { id: token.userId },
+      data: { passwordHash, passwordAlgo: 'bcrypt', failedLoginCount: 0, lockedUntil: null },
+    });
+
+    await this.sessionService.revokeAllUserSessions(token.userId, 'password_reset');
+
+    await this.addAuditLog({
+      practiceId: token.user.practiceId,
+      eventType: 'password_reset',
+      outcome: 'success',
+      actorUserId: token.userId,
+      targetUserId: token.userId,
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+
+    const { rawToken: sessionToken } = await this.sessionService.createSession({
+      userId: token.userId,
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+
+    return { sessionToken, user: await this.toSafeUser(token.userId) };
   }
 
   async getSession(sessionToken: string | undefined): Promise<{ user: SafeUser } | null> {

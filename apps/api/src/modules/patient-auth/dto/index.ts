@@ -27,3 +27,15 @@ export class PatientLoginDto {
   @MinLength(1)
   password!: string;
 }
+
+export class PatientForgotPasswordDto {
+  @IsEmail()
+  email!: string;
+}
+
+export class PatientResetPasswordDto {
+  @IsString()
+  @MinLength(8)
+  @MaxLength(200)
+  password!: string;
+}

@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { prisma } from '@careloop/db';
 import { EmailService } from '../messaging/email.service';
-import { renderPatientPortalInvite } from '../messaging/templates';
+import { renderPasswordReset, renderPatientPortalInvite } from '../messaging/templates';
 import {
   hashPassword,
   hashToken,
@@ -24,11 +24,14 @@ import {
   PATIENT_AUTH_ERRORS,
   PATIENT_AUTH_LIMITS,
   PATIENT_INVITE_TTL_MS,
+  PATIENT_PASSWORD_RESET_TOKEN_TTL_MS,
 } from './patient-auth.constants';
 import type {
   AcceptPatientInvitationDto,
   CreatePatientInvitationDto,
+  PatientForgotPasswordDto,
   PatientLoginDto,
+  PatientResetPasswordDto,
 } from './dto';
 
 type SafePatientPrincipal = {
@@ -279,6 +282,103 @@ export class PatientAuthService {
   async logout(sessionToken: string | undefined): Promise<void> {
     if (!sessionToken) return;
     await this.sessions.revokeSession(sessionToken, 'logout');
+  }
+
+  /**
+   * Request a portal password-reset email. Always resolves regardless of
+   * whether the email matches an account (no enumeration) — mirrors the staff
+   * AuthService.forgotPassword pattern.
+   */
+  async forgotPassword(
+    dto: PatientForgotPasswordDto,
+    context: { ip?: string; userAgent?: string },
+  ): Promise<void> {
+    const email = dto.email.trim().toLowerCase();
+    const credential = await prisma.patientCredential.findUnique({
+      where: { email },
+      select: { id: true, patientId: true, status: true },
+    });
+
+    if (!credential || credential.status !== 'active') {
+      return;
+    }
+
+    const rawToken = randomToken();
+    await prisma.patientPasswordResetToken.create({
+      data: {
+        patientId: credential.patientId,
+        tokenHash: hashToken(rawToken),
+        expiresAt: new Date(this.nowMs() + PATIENT_PASSWORD_RESET_TOKEN_TTL_MS),
+        createdByIp: context.ip,
+      },
+    });
+
+    const resetUrl = `${this.appBaseUrl()}/portal/reset-password/${rawToken}`;
+
+    try {
+      const msg = renderPasswordReset({ resetUrl });
+      await this.email.send({ to: email, subject: msg.subject, html: msg.html, text: msg.text });
+    } catch (err) {
+      this.logger.warn(
+        `Patient portal reset email to ${email} not sent: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }
+
+  /** Public: what the reset page shows before the patient sets a new password. */
+  async previewResetToken(rawToken: string): Promise<{ email: string }> {
+    const { credentialEmail } = await this.loadValidResetToken(rawToken);
+    return { email: credentialEmail };
+  }
+
+  private async loadValidResetToken(rawToken: string) {
+    const token = await prisma.patientPasswordResetToken.findUnique({
+      where: { tokenHash: hashToken(rawToken) },
+      include: { patient: { select: { portalCredential: { select: { email: true } } } } },
+    });
+    if (!token || token.usedAt || !token.patient.portalCredential) {
+      throw new NotFoundException('Reset link not found');
+    }
+    if (token.expiresAt.getTime() <= this.nowMs()) {
+      throw new GoneException('This reset link has expired');
+    }
+    return { ...token, credentialEmail: token.patient.portalCredential.email };
+  }
+
+  /**
+   * Consume a reset token: set the new password, revoke every existing
+   * session, then log the patient in fresh.
+   */
+  async resetPassword(
+    rawToken: string,
+    dto: PatientResetPasswordDto,
+    context: { ip?: string; userAgent?: string },
+  ): Promise<{ sessionToken: string; patient: SafePatientPrincipal }> {
+    const token = await this.loadValidResetToken(rawToken);
+    const passwordHash = await hashPassword(dto.password);
+
+    const consumed = await prisma.patientPasswordResetToken.updateMany({
+      where: { id: token.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (consumed.count !== 1) {
+      throw new GoneException('This reset link has already been used');
+    }
+
+    await prisma.patientCredential.update({
+      where: { patientId: token.patientId },
+      data: { passwordHash, passwordAlgo: 'bcrypt', failedLoginCount: 0, lockedUntil: null },
+    });
+
+    await this.sessions.revokeAllPatientSessions(token.patientId, 'password_reset');
+
+    const { rawToken: sessionToken } = await this.sessions.createSession({
+      patientId: token.patientId,
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+
+    return { sessionToken, patient: await this.toSafePrincipal(token.patientId) };
   }
 
   private async toSafePrincipal(patientId: string): Promise<SafePatientPrincipal> {

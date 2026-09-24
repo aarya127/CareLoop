@@ -199,11 +199,31 @@ model User {
   auditTargetEntries AuditLog[]                 @relation("AuditTargetUser")
   uploadedDocuments  Document[]
   sensitiveNotes     PatientSensitiveNote[]
+  resetTokens        PasswordResetToken[]
 
   practice Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   @@index([practiceId])
   @@index([status, lockedUntil])
+}
+
+/// Staff password-reset token — mirrors Session's hashed-token storage. Kept as
+/// its own table (not folded into Session/User) so a leaked reset token can
+/// never be confused with a login session token. 1-hour TTL (shorter than
+/// Invitation's 7 days — higher risk if a reset email is intercepted).
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  createdByIp String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Role {
@@ -336,7 +356,7 @@ model Patient {
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 
-  practice          Practice               @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  practice          Practice                    @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   insuranceRecords  PatientInsurance[]
   transcripts       CallTranscript[]
   participants      Participant[]
@@ -361,6 +381,7 @@ model Patient {
   portalCredential  PatientCredential?
   portalSessions    PatientSession[]
   portalInvitations PatientInvitation[]
+  portalResetTokens PatientPasswordResetToken[]
 
   @@unique([practiceId, phoneE164])
   @@index([practiceId, lastName, firstName])
@@ -437,6 +458,23 @@ model PatientInvitation {
 
   @@index([practiceId, status])
   @@index([patientId, status])
+}
+
+/// Patient password-reset token — mirrors PasswordResetToken (staff). Kept
+/// separate the same way PatientSession is kept separate from Session.
+model PatientPasswordResetToken {
+  id          String    @id @default(cuid())
+  patientId   String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  createdByIp String?
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([expiresAt])
 }
 
 model PatientInsurance {

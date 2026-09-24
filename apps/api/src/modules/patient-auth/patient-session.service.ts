@@ -146,4 +146,27 @@ export class PatientSessionService {
       data: { revokedAt: new Date(), revokeReason: reason },
     });
   }
+
+  /**
+   * Revoke every active session for a patient — used after a password reset so
+   * a leaked old session can't survive it. Mirrors SessionService.revokeAllUserSessions.
+   */
+  async revokeAllPatientSessions(patientId: string, reason = 'security_event'): Promise<void> {
+    const sessions = await prisma.patientSession.findMany({
+      where: { patientId, revokedAt: null },
+      select: { sessionTokenHash: true },
+    });
+
+    await prisma.patientSession.updateMany({
+      where: { patientId, revokedAt: null },
+      data: { revokedAt: new Date(), revokeReason: reason },
+    });
+
+    try {
+      const redis = getRedisClient();
+      await Promise.all(sessions.map((s) => redis.del(patientSessionCacheKey(s.sessionTokenHash))));
+    } catch {
+      /* non-fatal — DB revocation stands; cache entries expire within the TTL */
+    }
+  }
 }

@@ -66,7 +66,7 @@ describe('user registration tenant isolation', () => {
   });
 
   it('ignores a forged practiceId and atomically creates the user in the admin practice', async () => {
-    const service = new AuthService({} as any);
+    const service = new AuthService({} as any, {} as any);
     const dto = {
       email: 'new@example.com',
       password: 'long-password',
@@ -98,7 +98,7 @@ describe('user registration tenant isolation', () => {
   });
 
   it('defensively rejects service-account role assignment to a user', async () => {
-    const service = new AuthService({} as any);
+    const service = new AuthService({} as any, {} as any);
 
     await expect(
       service.register('practice-A', 'admin-A', {

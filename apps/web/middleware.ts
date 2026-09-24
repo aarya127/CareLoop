@@ -10,13 +10,19 @@ const PUBLIC_PATH_PREFIXES = [
   '/signup',
   // Accept-a-team-invitation flow — invitee has no session yet.
   '/join',
+  // Forgot/reset password — no session yet by definition.
+  '/forgot-password',
+  '/reset-password',
   // Patient-facing intake — no staff session required (mirrors the API's @Public
   // /intake/drafts endpoints). Without this, patients are bounced to /login.
   '/intake',
-  // Patient portal sign-in and accept-invite flow — separate principal, separate
-  // cookie (see the /portal branch below); these two paths need no session at all.
+  // Patient portal sign-in, accept-invite, and forgot/reset-password flows —
+  // separate principal, separate cookie (see the /portal branch below); these
+  // paths need no session at all.
   '/portal/login',
   '/portal/join',
+  '/portal/forgot-password',
+  '/portal/reset-password',
   '/api/auth',
   '/api/patient-portal',
   '/_next',

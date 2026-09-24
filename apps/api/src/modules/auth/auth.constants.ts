@@ -30,6 +30,8 @@ export const AUTH_LIMITS = {
   LOGIN_ACCOUNT_LOCK_MS: 15 * 60 * 1000,
 } as const;
 
+export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
 export const AUTH_ERRORS = {
   INVALID_CREDENTIALS: 'Invalid credentials',
   ACCOUNT_LOCKED: 'Account temporarily locked',

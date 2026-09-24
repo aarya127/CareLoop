@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   Post,
   Req,
@@ -14,7 +15,13 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { PatientAuthService } from './patient-auth.service';
 import { PatientAuthGuard } from './patient-auth.guard';
-import { AcceptPatientInvitationDto, CreatePatientInvitationDto, PatientLoginDto } from './dto';
+import {
+  AcceptPatientInvitationDto,
+  CreatePatientInvitationDto,
+  PatientForgotPasswordDto,
+  PatientLoginDto,
+  PatientResetPasswordDto,
+} from './dto';
 import { RequireRole } from '../../common/guards';
 import { Public } from '../../common/decorators';
 import { FRONT_OFFICE_ROLES } from '../auth/auth.constants';
@@ -28,7 +35,10 @@ import { clearPatientSessionCookie, setPatientSessionCookie } from './patient-se
 // staff guard, since only staff may create a patient portal invite.
 @Controller('patient-auth')
 export class PatientAuthController {
-  constructor(private readonly patientAuth: PatientAuthService) {}
+  // Explicit @Inject token: the tsx/esbuild dev runtime does not emit
+  // design:paramtypes metadata, so plain constructor injection resolves to
+  // undefined here. Matches the pattern used in AuthController/SessionAuthGuard.
+  constructor(@Inject(PatientAuthService) private readonly patientAuth: PatientAuthService) {}
 
   /** Staff (front-office+) invites an existing patient in their practice to the portal. */
   @Post('invitations')
@@ -70,6 +80,45 @@ export class PatientAuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: PatientLoginDto, @Req() req: any, @Res({ passthrough: true }) res: any) {
     const result = await this.patientAuth.login(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    setPatientSessionCookie(res, result.sessionToken);
+    return { patient: result.patient };
+  }
+
+  /** Always responds the same way whether or not the email matches a portal account. */
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: PatientForgotPasswordDto, @Req() req: any) {
+    await this.patientAuth.forgotPassword(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    return { ok: true };
+  }
+
+  /** Public: preview a reset link before the patient sets a new password. */
+  @Public()
+  @Get('reset-password/:token')
+  previewResetPassword(@Param('token') token: string) {
+    return this.patientAuth.previewResetToken(token);
+  }
+
+  /** Public: consume a reset link — sets the new password and starts a fresh session. */
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('reset-password/:token')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Param('token') token: string,
+    @Body() dto: PatientResetPasswordDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const result = await this.patientAuth.resetPassword(token, dto, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

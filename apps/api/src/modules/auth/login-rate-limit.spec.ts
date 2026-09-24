@@ -46,7 +46,7 @@ describe('AuthService distributed account lockout', () => {
 
   it('atomically increments failures and locks at the configured threshold', async () => {
     const before = Date.now();
-    const service = new AuthService({} as any);
+    const service = new AuthService({} as any, {} as any);
 
     await expect(
       service.login(

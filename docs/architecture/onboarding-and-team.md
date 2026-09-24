@@ -35,6 +35,24 @@ Duplicate email → `409`; weak input → `400` (validated `SignupDto`).
 - Email delivery is best-effort (`EmailService` + `renderInvite`); the shareable link is always
   returned so onboarding works even without SMTP.
 
+## Password reset
+
+`POST /auth/forgot-password` → `GET`/`POST /auth/reset-password/:token`. Own token
+table (`PasswordResetToken`, hashed like `Session`/`Invitation`), 1-hour expiry
+(shorter than the 7-day invite TTL — higher risk if a reset email is intercepted),
+single-use.
+
+- `forgotPassword` **always** responds the same way whether or not the email matches
+  an account — no enumeration, same principle as login's identical error for "unknown
+  email" vs "wrong password". Email delivery is best-effort, same as invites.
+- `resetPassword` validates the token (expired → `410`, unknown/used → `404`), sets the
+  new password, then calls `SessionService.revokeAllUserSessions` — every existing
+  session is revoked before a fresh one is issued, so a leaked old session cookie can't
+  survive a reset.
+- The patient portal has the identical flow on its own token table
+  (`PatientPasswordResetToken`) — see
+  [`patient-portal.md`](patient-portal.md#password-reset).
+
 ## RBAC
 
 Every authenticated user belongs to exactly one `Practice` (tenant). Beyond tenancy, three role
@@ -57,4 +75,5 @@ Notes:
 ## Tested by
 
 `roles.guard.spec.ts` (enforcement, admin bypass, case-insensitivity, method-overrides-class),
+`password-reset.spec.ts` (no enumeration, expired/used tokens, session revocation on reset),
 plus per-module tenant-isolation specs (`*.tenant.spec.ts`) and `claims.service.spec.ts`.
