@@ -14,6 +14,65 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+/**
+ * Structured dental coverage. Stored in PatientInsurance.coverageSummary (JSON)
+ * so it stays flexible per payer, but with a defined shape so the UI and benefit
+ * math are consistent. Percentages are 0–100; money is in cents.
+ */
+// Must be declared before the DTOs below: tsc's emitDecoratorMetadata reads
+// `design:type` at class-definition time, so a later declaration throws on boot.
+export class CoverageSummaryDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2_147_483_647)
+  annualMaximumCents?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2_147_483_647)
+  deductibleCents?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2_147_483_647)
+  usedToDateCents?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  preventivePct?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  basicPct?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  majorPct?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  orthoPct?: number;
+
+  @IsOptional()
+  @IsISO8601()
+  effectiveFrom?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  effectiveTo?: string;
+}
+
 export class CreateInsuranceDto {
   @IsString()
   patientId!: string;
@@ -82,63 +141,6 @@ export class LookupInsuranceDto {
   @MinLength(3)
   @MaxLength(128)
   memberId!: string;
-}
-
-/**
- * Structured dental coverage. Stored in PatientInsurance.coverageSummary (JSON)
- * so it stays flexible per payer, but with a defined shape so the UI and benefit
- * math are consistent. Percentages are 0–100; money is in cents.
- */
-export class CoverageSummaryDto {
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(2_147_483_647)
-  annualMaximumCents?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(2_147_483_647)
-  deductibleCents?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(2_147_483_647)
-  usedToDateCents?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(100)
-  preventivePct?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(100)
-  basicPct?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(100)
-  majorPct?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(100)
-  orthoPct?: number;
-
-  @IsOptional()
-  @IsISO8601()
-  effectiveFrom?: string;
-
-  @IsOptional()
-  @IsISO8601()
-  effectiveTo?: string;
 }
 
 /** Computed benefit remaining for the plan year. */
