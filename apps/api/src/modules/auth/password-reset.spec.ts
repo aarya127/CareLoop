@@ -74,6 +74,24 @@ describe('AuthService.forgotPassword', () => {
     expect(email.send).toHaveBeenCalled();
   });
 
+  it('does not wait on email delivery (a hung SMTP server must not block or reveal timing)', async () => {
+    mocks.userFindUnique.mockResolvedValue({ id: 'user-1', firstName: 'Jo', status: 'active' });
+    const { svc, email } = service();
+    email.send.mockReturnValue(new Promise(() => {}));
+
+    await expect(svc.forgotPassword({ email: 'jo@example.com' }, {})).resolves.toBeUndefined();
+    expect(email.send).toHaveBeenCalled();
+  });
+
+  it('swallows email delivery failures instead of failing the request', async () => {
+    mocks.userFindUnique.mockResolvedValue({ id: 'user-1', firstName: 'Jo', status: 'active' });
+    const { svc, email } = service();
+    email.send.mockRejectedValue(new Error('Connection timeout'));
+
+    await expect(svc.forgotPassword({ email: 'jo@example.com' }, {})).resolves.toBeUndefined();
+    await new Promise((r) => setImmediate(r));
+  });
+
   it('resolves silently (no enumeration) when the email does not match any account', async () => {
     mocks.userFindUnique.mockResolvedValue(null);
     const { svc, email } = service();

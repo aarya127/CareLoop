@@ -314,15 +314,16 @@ export class PatientAuthService {
     });
 
     const resetUrl = `${this.appBaseUrl()}/portal/reset-password/${rawToken}`;
+    const msg = renderPasswordReset({ resetUrl });
 
-    try {
-      const msg = renderPasswordReset({ resetUrl });
-      await this.email.send({ to: email, subject: msg.subject, html: msg.html, text: msg.text });
-    } catch (err) {
-      this.logger.warn(
-        `Patient portal reset email to ${email} not sent: ${err instanceof Error ? err.message : err}`,
+    // Not awaited: SMTP latency would otherwise reveal which emails have accounts.
+    void this.email
+      .send({ to: email, subject: msg.subject, html: msg.html, text: msg.text })
+      .catch((err) =>
+        this.logger.warn(
+          `Patient portal reset email to ${email} not sent: ${err instanceof Error ? err.message : err}`,
+        ),
       );
-    }
   }
 
   /** Public: what the reset page shows before the patient sets a new password. */

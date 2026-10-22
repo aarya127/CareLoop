@@ -432,15 +432,17 @@ export class AuthService {
     });
 
     const resetUrl = `${this.appBaseUrl()}/reset-password/${rawToken}`;
+    const msg = renderPasswordReset({ recipientName: user.firstName ?? undefined, resetUrl });
 
-    try {
-      const msg = renderPasswordReset({ recipientName: user.firstName ?? undefined, resetUrl });
-      await this.email.send({ to: email, subject: msg.subject, html: msg.html, text: msg.text });
-    } catch (err) {
-      this.logger.warn(
-        `Password reset email to ${email} not sent: ${err instanceof Error ? err.message : err}`,
+    // Not awaited: SMTP latency would otherwise make responses for real
+    // accounts measurably slower than for unknown emails (enumeration).
+    void this.email
+      .send({ to: email, subject: msg.subject, html: msg.html, text: msg.text })
+      .catch((err) =>
+        this.logger.warn(
+          `Password reset email to ${email} not sent: ${err instanceof Error ? err.message : err}`,
+        ),
       );
-    }
   }
 
   /** Public: what the reset page shows before the user sets a new password. */

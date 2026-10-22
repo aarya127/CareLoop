@@ -20,6 +20,11 @@ export class EmailService {
       port,
       secure: port === 465,
       auth: user ? { user, pass } : undefined,
+      // nodemailer defaults to a 2-minute connection timeout; a blocked SMTP
+      // port would otherwise hang the calling request that long.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     });
   }
 

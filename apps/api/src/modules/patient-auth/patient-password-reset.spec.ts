@@ -71,6 +71,32 @@ describe('PatientAuthService.forgotPassword', () => {
     expect(email.send).toHaveBeenCalled();
   });
 
+  it('does not wait on email delivery (a hung SMTP server must not block or reveal timing)', async () => {
+    mocks.credentialFindUnique.mockResolvedValue({
+      id: 'cred-1',
+      patientId: 'patient-1',
+      status: 'active',
+    });
+    const { svc, email } = service();
+    email.send.mockReturnValue(new Promise(() => {}));
+
+    await expect(svc.forgotPassword({ email: 'jo@example.com' }, {})).resolves.toBeUndefined();
+    expect(email.send).toHaveBeenCalled();
+  });
+
+  it('swallows email delivery failures instead of failing the request', async () => {
+    mocks.credentialFindUnique.mockResolvedValue({
+      id: 'cred-1',
+      patientId: 'patient-1',
+      status: 'active',
+    });
+    const { svc, email } = service();
+    email.send.mockRejectedValue(new Error('Connection timeout'));
+
+    await expect(svc.forgotPassword({ email: 'jo@example.com' }, {})).resolves.toBeUndefined();
+    await new Promise((r) => setImmediate(r));
+  });
+
   it('resolves silently (no enumeration) when no portal account matches the email', async () => {
     mocks.credentialFindUnique.mockResolvedValue(null);
     const { svc, email } = service();
