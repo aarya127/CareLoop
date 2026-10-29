@@ -313,34 +313,6 @@ export const DEMO_PATIENTS: DemoPatient[] = [
   },
 ];
 
-// Demo login credentials
-export const DEMO_USERS = [
-  {
-    email: 'admin@careloop.demo',
-    password: 'demo123',
-    role: 'admin' as const,
-    name: 'Admin Demo User',
-  },
-  {
-    email: 'doctor@careloop.demo',
-    password: 'demo123',
-    role: 'doctor' as const,
-    name: 'Dr. Emily Chen',
-  },
-  {
-    email: 'nurse@careloop.demo',
-    password: 'demo123',
-    role: 'nurse' as const,
-    name: 'Sarah Nurse',
-  },
-  {
-    email: 'receptionist@careloop.demo',
-    password: 'demo123',
-    role: 'receptionist' as const,
-    name: 'John Receptionist',
-  },
-];
-
 // Helper to check if in demo mode
 export function isDemoMode(): boolean {
   if (typeof window === 'undefined') return false;
