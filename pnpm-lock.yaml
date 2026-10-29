@@ -307,9 +307,15 @@ importers:
         specifier: ^5.20.0
         version: 5.22.0(prisma@5.22.0)
     devDependencies:
+      '@types/bcrypt':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.17
+      bcrypt:
+        specifier: ^6.0.0
+        version: 6.0.0
       prisma:
         specifier: ^5.20.0
         version: 5.22.0

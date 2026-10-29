@@ -1,411 +1,236 @@
 /**
- * prisma/seed.ts — CareLoop demo seed
+ * prisma/seed.ts — the private demo practice, "Maple Grove Dental (Demo)".
  *
- * Fully idempotent: safe to run multiple times (uses upsert throughout).
- * Run via:  npm run db:seed
- * Prisma also calls this automatically on:  npm run db:reset
+ * Rebuilds ONLY the practice with id `demo-practice`: inside one transaction it
+ * deletes every row that belongs to that practice and regenerates ~40 fictional
+ * patients with six months of history and two weeks of upcoming appointments.
+ * Safe to re-run; no other practice is ever read or written.
+ *
+ * Required environment:
+ *   DATABASE_URL    target database
+ *   DEMO_PASSWORD   password for demo@careloop.dev (12+ characters, keep it private)
+ *   ENCRYPTION_KEY  the API's key — insurance identifiers are encrypted with it
+ * Optional:
+ *   DEMO_SEED       integer that varies the generated data (default 7351)
+ *   BCRYPT_ROUNDS   bcrypt cost, defaults to the API's 12
+ *
+ * Run: pnpm --filter @careloop/db run db:seed
  */
+import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
+import { DEMO_USERS } from './demo/catalog';
+import {
+  buildDemoDataset,
+  DEMO_PRACTICE_ADDRESS,
+  DEMO_PRACTICE_ID,
+  DEMO_PRACTICE_NAME,
+  DEMO_TIME_ZONE,
+  type DemoDataset,
+} from './demo/build';
+import { resetDemoPractice } from './demo/reset';
+import { encryptField, sha256Hex } from './field-crypto';
 
-const prisma = new PrismaClient();
+const CHUNK = 1_000;
 
-async function main() {
-  // ── 0. Practice (root tenancy) ────────────────────────────────────────────
-  const practice = await prisma.practice.upsert({
-    where: { id: 'demo-practice' },
-    update: {},
-    create: {
-      id: 'demo-practice',
-      name: 'Demo Dental Practice',
-      address: '123 Main St, Springfield',
-      timeZone: 'America/New_York',
-    },
-  });
-
-  // ── 1. Demo users with hashed passwords ──────────────────────────────────
-  // bcrypt hash of "demo123" with cost=10 — pre-computed to avoid bcryptjs dep in @careloop/db
-  const DEMO_PASSWORD_HASH = '$2a$10$L1iVNEbNip76XftiA7wEUuK5yRR8u2/h2wGRHSnr/Vh/sDhsIpd.S';
-  // bcrypt hash of "Demo12345!" with cost=10 (used by main login page dev hint)
-  const DEMO2_PASSWORD_HASH = '$2a$10$8gPwKxZ1Q6kH/RhruTNvxegHwzpRyVCQeRijJr6nuHbXblewDJbhW';
-
-  const demoDefs = [
-    // Role names are stored lowercase to match register() and AUTH_ROLES.
-    {
-      id: 'user-admin',
-      email: 'admin@careloop.demo',
-      firstName: 'Admin',
-      lastName: 'User',
-      roleName: 'admin',
-      hash: DEMO_PASSWORD_HASH,
-    },
-    {
-      id: 'user-doctor',
-      email: 'doctor@careloop.demo',
-      firstName: 'Doctor',
-      lastName: 'Demo',
-      roleName: 'provider',
-      hash: DEMO_PASSWORD_HASH,
-    },
-    {
-      id: 'user-hygienist',
-      email: 'hygienist@careloop.demo',
-      firstName: 'Hygienist',
-      lastName: 'Demo',
-      roleName: 'hygienist',
-      hash: DEMO_PASSWORD_HASH,
-    },
-    {
-      id: 'user-receptionist',
-      email: 'receptionist@careloop.demo',
-      firstName: 'Receptionist',
-      lastName: 'Demo',
-      roleName: 'staff',
-      hash: DEMO_PASSWORD_HASH,
-    },
-    // Main login page dev hint credentials
-    {
-      id: 'user-dev',
-      email: 'demo@careloop.dev',
-      firstName: 'Dev',
-      lastName: 'Admin',
-      roleName: 'admin',
-      hash: DEMO2_PASSWORD_HASH,
-    },
-  ];
-
-  const users = await Promise.all(
-    demoDefs.map((u) =>
-      prisma.user.upsert({
-        where: { email: u.email },
-        update: { passwordHash: u.hash, passwordAlgo: 'bcrypt', status: 'active' },
-        create: {
-          id: u.id,
-          email: u.email,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          practiceId: practice.id,
-          passwordHash: u.hash,
-          passwordAlgo: 'bcrypt',
-          status: 'active',
-        },
-      }),
-    ),
-  );
-
-  // Keep backward compat reference used by appointments below
-  const user = users[0];
-
-  // ── 1b. Roles + UserRole assignments ─────────────────────────────────────
-  for (let i = 0; i < demoDefs.length; i++) {
-    const roleName = demoDefs[i].roleName;
-    const roleRecord = await prisma.role.upsert({
-      where: { name: roleName },
-      update: {},
-      create: { name: roleName, description: roleName },
-    });
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId: users[i].id, roleId: roleRecord.id } },
-      update: {},
-      create: { userId: users[i].id, roleId: roleRecord.id, assignedBy: users[0].id },
-    });
-  }
-
-  // ── 2. Providers ──────────────────────────────────────────────────────────
-  const providers = await Promise.all([
-    prisma.provider.upsert({
-      where: { practiceId_name: { practiceId: practice.id, name: 'Dr. Smith' } },
-      update: {},
-      create: {
-        practiceId: practice.id,
-        name: 'Dr. Smith',
-        specialty: 'General Dentistry',
-        isActive: true,
-      },
-    }),
-    prisma.provider.upsert({
-      where: { practiceId_name: { practiceId: practice.id, name: 'Dr. Jones' } },
-      update: {},
-      create: {
-        practiceId: practice.id,
-        name: 'Dr. Jones',
-        specialty: 'Orthodontics',
-        isActive: true,
-      },
-    }),
-  ]);
-
-  // ── 3. Rooms ──────────────────────────────────────────────────────────────
-  const rooms = await Promise.all([
-    prisma.room.upsert({
-      where: { practiceId_name: { practiceId: practice.id, name: 'Room A' } },
-      update: {},
-      create: {
-        practiceId: practice.id,
-        name: 'Room A',
-        capacity: 1,
-      },
-    }),
-    prisma.room.upsert({
-      where: { practiceId_name: { practiceId: practice.id, name: 'Room B' } },
-      update: {},
-      create: {
-        practiceId: practice.id,
-        name: 'Room B',
-        capacity: 1,
-      },
-    }),
-  ]);
-
-  // ── 4. Provider schedules (Mon-Fri 9 AM-5 PM) ────────────────────────────
-  const weekdays = [1, 2, 3, 4, 5]; // Mon-Fri
-  for (const provider of providers) {
-    for (const day of weekdays) {
-      // Use find/create to avoid composite unique with nullable `effectiveFrom`
-      const existing = await prisma.providerSchedule.findFirst({
-        where: {
-          providerId: provider.id,
-          dayOfWeek: day,
-          startMin: 9 * 60,
-          endMin: 17 * 60,
-          effectiveFrom: null,
-        },
-      });
-      if (!existing) {
-        await prisma.providerSchedule.create({
-          data: {
-            practiceId: practice.id,
-            providerId: provider.id,
-            dayOfWeek: day,
-            startMin: 9 * 60,
-            endMin: 17 * 60,
-          },
-        });
-      }
-    }
-  }
-
-  // ── 5. Availability block (lunch) ────────────────────────────────────────
-  const now = new Date();
-  await prisma.availabilityBlock.create({
-    data: {
-      practiceId: practice.id,
-      providerId: null,
-      roomId: null,
-      start: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0),
-      end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 0, 0, 0),
-      reason: 'Lunch Block',
-      source: 'manual',
-    },
-  });
-
-  // ── 6. Patients ───────────────────────────────────────────────────────────
-  const patientDefs = [
-    {
-      id: 'patient-1',
-      practiceId: practice.id,
-      firstName: 'Alice',
-      lastName: 'Johnson',
-      dateOfBirth: new Date('1985-03-14'),
-      phoneE164: '+14155551000',
-      patientType: 'existing',
-    },
-    {
-      id: 'patient-2',
-      practiceId: practice.id,
-      firstName: 'Bob',
-      lastName: 'Martinez',
-      dateOfBirth: new Date('1972-07-22'),
-      phoneE164: '+14155551001',
-      patientType: 'existing',
-    },
-    {
-      id: 'patient-3',
-      practiceId: practice.id,
-      firstName: 'Carol',
-      lastName: 'Smith',
-      dateOfBirth: new Date('1993-11-05'),
-      phoneE164: '+14155551002',
-      patientType: 'new',
-    },
-  ];
-
-  const patients = await Promise.all(
-    patientDefs.map((p) => prisma.patient.upsert({ where: { id: p.id }, update: {}, create: p })),
-  );
-
-  // ── 7. Patient insurance ──────────────────────────────────────────────────
-  await prisma.patientInsurance.upsert({
-    where: { id: 'ins-1' },
-    update: {},
-    create: {
-      id: 'ins-1',
-      patientId: 'patient-1',
-      payerName: 'Delta Dental',
-      planName: 'PPO Plus',
-      memberIdEnc: 'DEMO_ENC_MEMBER_001',
-      groupNumberEnc: 'DEMO_ENC_GROUP_001',
-      coverageSummary: { preventive: '100%', basic: '80%', major: '50%', ortho: 'not covered' },
-      active: true,
-    },
-  });
-
-  await prisma.patientInsurance.upsert({
-    where: { id: 'ins-2' },
-    update: {},
-    create: {
-      id: 'ins-2',
-      patientId: 'patient-2',
-      payerName: 'Cigna Dental',
-      planName: 'DPPO',
-      memberIdEnc: 'DEMO_ENC_MEMBER_002',
-      groupNumberEnc: 'DEMO_ENC_GROUP_002',
-      coverageSummary: { preventive: '100%', basic: '70%', major: '50%' },
-      active: true,
-    },
-  });
-
-  // ── 8. Appointments ───────────────────────────────────────────────────────
-  const h = (n: number) => new Date(now.getTime() + n * 60 * 60 * 1000);
-
-  const apptDefs = [
-    {
-      id: 'appt-1',
-      practiceId: practice.id,
-      userId: user.id,
-      providerId: providers[0].id,
-      roomId: rooms[0].id,
-      title: 'Routine Exam: Alice Johnson',
-      start: h(1),
-      end: h(1.5),
-      patientId: 'patient-1',
-      procedureCode: 'D0120',
-      status: 'confirmed',
-      source: 'manual',
-    },
-    {
-      id: 'appt-2',
-      practiceId: practice.id,
-      userId: user.id,
-      providerId: providers[0].id,
-      roomId: rooms[1].id,
-      title: 'Crown Prep: Bob Martinez',
-      start: h(3),
-      end: h(4.5),
-      patientId: 'patient-2',
-      procedureCode: 'D2710',
-      status: 'confirmed',
-      source: 'ai_booked',
-    },
-    {
-      id: 'appt-3',
-      practiceId: practice.id,
-      userId: user.id,
-      providerId: providers[1].id,
-      roomId: rooms[0].id,
-      title: 'New Patient Exam: Carol Smith',
-      start: h(6),
-      end: h(7),
-      patientId: 'patient-3',
-      procedureCode: 'D0150',
-      status: 'scheduled',
-      source: 'ai_booked',
-    },
-  ];
-
-  const appointments = await Promise.all(
-    apptDefs.map((a) =>
-      prisma.appointment.upsert({ where: { id: a.id }, update: {}, create: a as any }),
-    ),
-  );
-
-  // ── 9. AI prompt version ──────────────────────────────────────────────────
-  await prisma.aIPromptVersion.upsert({
-    where: { practiceId_version: { practiceId: practice.id, version: 1 } },
-    update: {},
-    create: {
-      practiceId: practice.id,
-      version: 1,
-      systemPrompt:
-        'You are a helpful dental office AI assistant. Be concise, professional, and HIPAA-aware. Never reveal protected health information to unauthorized callers.',
-      isActive: true,
-      createdBy: user.id,
-    },
-  });
-
-  // ── 10. Alert threshold ───────────────────────────────────────────────────
-  await prisma.alertThreshold.upsert({
-    where: { practiceId: practice.id },
-    update: {},
-    create: {
-      practiceId: practice.id,
-      sentimentMin: 4,
-      escalateOnTreatmentDecline: true,
-      notifyChannel: { type: 'slack', webhookEnvVar: 'SLACK_WEBHOOK_URL' },
-    },
-  });
-
-  // ── 11. Routing policies ──────────────────────────────────────────────────
-  const policies = [
-    { patientType: 'new', mode: 'ai_first' },
-    { patientType: 'existing', mode: 'human_first' },
-  ];
-
-  await Promise.all(
-    policies.map((p) =>
-      prisma.routingPolicy.upsert({
-        where: { practiceId_patientType: { practiceId: practice.id, patientType: p.patientType } },
-        update: {},
-        create: { practiceId: practice.id, ...p },
-      }),
-    ),
-  );
-
-  // ── 12. Practice KPIs (last 7 days, daily) ────────────────────────────────
-  const existingKpiCount = await prisma.practiceKPI.count({
-    where: { practiceId: practice.id },
-  });
-
-  let kpiRowCount = existingKpiCount;
-  if (existingKpiCount === 0) {
-    const kpiMetrics = [
-      { metricName: 'scheduled_count', base: 12 },
-      { metricName: 'no_show_rate', base: 0.08 },
-      { metricName: 'treatment_acceptance_rate', base: 0.72 },
-    ];
-    const kpiRows: Parameters<typeof prisma.practiceKPI.createMany>[0]['data'] = [];
-    for (let day = 6; day >= 0; day--) {
-      const kpiDate = new Date(now);
-      kpiDate.setDate(kpiDate.getDate() - day);
-      kpiDate.setHours(0, 0, 0, 0);
-      for (const m of kpiMetrics) {
-        kpiRows.push({
-          practiceId: practice.id,
-          kpiDate,
-          metricName: m.metricName,
-          metricValue: parseFloat((m.base * (0.9 + Math.random() * 0.2)).toFixed(4)),
-          dimensions: { source: 'seed' },
-        });
-      }
-    }
-    const { count } = await prisma.practiceKPI.createMany({ data: kpiRows });
-    kpiRowCount = count;
-  }
-
-  // ── Summary ───────────────────────────────────────────────────────────────
-  console.log('✅  Seed complete');
-  console.log(`    Practice:     ${practice.name}`);
-  console.log(`    Users:        ${users.length}  (${demoDefs.map((u) => u.email).join(', ')})`);
-  console.log(`    Password:     demo123`);
-  console.log(`    Providers:    ${providers.length}`);
-  console.log(`    Rooms:        ${rooms.length}`);
-  console.log(`    Patients:     ${patients.length}`);
-  console.log(`    Appointments: ${appointments.length}`);
-  console.log(`    KPI rows:     ${kpiRowCount}`);
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required to seed the demo practice`);
+  return value;
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+async function insertAll<T>(
+  rows: T[],
+  createMany: (args: { data: T[] }) => Promise<{ count: number }>,
+): Promise<number> {
+  let count = 0;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    count += (await createMany({ data: rows.slice(i, i + CHUNK) })).count;
+  }
+  return count;
+}
+
+async function main() {
+  const demoPassword = requireEnv('DEMO_PASSWORD');
+  if (demoPassword.length < 12) throw new Error('DEMO_PASSWORD must be at least 12 characters');
+  const encryptionKey = requireEnv('ENCRYPTION_KEY');
+  const rounds = Number(process.env.BCRYPT_ROUNDS ?? 12);
+  const seed = Number(process.env.DEMO_SEED ?? 7351);
+  const now = new Date();
+
+  const prisma = new PrismaClient();
+  try {
+    // Refuse to reset a demo practice that real people have started using, or
+    // to take over a demo email that belongs to another practice.
+    const demoEmails = DEMO_USERS.map((u) => u.email);
+    const existing = await prisma.user.findMany({
+      where: { OR: [{ email: { in: demoEmails } }, { practiceId: DEMO_PRACTICE_ID }] },
+      select: { id: true, email: true, practiceId: true },
+    });
+    const outsiders = existing.filter(
+      (u) => u.practiceId === DEMO_PRACTICE_ID && !demoEmails.includes(u.email),
+    );
+    if (outsiders.length) {
+      throw new Error(
+        `${DEMO_PRACTICE_ID} has ${outsiders.length} non-demo user(s); refusing to reset it`,
+      );
+    }
+    for (const u of existing) {
+      const def = DEMO_USERS.find((d) => d.email === u.email);
+      if (def && (u.practiceId !== DEMO_PRACTICE_ID || u.id !== def.id)) {
+        throw new Error(
+          `${u.email} exists outside the demo practice (or with another id); aborting`,
+        );
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(demoPassword, rounds);
+    const data: DemoDataset = buildDemoDataset({
+      now,
+      seed,
+      encrypt: (plain) => encryptField(plain, encryptionKey),
+      hashIdentifier: sha256Hex,
+    });
+    const demoUserIds = DEMO_USERS.map((u) => u.id);
+
+    const counts = await prisma.$transaction(
+      async (tx) => {
+        await tx.practice.upsert({
+          where: { id: DEMO_PRACTICE_ID },
+          update: {
+            name: DEMO_PRACTICE_NAME,
+            address: DEMO_PRACTICE_ADDRESS,
+            timeZone: DEMO_TIME_ZONE,
+          },
+          create: {
+            id: DEMO_PRACTICE_ID,
+            name: DEMO_PRACTICE_NAME,
+            address: DEMO_PRACTICE_ADDRESS,
+            timeZone: DEMO_TIME_ZONE,
+          },
+        });
+
+        for (const u of DEMO_USERS) {
+          const auth = {
+            passwordHash: u.canSignIn ? passwordHash : null,
+            passwordAlgo: 'bcrypt',
+            status: 'active',
+            failedLoginCount: 0,
+            lockedUntil: null,
+            deletedAt: null,
+            deletedReason: null,
+          };
+          await tx.user.upsert({
+            where: { email: u.email },
+            update: { firstName: u.firstName, lastName: u.lastName, ...auth },
+            create: {
+              id: u.id,
+              email: u.email,
+              practiceId: DEMO_PRACTICE_ID,
+              firstName: u.firstName,
+              lastName: u.lastName,
+              emailVerifiedAt: now,
+              ...auth,
+            },
+          });
+        }
+
+        await resetDemoPractice(tx, demoUserIds);
+
+        for (const u of DEMO_USERS) {
+          const role = await tx.role.upsert({
+            where: { name: u.role },
+            update: {},
+            create: { name: u.role, description: u.role },
+          });
+          await tx.userRole.create({
+            data: { userId: u.id, roleId: role.id, assignedBy: 'user-dev' },
+          });
+        }
+
+        // Anyone signed in with an old demo password is signed out.
+        const revoked = await tx.session.updateMany({
+          where: { userId: { in: demoUserIds }, revokedAt: null },
+          data: { revokedAt: now, revokeReason: 'demo_reseed' },
+        });
+
+        // Insert in foreign-key order.
+        const c: Record<string, number> = { sessionsRevoked: revoked.count };
+        c.rooms = await insertAll(data.rooms, (a) => tx.room.createMany(a));
+        c.providers = await insertAll(data.providers, (a) => tx.provider.createMany(a));
+        c.schedules = await insertAll(data.schedules, (a) => tx.providerSchedule.createMany(a));
+        c.blocks = await insertAll(data.blocks, (a) => tx.availabilityBlock.createMany(a));
+        c.patients = await insertAll(data.patients, (a) => tx.patient.createMany(a));
+        c.insurance = await insertAll(data.insurance, (a) => tx.patientInsurance.createMany(a));
+        c.recordSections = await insertAll(data.recordSections, (a) =>
+          tx.patientRecordSection.createMany(a),
+        );
+        c.medicalHistories = await insertAll(data.medicalHistories, (a) =>
+          tx.patientMedicalHistory.createMany(a),
+        );
+        c.allergies = await insertAll(data.allergies, (a) => tx.allergy.createMany(a));
+        c.medications = await insertAll(data.medications, (a) => tx.medication.createMany(a));
+        c.conditions = await insertAll(data.conditions, (a) => tx.condition.createMany(a));
+        c.appointments = await insertAll(data.appointments, (a) => tx.appointment.createMany(a));
+        c.treatments = await insertAll(data.treatments, (a) => tx.treatmentRecord.createMany(a));
+        c.invoices = await insertAll(data.invoices, (a) => tx.invoice.createMany(a));
+        c.payments = await insertAll(data.payments, (a) => tx.paymentRecord.createMany(a));
+        c.claims = await insertAll(data.claims, (a) => tx.claim.createMany(a));
+        c.claimLines = await insertAll(data.claimLines, (a) => tx.claimLine.createMany(a));
+        c.claimEvents = await insertAll(data.claimEvents, (a) => tx.claimStatusEvent.createMany(a));
+        c.plans = await insertAll(data.plans, (a) => tx.treatmentPlan.createMany(a));
+        c.planItems = await insertAll(data.planItems, (a) => tx.treatmentPlanItem.createMany(a));
+        c.encounters = await insertAll(data.encounters, (a) => tx.encounter.createMany(a));
+        c.toothChart = await insertAll(data.toothChart, (a) => tx.toothChartEntry.createMany(a));
+        c.perioExams = await insertAll(data.perioExams, (a) => tx.periodontalExam.createMany(a));
+        c.calls = await insertAll(data.transcripts, (a) => tx.callTranscript.createMany(a));
+        c.segments = await insertAll(data.segments, (a) => tx.callTranscriptSegment.createMany(a));
+        c.conversations = await insertAll(data.conversations, (a) => tx.conversation.createMany(a));
+        c.participants = await insertAll(data.participants, (a) => tx.participant.createMany(a));
+        c.messages = await insertAll(data.messages, (a) => tx.message.createMany(a));
+        c.reminders = await insertAll(data.reminders, (a) => tx.reminder.createMany(a));
+        c.kpis = await insertAll(data.kpis, (a) => tx.practiceKPI.createMany(a));
+
+        await tx.aIPromptVersion.create({
+          data: {
+            practiceId: DEMO_PRACTICE_ID,
+            version: 1,
+            systemPrompt: `You are the virtual receptionist for ${DEMO_PRACTICE_NAME}. Be concise and professional. Never reveal protected health information to unverified callers.`,
+            isActive: true,
+            createdBy: 'user-dev',
+          },
+        });
+        await tx.alertThreshold.create({
+          data: {
+            practiceId: DEMO_PRACTICE_ID,
+            sentimentMin: 4,
+            escalateOnTreatmentDecline: true,
+            notifyChannel: { type: 'email', to: 'alerts@example.com' },
+          },
+        });
+        await tx.routingPolicy.createMany({
+          data: [
+            { practiceId: DEMO_PRACTICE_ID, patientType: 'new', mode: 'ai_first' },
+            { practiceId: DEMO_PRACTICE_ID, patientType: 'existing', mode: 'human_first' },
+          ],
+        });
+        return c;
+      },
+      { maxWait: 30_000, timeout: 300_000 },
+    );
+
+    console.log(`✅  Demo practice rebuilt: ${DEMO_PRACTICE_NAME} (${DEMO_PRACTICE_ID})`);
+    console.log(
+      `    Sign in as demo@careloop.dev with DEMO_PASSWORD; other demo users cannot sign in.`,
+    );
+    for (const [name, n] of Object.entries(counts)) {
+      console.log(`    ${name.padEnd(18)} ${n}`);
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main().catch((e) => {
+  console.error(e instanceof Error ? e.message : e);
+  process.exit(1);
+});

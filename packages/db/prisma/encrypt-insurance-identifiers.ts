@@ -1,15 +1,5 @@
-import crypto from 'crypto';
 import { prisma } from '../src';
-
-const PREFIX = 'v1:';
-
-function encrypt(value: string, secret: string): string {
-  const key = crypto.createHash('sha256').update(secret).digest();
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const data = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
-  return `${PREFIX}${Buffer.concat([iv, cipher.getAuthTag(), data]).toString('base64')}`;
-}
+import { ENCRYPTED_PREFIX as PREFIX, encryptField as encrypt, sha256Hex } from './field-crypto';
 
 async function main() {
   const secret = process.env.ENCRYPTION_KEY;
@@ -33,7 +23,7 @@ async function main() {
         ...(memberNeedsEncryption
           ? {
               memberIdEnc: encrypt(rawMemberId, secret),
-              memberIdHash: crypto.createHash('sha256').update(rawMemberId).digest('hex'),
+              memberIdHash: sha256Hex(rawMemberId),
             }
           : {}),
         ...(groupNeedsEncryption && record.groupNumberEnc

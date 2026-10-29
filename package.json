@@ -16,9 +16,9 @@
     "clean": "turbo clean",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore",
-    "db:migrate": "npm run db:migrate --workspace=packages/db",
-    "db:seed": "npm run db:seed --workspace=packages/db",
-    "db:studio": "npm run db:studio --workspace=packages/db"
+    "db:migrate": "pnpm --filter @careloop/db run db:migrate",
+    "db:seed": "pnpm --filter @careloop/db run db:seed",
+    "db:studio": "pnpm --filter @careloop/db run db:studio"
   },
   "keywords": [],
   "author": "",

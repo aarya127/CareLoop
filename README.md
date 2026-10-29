@@ -63,7 +63,7 @@ cp .env.example .env
 
 # 4) Apply database migrations (and optionally seed)
 pnpm db:migrate
-pnpm db:seed        # optional sample data
+pnpm db:seed        # optional demo practice (see "Demo practice" below)
 
 # 5) Run the whole stack in dev (web + api + worker via Turborepo)
 pnpm dev
@@ -112,7 +112,6 @@ Optional integrations:
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/oauth/google/callback
-DEMO_USER_ID=demo-user
 
 # AI phone assistant (Twilio + ElevenLabs)
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -148,9 +147,30 @@ pnpm test           # run all test suites
 pnpm format         # Prettier write
 
 pnpm db:migrate     # apply Prisma migrations
-pnpm db:seed        # seed sample data
+pnpm db:seed        # rebuild the demo practice
 pnpm db:studio      # open Prisma Studio
 ```
+
+### Demo practice
+
+`pnpm db:seed` builds **Maple Grove Dental (Demo)** (practice id `demo-practice`): about 40
+fictional patients with six months of history and two weeks of upcoming appointments —
+providers and schedules, clinical notes, tooth charts, perio exams, allergies and medications,
+treatment plans, invoices, payments, insurance claims, reminders, AI call transcripts and
+daily KPIs. Phone numbers use the reserved 555-01xx range and emails use `example.com`, so
+nothing can be delivered to a real person.
+
+```bash
+DEMO_PASSWORD='<12+ characters>' ENCRYPTION_KEY='<same as the API>' pnpm db:seed
+```
+
+- Only `demo@careloop.dev` can sign in, with `DEMO_PASSWORD`. The other demo staff accounts
+  have no password. The demo is private: share the password directly, never in the repo.
+- Re-running is safe. It deletes and regenerates only rows belonging to `demo-practice`
+  (in one transaction), signs out existing demo sessions, and refuses to run if real users
+  have joined that practice. Other practices are never touched.
+- `ENCRYPTION_KEY` must match the API's, because insurance member IDs are stored encrypted.
+- Dates are relative to the day you run it; re-seed to make the demo look current again.
 
 Run a single workspace, e.g. the API tests:
 
