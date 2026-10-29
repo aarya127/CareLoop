@@ -2,31 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
+import { addMonths, endOfMonth, format, startOfMonth, subMonths } from 'date-fns';
 import { appointmentsApi, type AppointmentRecord } from '@/lib/api/appointments';
 import { AppointmentFormModal } from '@/components/appointments/appointment-form-modal';
 import { useAppointmentEvents, type AppointmentEvent } from '@/hooks/useAppointmentEvents';
-
-const DEMO_PRACTICE_ID = process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID ?? '';
-const DEMO_USER_ID = process.env.NEXT_PUBLIC_DEMO_USER_ID ?? '';
-
-/** Map an API AppointmentRecord to CalendarAppointment */
-function toCalendarAppt(a: AppointmentRecord): CalendarAppointment {
-  return {
-    id: a.id,
-    patientId: a.patientId ?? '',
-    patientName: a.title,
-    startTime: new Date(a.start),
-    endTime: new Date(a.end),
-    duration: Math.round((new Date(a.end).getTime() - new Date(a.start).getTime()) / 60_000),
-    procedure: a.procedureCode ?? '',
-    doctorId: a.providerId,
-    doctorName: '',
-    source: a.source === 'ai' ? 'AI' : a.source === 'rescheduled' ? 'Rescheduled' : 'Manual',
-    status: (a.status === 'confirmed' ? 'scheduled' : a.status) as CalendarAppointment['status'],
-    insuranceCovered: true,
-  };
-}
+import { useAuth } from '@/lib/auth/auth-context';
+import { PUBLIC_API_URL } from '@/lib/config/api-client';
+import { classifyHttpStatus } from '@/lib/patient-record/load-state';
+import type { ApiPatient } from '@/lib/patient-record/profile';
 import TopNavigation from '@/components/shared/top-navigation';
 import { CalendarControls } from '@/components/calendar/calendar-controls';
 import { CustomMonthView } from '@/components/calendar/custom-month-view';
@@ -47,197 +31,68 @@ import {
   getNavigationDisplayText,
 } from '@/lib/utils/calendar-helpers';
 
-// Static fallback — used when DEMO_PRACTICE_ID is not set
-const mockAppointments: CalendarAppointment[] = [
-  {
-    id: 'apt-1',
-    patientId: '1',
-    patientName: 'Sarah Johnson',
-    startTime: new Date(2025, 9, 17, 9, 0),
-    endTime: new Date(2025, 9, 17, 9, 30),
-    duration: 30,
-    procedure: 'Routine Cleaning',
-    doctorId: 'dr-1',
-    doctorName: 'Dr. Smith',
-    source: 'AI',
-    status: 'scheduled',
-    insuranceCovered: true,
-  },
-  {
-    id: 'apt-2',
-    patientId: '2',
-    patientName: 'Michael Chen',
-    startTime: new Date(2025, 9, 17, 10, 0),
-    endTime: new Date(2025, 9, 17, 10, 45),
-    duration: 45,
-    procedure: 'Filling - Tooth #18',
-    doctorId: 'dr-2',
-    doctorName: 'Dr. Lee',
-    source: 'Manual',
-    status: 'scheduled',
-    insuranceCovered: true,
-  },
-  {
-    id: 'apt-3',
-    patientId: '3',
-    patientName: 'Emily Davis',
-    startTime: new Date(2025, 9, 17, 13, 0),
-    endTime: new Date(2025, 9, 17, 14, 30),
-    duration: 90,
-    procedure: 'Crown Placement',
-    doctorId: 'dr-3',
-    doctorName: 'Dr. Martinez',
-    source: 'Rescheduled',
-    status: 'scheduled',
-    insuranceCovered: true,
-  },
-  {
-    id: 'apt-4',
-    patientId: '4',
-    patientName: 'James Wilson',
-    startTime: new Date(2025, 9, 18, 9, 30),
-    endTime: new Date(2025, 9, 18, 10, 0),
-    duration: 30,
-    procedure: 'Check-up',
-    doctorId: 'dr-1',
-    doctorName: 'Dr. Smith',
-    source: 'AI',
-    status: 'scheduled',
-    insuranceCovered: true,
-  },
-  {
-    id: 'apt-5',
-    patientId: '5',
-    patientName: 'Lisa Anderson',
-    startTime: new Date(2025, 9, 18, 14, 0),
-    endTime: new Date(2025, 9, 18, 15, 30),
-    duration: 90,
-    procedure: 'Root Canal',
-    doctorId: 'dr-2',
-    doctorName: 'Dr. Lee',
-    source: 'Manual',
-    status: 'scheduled',
-    insuranceCovered: true,
-  },
-  {
-    id: 'apt-6',
-    patientId: '6',
-    patientName: 'David Brown',
-    startTime: new Date(2025, 9, 19, 11, 0),
-    endTime: new Date(2025, 9, 19, 11, 30),
-    duration: 30,
-    procedure: 'Cleaning',
-    doctorId: 'dr-1',
-    doctorName: 'Dr. Smith',
-    source: 'AI',
-    status: 'scheduled',
-    insuranceCovered: false,
-  },
-  {
-    id: 'apt-7',
-    patientId: '7',
-    patientName: 'Jennifer Martinez',
-    startTime: new Date(2025, 9, 20, 10, 0),
-    endTime: new Date(2025, 9, 20, 11, 0),
-    duration: 60,
-    procedure: 'Extraction',
-    doctorId: 'dr-3',
-    doctorName: 'Dr. Martinez',
-    source: 'Rescheduled',
-    status: 'scheduled',
-    insuranceCovered: true,
-  },
-];
+/** API sources: manual | ai_booked | rescheduled (older rows may say `ai`). */
+function toCalendarSource(source?: string | null): CalendarAppointment['source'] {
+  if (source === 'ai_booked' || source === 'ai') return 'AI';
+  if (source === 'rescheduled') return 'Rescheduled';
+  return 'Manual';
+}
 
-// Mock patient drawer data generator
-function generatePatientDrawerData(appointment: CalendarAppointment): PatientDrawerData {
+/** API statuses: scheduled | confirmed | pending | completed | cancelled | no_show. */
+function toCalendarStatus(status?: string | null): CalendarAppointment['status'] {
+  if (status === 'no_show') return 'no-show';
+  if (status === 'completed' || status === 'cancelled') return status;
+  return 'scheduled';
+}
+
+/** Map an API AppointmentRecord to CalendarAppointment */
+function toCalendarAppt(a: AppointmentRecord): CalendarAppointment {
   return {
-    appointment,
-    patient: {
-      id: appointment.patientId,
-      firstName: appointment.patientName.split(' ')[0],
-      lastName: appointment.patientName.split(' ')[1],
-      email: `${appointment.patientName.toLowerCase().replace(' ', '.')}@example.com`,
-      phone: '(555) 123-4567',
-      dateOfBirth: new Date(1985, 5, 15),
-      age: 39,
-      address: {
-        street: '123 Main St',
-        city: 'Toronto',
-        state: 'ON',
-        zip: 'M5H 2N2',
-      },
-    },
-    insurance: {
-      provider: 'Blue Cross Blue Shield',
-      planName: 'Dental Plus PPO',
-      memberId: 'BC123456789',
-      coveragePercent: 80,
-      policyExpiry: new Date(2026, 11, 31),
-    },
-    xrays: [
-      {
-        id: 'xray-1',
-        type: 'Bitewing',
-        date: new Date(2025, 8, 15),
-        thumbnailUrl: '/xrays/bitewing-thumb.jpg',
-        fullUrl: '/xrays/bitewing-full.jpg',
-      },
-      {
-        id: 'xray-2',
-        type: 'Panoramic',
-        date: new Date(2025, 8, 15),
-        thumbnailUrl: '/xrays/panoramic-thumb.jpg',
-        fullUrl: '/xrays/panoramic-full.jpg',
-      },
-    ],
-    periodontalData: {
-      lastExam: new Date(2025, 8, 15),
-      averagePocketDepth: 2.5,
-      gingivalIndex: 1,
-      bleedingPoints: 3,
-      pocketDepths: [],
-      recessionsPresent: false,
-      mobilityPresent: false,
-    },
-    dentalChart: [],
-    visitHistory: [
-      {
-        id: 'visit-1',
-        date: new Date(2025, 8, 15),
-        reason: 'Routine Cleaning',
-        provider: 'Dr. Smith',
-        procedures: [{ code: 'D1110', name: 'Prophylaxis - Adult', cost: 120 }],
-        totalCost: 120,
-        insurancePaid: 96,
-        patientPaid: 24,
-        status: 'completed',
-      },
-      {
-        id: 'visit-2',
-        date: new Date(2025, 2, 20),
-        reason: 'Filling',
-        provider: 'Dr. Lee',
-        procedures: [{ code: 'D2391', name: 'Resin-based composite - one surface', cost: 180 }],
-        totalCost: 180,
-        insurancePaid: 144,
-        patientPaid: 36,
-        status: 'completed',
-      },
-    ],
-    notes: [
-      {
-        id: 'note-1',
-        appointmentId: 'apt-old',
-        author: 'Dr. Smith',
-        role: 'Dentist',
-        timestamp: new Date(2025, 8, 15, 10, 30),
-        content:
-          'Patient presents with good oral hygiene. No signs of decay. Advised to continue regular brushing and flossing.',
-        isEdited: false,
-      },
-    ],
+    id: a.id,
+    patientId: a.patientId ?? '',
+    patientName: a.title,
+    startTime: new Date(a.start),
+    endTime: new Date(a.end),
+    duration: Math.round((new Date(a.end).getTime() - new Date(a.start).getTime()) / 60_000),
+    procedure: a.procedureCode ?? '',
+    doctorId: a.providerId,
+    doctorName: '',
+    source: toCalendarSource(a.source),
+    status: toCalendarStatus(a.status),
   };
+}
+
+async function fetchDrawerPatient(patientId: string): Promise<PatientDrawerData['patient']> {
+  try {
+    const res = await fetch(`${PUBLIC_API_URL}/patients/${encodeURIComponent(patientId)}`, {
+      credentials: 'include',
+    });
+    const outcome = classifyHttpStatus(res.status);
+    if (outcome !== 'ok') return { status: 'error', reason: outcome };
+    const p = (await res.json()) as ApiPatient;
+    const insurance = p.insuranceRecords?.[0];
+    return {
+      status: 'ready',
+      isEmpty: false,
+      data: {
+        id: p.id,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        dateOfBirth: p.dateOfBirth ? String(p.dateOfBirth).slice(0, 10) : '',
+        phone: p.phoneE164 ?? '',
+        gender: p.gender ?? '',
+        insurance: insurance
+          ? {
+              payerName: insurance.payerName,
+              planName: insurance.planName ?? '',
+              memberIdMasked: insurance.memberIdMasked ?? '',
+            }
+          : undefined,
+      },
+    };
+  } catch {
+    return { status: 'error', reason: 'network' };
+  }
 }
 
 const viewTransitionVariants = {
@@ -266,32 +121,58 @@ const viewTransitionVariants = {
 };
 
 export default function CustomCalendarPage() {
-  const [liveAppointments, setLiveAppointments] = useState<CalendarAppointment[]>([]);
+  const { user } = useAuth();
+  const practiceId = user?.practiceId ?? '';
+
+  const [appointments, setAppointments] = useState<CalendarAppointment[]>([]);
+  const [apptStatus, setApptStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [reloadKey, setReloadKey] = useState(0);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [defaultStart, setDefaultStart] = useState<string | undefined>();
 
-  // Fetch real appointments when a practiceId is configured
+  const [calendarState, setCalendarState] = useState<CalendarState>({
+    currentDate: new Date(),
+    selectedDate: new Date(),
+    viewMode: 'week',
+    selectedAppointment: null,
+    isDrawerOpen: false,
+    isBookingModalOpen: false,
+    focusedAppointmentId: null,
+  });
+
+  const [direction, setDirection] = useState(0);
+  const [drawerData, setDrawerData] = useState<PatientDrawerData | null>(null);
+
+  // Load the visible month plus one either side; refetch when navigating to another month.
+  const monthKey = format(calendarState.currentDate, 'yyyy-MM');
   useEffect(() => {
-    if (!DEMO_PRACTICE_ID) return;
-    const from = new Date();
-    from.setDate(from.getDate() - 7);
-    const to = new Date();
-    to.setDate(to.getDate() + 30);
+    if (!practiceId) return;
+    let cancelled = false;
+    const anchor = calendarState.currentDate;
+    setApptStatus('loading');
     appointmentsApi
       .list({
-        practiceId: DEMO_PRACTICE_ID,
-        from: from.toISOString(),
-        to: to.toISOString(),
+        practiceId,
+        from: startOfMonth(subMonths(anchor, 1)).toISOString(),
+        to: endOfMonth(addMonths(anchor, 1)).toISOString(),
       })
-      .then((records) => setLiveAppointments(records.map(toCalendarAppt)))
+      .then((records) => {
+        if (cancelled) return;
+        setAppointments(records.map(toCalendarAppt));
+        setApptStatus('ready');
+      })
       .catch(() => {
-        /* silently fall back to mock data */
+        if (!cancelled) setApptStatus('error');
       });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+    // Keyed on monthKey (not currentDate) so day/week navigation within a month doesn't refetch.
+  }, [practiceId, monthKey, reloadKey]);
 
   // Live appointment board: apply SSE events from colleagues' mutations
   const handleAppointmentEvent = useCallback((event: AppointmentEvent) => {
-    setLiveAppointments((prev) => {
+    setAppointments((prev) => {
       switch (event.type) {
         case 'created': {
           if (prev.some((a) => a.id === event.id)) return prev; // already present
@@ -307,9 +188,8 @@ export default function CustomCalendarPage() {
             procedure: '',
             doctorId: event.providerId,
             doctorName: '',
-            source: event.source === 'ai_booked' ? 'AI' : 'Manual',
+            source: toCalendarSource(event.source),
             status: 'scheduled',
-            insuranceCovered: true,
           };
           return [...prev, mapped];
         }
@@ -327,9 +207,7 @@ export default function CustomCalendarPage() {
                   duration: Math.round(
                     (new Date(event.end).getTime() - new Date(event.start).getTime()) / 60_000,
                   ),
-                  status: (event.status === 'confirmed'
-                    ? 'scheduled'
-                    : event.status) as CalendarAppointment['status'],
+                  status: toCalendarStatus(event.status),
                 }
               : a,
           );
@@ -339,23 +217,7 @@ export default function CustomCalendarPage() {
     });
   }, []);
 
-  // Connect SSE only when we have a real practiceId (avoids connecting on mock data)
-  useAppointmentEvents(DEMO_PRACTICE_ID || undefined, handleAppointmentEvent);
-
-  const appointments = liveAppointments.length > 0 ? liveAppointments : mockAppointments;
-
-  const [calendarState, setCalendarState] = useState<CalendarState>({
-    currentDate: new Date(),
-    selectedDate: new Date(),
-    viewMode: 'week',
-    selectedAppointment: null,
-    isDrawerOpen: false,
-    isBookingModalOpen: false,
-    focusedAppointmentId: null,
-  });
-
-  const [direction, setDirection] = useState(0);
-  const [drawerData, setDrawerData] = useState<PatientDrawerData | null>(null);
+  useAppointmentEvents(practiceId || undefined, handleAppointmentEvent);
 
   // Handle view mode change
   const handleViewModeChange = (mode: CalendarView) => {
@@ -390,15 +252,24 @@ export default function CustomCalendarPage() {
     }));
   };
 
-  // Handle appointment click
+  // Open the drawer immediately, then fill in the real patient record.
   const handleAppointmentClick = (appointment: CalendarAppointment) => {
-    const data = generatePatientDrawerData(appointment);
-    setDrawerData(data);
+    const patientId = appointment.patientId;
+    setDrawerData({
+      appointment,
+      patient: patientId ? { status: 'loading' } : { status: 'ready', data: null, isEmpty: true },
+    });
     setCalendarState((prev) => ({
       ...prev,
       selectedAppointment: appointment,
       isDrawerOpen: true,
     }));
+    if (!patientId) return;
+    fetchDrawerPatient(patientId).then((patient) =>
+      setDrawerData((cur) =>
+        cur?.appointment.id === appointment.id ? { appointment, patient } : cur,
+      ),
+    );
   };
 
   // Handle slot click (booking)
@@ -481,6 +352,24 @@ export default function CustomCalendarPage() {
           onToday={handleToday}
         />
 
+        {apptStatus === 'error' && (
+          <div className="mx-6 mt-3 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">
+              Couldn&apos;t load appointments. The calendar may be incomplete.
+            </span>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="font-medium text-red-700 hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {apptStatus === 'loading' && (
+          <div className="mx-6 mt-3 text-xs text-gray-500">Loading appointments…</div>
+        )}
+
         {/* Calendar Views */}
         <div className="flex-1 relative overflow-hidden">
           <AnimatePresence mode="wait" custom={direction}>
@@ -551,11 +440,11 @@ export default function CustomCalendarPage() {
       <AppointmentFormModal
         isOpen={bookingModalOpen}
         onClose={() => setBookingModalOpen(false)}
-        practiceId={DEMO_PRACTICE_ID}
-        userId={DEMO_USER_ID}
+        practiceId={practiceId}
+        userId={user?.id ?? ''}
         defaultStart={defaultStart}
         onCreated={(appt) => {
-          setLiveAppointments((prev) => [...prev, toCalendarAppt(appt)]);
+          setAppointments((prev) => [...prev, toCalendarAppt(appt)]);
           setBookingModalOpen(false);
         }}
       />

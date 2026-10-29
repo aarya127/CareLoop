@@ -179,27 +179,29 @@ export default function MedicalHistorySection({
     }
 
     if (type === 'lifestyle') {
+      const lifestyle = medicalHistory.lifestyle_factors;
       setForm({
-        smoking_status: medicalHistory.lifestyle_factors.smoking?.status ?? 'never',
-        packs_per_day: String(medicalHistory.lifestyle_factors.smoking?.packs_per_day ?? ''),
-        years: String(medicalHistory.lifestyle_factors.smoking?.years ?? ''),
-        quit_date: medicalHistory.lifestyle_factors.smoking?.quit_date ?? '',
-        alcohol_frequency: medicalHistory.lifestyle_factors.alcohol?.frequency ?? 'none',
-        drinks_per_week: String(medicalHistory.lifestyle_factors.alcohol?.drinks_per_week ?? ''),
-        diet_notes: medicalHistory.lifestyle_factors.diet_notes ?? '',
-        exercise_frequency: medicalHistory.lifestyle_factors.exercise_frequency ?? '',
+        smoking_status: lifestyle?.smoking?.status ?? 'never',
+        packs_per_day: String(lifestyle?.smoking?.packs_per_day ?? ''),
+        years: String(lifestyle?.smoking?.years ?? ''),
+        quit_date: lifestyle?.smoking?.quit_date ?? '',
+        alcohol_frequency: lifestyle?.alcohol?.frequency ?? 'none',
+        drinks_per_week: String(lifestyle?.alcohol?.drinks_per_week ?? ''),
+        diet_notes: lifestyle?.diet_notes ?? '',
+        exercise_frequency: lifestyle?.exercise_frequency ?? '',
       });
       return;
     }
 
     if (type === 'dental') {
+      const dental = medicalHistory.dental_history;
       setForm({
-        last_cleaning_date: medicalHistory.dental_history.last_cleaning_date ?? '',
-        last_exam_date: medicalHistory.dental_history.last_exam_date ?? '',
-        dental_anxiety_level: medicalHistory.dental_history.dental_anxiety_level ?? 'none',
-        previous_orthodontics: medicalHistory.dental_history.previous_orthodontics ? 'yes' : 'no',
-        orthodontics_details: medicalHistory.dental_history.orthodontics_details ?? '',
-        previous_implants: medicalHistory.dental_history.previous_implants ? 'yes' : 'no',
+        last_cleaning_date: dental?.last_cleaning_date ?? '',
+        last_exam_date: dental?.last_exam_date ?? '',
+        dental_anxiety_level: dental?.dental_anxiety_level ?? 'none',
+        previous_orthodontics: dental?.previous_orthodontics ? 'yes' : 'no',
+        orthodontics_details: dental?.orthodontics_details ?? '',
+        previous_implants: dental?.previous_implants ? 'yes' : 'no',
       });
     }
   };
@@ -515,6 +517,7 @@ export default function MedicalHistorySection({
         ...medicalHistory,
         dental_history: {
           ...medicalHistory.dental_history,
+          treatment_history_summary: medicalHistory.dental_history?.treatment_history_summary ?? [],
           last_cleaning_date: form.last_cleaning_date || undefined,
           last_exam_date: form.last_exam_date || undefined,
           dental_anxiety_level: (form.dental_anxiety_level || 'none') as
@@ -530,6 +533,10 @@ export default function MedicalHistorySection({
       closeEditor();
     }
   };
+
+  // Absent = never recorded; render "Not recorded" rather than implying a value.
+  const lifestyle = medicalHistory.lifestyle_factors;
+  const dental = medicalHistory.dental_history;
 
   return (
     <div className="space-y-6">
@@ -640,8 +647,8 @@ export default function MedicalHistorySection({
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-green-500" />
-            <p>No known allergies</p>
+            <p className="font-medium text-gray-700">No allergies recorded</p>
+            <p className="mt-1 text-sm">Confirm with the patient and add any allergies here.</p>
           </div>
         )}
       </div>
@@ -945,104 +952,101 @@ export default function MedicalHistorySection({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Smoking */}
-          <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
-            <div className="flex items-center space-x-3 mb-3">
-              <Cigarette className="w-5 h-5 text-gray-600" />
-              <h4 className="font-semibold text-gray-900">Smoking</h4>
-            </div>
-            <p className="text-sm text-gray-700 capitalize mb-2">
-              <span className="font-medium">Status:</span>{' '}
-              <span
-                className={`px-2 py-0.5 rounded ${
-                  medicalHistory.lifestyle_factors.smoking.status === 'current'
-                    ? 'bg-red-100 text-red-800'
-                    : medicalHistory.lifestyle_factors.smoking.status === 'former'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-green-100 text-green-800'
-                }`}
-              >
-                {medicalHistory.lifestyle_factors.smoking.status}
-              </span>
-            </p>
-            {medicalHistory.lifestyle_factors.smoking.status !== 'never' && (
-              <>
-                {medicalHistory.lifestyle_factors.smoking.packs_per_day && (
-                  <p className="text-sm text-gray-600">
-                    {medicalHistory.lifestyle_factors.smoking.packs_per_day} packs/day
-                  </p>
-                )}
-                {medicalHistory.lifestyle_factors.smoking.years && (
-                  <p className="text-sm text-gray-600">
-                    {medicalHistory.lifestyle_factors.smoking.years} years
-                  </p>
-                )}
-                {medicalHistory.lifestyle_factors.smoking.quit_date && (
-                  <p className="text-sm text-green-700">
-                    Quit:{' '}
-                    {new Date(
-                      medicalHistory.lifestyle_factors.smoking.quit_date,
-                    ).toLocaleDateString()}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Alcohol */}
-          <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
-            <div className="flex items-center space-x-3 mb-3">
-              <Wine className="w-5 h-5 text-gray-600" />
-              <h4 className="font-semibold text-gray-900">Alcohol</h4>
-            </div>
-            <p className="text-sm text-gray-700 capitalize mb-2">
-              <span className="font-medium">Frequency:</span>{' '}
-              <span
-                className={`px-2 py-0.5 rounded ${
-                  medicalHistory.lifestyle_factors.alcohol.frequency === 'heavy'
-                    ? 'bg-red-100 text-red-800'
-                    : medicalHistory.lifestyle_factors.alcohol.frequency === 'moderate'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : medicalHistory.lifestyle_factors.alcohol.frequency === 'occasional'
-                        ? 'bg-blue-100 text-blue-800'
+        {!lifestyle ? (
+          <NotRecorded label="Lifestyle factors" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Smoking */}
+            <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
+              <div className="flex items-center space-x-3 mb-3">
+                <Cigarette className="w-5 h-5 text-gray-600" />
+                <h4 className="font-semibold text-gray-900">Smoking</h4>
+              </div>
+              <p className="text-sm text-gray-700 capitalize mb-2">
+                <span className="font-medium">Status:</span>{' '}
+                <span
+                  className={`px-2 py-0.5 rounded ${
+                    lifestyle.smoking?.status === 'current'
+                      ? 'bg-red-100 text-red-800'
+                      : lifestyle.smoking?.status === 'former'
+                        ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-green-100 text-green-800'
-                }`}
-              >
-                {medicalHistory.lifestyle_factors.alcohol.frequency}
-              </span>
-            </p>
-            {medicalHistory.lifestyle_factors.alcohol.drinks_per_week && (
-              <p className="text-sm text-gray-600">
-                {medicalHistory.lifestyle_factors.alcohol.drinks_per_week} drinks/week
+                  }`}
+                >
+                  {lifestyle.smoking?.status}
+                </span>
               </p>
+              {lifestyle.smoking?.status !== 'never' && (
+                <>
+                  {lifestyle.smoking?.packs_per_day && (
+                    <p className="text-sm text-gray-600">
+                      {lifestyle.smoking?.packs_per_day} packs/day
+                    </p>
+                  )}
+                  {lifestyle.smoking?.years && (
+                    <p className="text-sm text-gray-600">{lifestyle.smoking?.years} years</p>
+                  )}
+                  {lifestyle.smoking?.quit_date && (
+                    <p className="text-sm text-green-700">
+                      Quit: {new Date(lifestyle.smoking?.quit_date).toLocaleDateString()}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Alcohol */}
+            <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
+              <div className="flex items-center space-x-3 mb-3">
+                <Wine className="w-5 h-5 text-gray-600" />
+                <h4 className="font-semibold text-gray-900">Alcohol</h4>
+              </div>
+              <p className="text-sm text-gray-700 capitalize mb-2">
+                <span className="font-medium">Frequency:</span>{' '}
+                <span
+                  className={`px-2 py-0.5 rounded ${
+                    lifestyle.alcohol?.frequency === 'heavy'
+                      ? 'bg-red-100 text-red-800'
+                      : lifestyle.alcohol?.frequency === 'moderate'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : lifestyle.alcohol?.frequency === 'occasional'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                  }`}
+                >
+                  {lifestyle.alcohol?.frequency}
+                </span>
+              </p>
+              {lifestyle.alcohol?.drinks_per_week && (
+                <p className="text-sm text-gray-600">
+                  {lifestyle.alcohol?.drinks_per_week} drinks/week
+                </p>
+              )}
+            </div>
+
+            {/* Diet */}
+            {lifestyle.diet_notes && (
+              <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
+                <div className="flex items-center space-x-3 mb-3">
+                  <Utensils className="w-5 h-5 text-gray-600" />
+                  <h4 className="font-semibold text-gray-900">Diet</h4>
+                </div>
+                <p className="text-sm text-gray-700">{lifestyle.diet_notes}</p>
+              </div>
+            )}
+
+            {/* Exercise */}
+            {lifestyle.exercise_frequency && (
+              <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
+                <div className="flex items-center space-x-3 mb-3">
+                  <Activity className="w-5 h-5 text-gray-600" />
+                  <h4 className="font-semibold text-gray-900">Exercise</h4>
+                </div>
+                <p className="text-sm text-gray-700">{lifestyle.exercise_frequency}</p>
+              </div>
             )}
           </div>
-
-          {/* Diet */}
-          {medicalHistory.lifestyle_factors.diet_notes && (
-            <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
-              <div className="flex items-center space-x-3 mb-3">
-                <Utensils className="w-5 h-5 text-gray-600" />
-                <h4 className="font-semibold text-gray-900">Diet</h4>
-              </div>
-              <p className="text-sm text-gray-700">{medicalHistory.lifestyle_factors.diet_notes}</p>
-            </div>
-          )}
-
-          {/* Exercise */}
-          {medicalHistory.lifestyle_factors.exercise_frequency && (
-            <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-gray-200">
-              <div className="flex items-center space-x-3 mb-3">
-                <Activity className="w-5 h-5 text-gray-600" />
-                <h4 className="font-semibold text-gray-900">Exercise</h4>
-              </div>
-              <p className="text-sm text-gray-700">
-                {medicalHistory.lifestyle_factors.exercise_frequency}
-              </p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Family Health History */}
@@ -1135,109 +1139,117 @@ export default function MedicalHistorySection({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
-            <p className="text-sm font-medium text-gray-700 mb-1">Last Cleaning</p>
-            <p className="text-lg font-bold text-gray-900">
-              {medicalHistory.dental_history.last_cleaning_date
-                ? new Date(medicalHistory.dental_history.last_cleaning_date).toLocaleDateString()
-                : 'Not recorded'}
-            </p>
-          </div>
+        {!dental ? (
+          <NotRecorded label="Dental history" />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
+                <p className="text-sm font-medium text-gray-700 mb-1">Last Cleaning</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {dental.last_cleaning_date
+                    ? new Date(dental.last_cleaning_date).toLocaleDateString()
+                    : 'Not recorded'}
+                </p>
+              </div>
 
-          <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
-            <p className="text-sm font-medium text-gray-700 mb-1">Last Exam</p>
-            <p className="text-lg font-bold text-gray-900">
-              {medicalHistory.dental_history.last_exam_date
-                ? new Date(medicalHistory.dental_history.last_exam_date).toLocaleDateString()
-                : 'Not recorded'}
-            </p>
-          </div>
+              <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
+                <p className="text-sm font-medium text-gray-700 mb-1">Last Exam</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {dental.last_exam_date
+                    ? new Date(dental.last_exam_date).toLocaleDateString()
+                    : 'Not recorded'}
+                </p>
+              </div>
 
-          <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
-            <p className="text-sm font-medium text-gray-700 mb-1">Dental Anxiety</p>
-            <p
-              className={`text-lg font-bold ${
-                medicalHistory.dental_history.dental_anxiety_level === 'severe'
-                  ? 'text-red-600'
-                  : medicalHistory.dental_history.dental_anxiety_level === 'moderate'
-                    ? 'text-orange-600'
-                    : medicalHistory.dental_history.dental_anxiety_level === 'mild'
-                      ? 'text-yellow-600'
-                      : 'text-green-600'
-              }`}
-            >
-              {medicalHistory.dental_history.dental_anxiety_level.charAt(0).toUpperCase() +
-                medicalHistory.dental_history.dental_anxiety_level.slice(1)}
-            </p>
-          </div>
+              <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
+                <p className="text-sm font-medium text-gray-700 mb-1">Dental Anxiety</p>
+                <p
+                  className={`text-lg font-bold ${
+                    dental.dental_anxiety_level === 'severe'
+                      ? 'text-red-600'
+                      : dental.dental_anxiety_level === 'moderate'
+                        ? 'text-orange-600'
+                        : dental.dental_anxiety_level === 'mild'
+                          ? 'text-yellow-600'
+                          : 'text-green-600'
+                  }`}
+                >
+                  {dental.dental_anxiety_level
+                    ? dental.dental_anxiety_level.charAt(0).toUpperCase() +
+                      dental.dental_anxiety_level.slice(1)
+                    : 'Not recorded'}
+                </p>
+              </div>
 
-          <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
-            <p className="text-sm font-medium text-gray-700 mb-1">Previous Treatments</p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {medicalHistory.dental_history.previous_orthodontics && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                  Orthodontics
-                </span>
-              )}
-              {medicalHistory.dental_history.previous_implants && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                  Implants
-                </span>
-              )}
+              <div className="p-4 rounded-lg bg-sky-50 border border-sky-200">
+                <p className="text-sm font-medium text-gray-700 mb-1">Previous Treatments</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {dental.previous_orthodontics && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                      Orthodontics
+                    </span>
+                  )}
+                  {dental.previous_implants && (
+                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                      Implants
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Treatment History Timeline */}
-        {medicalHistory.dental_history.treatment_history_summary.length > 0 && (
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-              <Clock className="w-4 h-4 mr-2 text-sky-600" />
-              Treatment Timeline
-            </h4>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {medicalHistory.dental_history.treatment_history_summary
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map((treatment) => (
-                  <motion.div
-                    key={treatment.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-start space-x-4 p-3 rounded-lg border border-gray-200 hover:border-sky-300 transition-colors"
-                  >
-                    <div className="w-2 h-2 bg-sky-500 rounded-full mt-2 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <h5 className="font-semibold text-gray-900">{treatment.procedure}</h5>
-                        <span className="text-sm text-gray-500 flex-shrink-0 ml-2">
-                          {new Date(treatment.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-1">Dr. {treatment.dentist_name}</p>
-                      {treatment.teeth_involved.length > 0 && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          Teeth: {treatment.teeth_involved.join(', ')}
-                        </p>
-                      )}
-                      {treatment.cost && (
-                        <p className="text-sm text-gray-600">
-                          Cost: ${treatment.cost.toFixed(2)}
-                          {treatment.insurance_covered && (
-                            <span className="text-green-600 ml-2">
-                              (${treatment.insurance_covered.toFixed(2)} covered)
+            {/* Treatment History Timeline */}
+            {(dental.treatment_history_summary?.length ?? 0) > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                  <Clock className="w-4 h-4 mr-2 text-sky-600" />
+                  Treatment Timeline
+                </h4>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {dental.treatment_history_summary
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((treatment) => (
+                      <motion.div
+                        key={treatment.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-start space-x-4 p-3 rounded-lg border border-gray-200 hover:border-sky-300 transition-colors"
+                      >
+                        <div className="w-2 h-2 bg-sky-500 rounded-full mt-2 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <h5 className="font-semibold text-gray-900">{treatment.procedure}</h5>
+                            <span className="text-sm text-gray-500 flex-shrink-0 ml-2">
+                              {new Date(treatment.date).toLocaleDateString()}
                             </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-1">Dr. {treatment.dentist_name}</p>
+                          {treatment.teeth_involved.length > 0 && (
+                            <p className="text-sm text-gray-600 mb-1">
+                              Teeth: {treatment.teeth_involved.join(', ')}
+                            </p>
                           )}
-                        </p>
-                      )}
-                      {treatment.notes && (
-                        <p className="text-sm text-gray-500 mt-2 italic">{treatment.notes}</p>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-            </div>
-          </div>
+                          {treatment.cost && (
+                            <p className="text-sm text-gray-600">
+                              Cost: ${treatment.cost.toFixed(2)}
+                              {treatment.insurance_covered && (
+                                <span className="text-green-600 ml-2">
+                                  (${treatment.insurance_covered.toFixed(2)} covered)
+                                </span>
+                              )}
+                            </p>
+                          )}
+                          {treatment.notes && (
+                            <p className="text-sm text-gray-500 mt-2 italic">{treatment.notes}</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -1581,6 +1593,14 @@ export default function MedicalHistorySection({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function NotRecorded({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
+      {label} not recorded. Use the edit button to add them.
     </div>
   );
 }

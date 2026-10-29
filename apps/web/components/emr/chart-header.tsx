@@ -1,15 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  AlertTriangle,
-  Calendar,
-  ChevronLeft,
-  Pill,
-  ClipboardList,
-  Plus,
-  ShieldCheck,
-} from 'lucide-react';
+import { AlertTriangle, Calendar, ChevronLeft, Pill, ClipboardList, Plus } from 'lucide-react';
 import { Chip } from './emr-chips';
 
 export interface ChartHeaderAllergy {
@@ -22,6 +14,8 @@ export interface ChartHeaderProps {
   dateOfBirth?: string;
   gender?: string;
   phone?: string;
+  /** Load status of the allergy/problem/medication data; never imply "no allergies" unless loaded. */
+  allergyStatus: 'loading' | 'ready' | 'error';
   allergies: ChartHeaderAllergy[];
   activeProblems: string[];
   activeMedications: string[];
@@ -47,6 +41,7 @@ export default function ChartHeader({
   dateOfBirth,
   gender,
   phone,
+  allergyStatus,
   allergies,
   activeProblems,
   activeMedications,
@@ -103,12 +98,22 @@ export default function ChartHeader({
         )}
       </div>
 
-      {/* Allergy / alert safety banner */}
-      {allergies.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          <ShieldCheck className="w-4 h-4 shrink-0" />
-          <span className="font-semibold">NKDA</span>
-          <span className="text-emerald-700/80">No known allergies on file</span>
+      {/* Allergy / alert safety banner. "None recorded" is not the same as "none" (NKDA). */}
+      {allergyStatus === 'loading' ? (
+        <div className="h-9 animate-pulse rounded-lg border border-gray-200 bg-gray-100" />
+      ) : allergyStatus === 'error' ? (
+        <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="font-semibold">Allergy data unavailable</span>
+          <span className="text-red-700/80">
+            Verify allergies with the patient before treatment
+          </span>
+        </div>
+      ) : allergies.length === 0 ? (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="font-semibold">No allergies recorded</span>
+          <span className="text-amber-800/80">Confirm with the patient</span>
         </div>
       ) : (
         <div
@@ -134,14 +139,19 @@ export default function ChartHeader({
 
       {/* At-a-glance summary chips */}
       <div className="flex flex-wrap items-center gap-2">
-        <Chip tone="purple">
-          <ClipboardList className="w-3.5 h-3.5" />
-          {activeProblems.length} active {activeProblems.length === 1 ? 'problem' : 'problems'}
-        </Chip>
-        <Chip tone="blue">
-          <Pill className="w-3.5 h-3.5" />
-          {activeMedications.length} {activeMedications.length === 1 ? 'medication' : 'medications'}
-        </Chip>
+        {allergyStatus === 'ready' && (
+          <>
+            <Chip tone="purple">
+              <ClipboardList className="w-3.5 h-3.5" />
+              {activeProblems.length} active {activeProblems.length === 1 ? 'problem' : 'problems'}
+            </Chip>
+            <Chip tone="blue">
+              <Pill className="w-3.5 h-3.5" />
+              {activeMedications.length}{' '}
+              {activeMedications.length === 1 ? 'medication' : 'medications'}
+            </Chip>
+          </>
+        )}
         {nextAppointment?.date && (
           <Chip tone="green">
             <Calendar className="w-3.5 h-3.5" />

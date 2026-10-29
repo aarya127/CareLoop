@@ -24,6 +24,7 @@ import type {
   PeriodontalExam,
   ToothMeasurement,
 } from '@/lib/types/dental-record';
+import { blankPerioMeasurements } from '@/lib/patient-record/empty-records';
 
 interface PeriodontalRecordsSectionProps {
   patientId: string;
@@ -74,14 +75,13 @@ export default function PeriodontalRecordsSection({
     const examinerName = newExamForm.examiner_name.trim();
     if (!examinerName) return;
 
-    const baseline = periodontalRecords.exams[0]?.tooth_measurements ?? [];
-
     const nextExam: PeriodontalExam = {
       exam_id: `perio-exam-${Date.now().toString(36)}`,
       exam_date: newExamForm.exam_date || new Date().toISOString().slice(0, 10),
       examiner_name: examinerName,
-      tooth_measurements: baseline,
-      overall_diagnosis: newExamForm.diagnosis.trim() || undefined,
+      // Start blank: copying the previous exam's values would present old readings as new.
+      tooth_measurements: blankPerioMeasurements(),
+      overall_diagnosis: newExamForm.diagnosis.trim(),
       treatment_recommendations: newExamForm.recommendations
         .split('\n')
         .map((item) => item.trim())
@@ -214,6 +214,7 @@ export default function PeriodontalRecordsSection({
 
     latestExam.tooth_measurements.forEach((tooth: ToothMeasurement) => {
       tooth.pocket_depths.forEach((depth: number) => {
+        if (depth <= 0) return; // 0 = site not probed yet
         totalDepth += depth;
         totalPoints++;
 
@@ -231,7 +232,7 @@ export default function PeriodontalRecordsSection({
       healthy,
       warning,
       severe,
-      avgDepth: totalPoints > 0 ? (totalDepth / totalPoints).toFixed(1) : '0',
+      avgDepth: totalPoints > 0 ? (totalDepth / totalPoints).toFixed(1) : '—',
       bleedingPoints,
       totalPoints,
     };
@@ -351,6 +352,7 @@ export default function PeriodontalRecordsSection({
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              {periodontalRecords.exams.length === 0 && <option value="">No exams recorded</option>}
               {periodontalRecords.exams.map((exam: PeriodontalExam) => (
                 <option key={exam.exam_id} value={exam.exam_id}>
                   {new Date(exam.exam_date).toLocaleDateString()} - Dr. {exam.examiner_name}

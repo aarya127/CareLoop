@@ -76,7 +76,7 @@ export default function AdminPatientsPage() {
     setIsPatientsLoading(true);
     setPatientsError('');
     try {
-      const res = await fetch(`${apiBaseUrl}/patients?practiceId=demo-practice`, {
+      const res = await fetch(`${apiBaseUrl}/patients`, {
         credentials: 'include',
       });
       const json = (await res.json()) as AdminPatientCard[];

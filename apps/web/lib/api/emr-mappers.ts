@@ -19,6 +19,7 @@ import type {
   ToothRecord,
   ToothSurface,
 } from '@/lib/types/dental-record';
+import { mergeToothChart, teethToUpsert } from '@/lib/patient-record/tooth-chart';
 
 const ALLERGY_SEVERITIES = ['mild', 'moderate', 'severe', 'life_threatening'];
 const day = (iso?: string | null) => (iso ? String(iso).slice(0, 10) : '');
@@ -230,15 +231,12 @@ function emrToothToUi(e: ToothChartEntry): ToothRecord {
   };
 }
 
-const uiToothToEmr = (t: ToothRecord) => ({
+export const uiToothToEmr = (t: ToothRecord) => ({
   condition: TOOTH_STATUS_VALUES.includes(t.status) ? t.status : 'healthy',
   surfaces: (t.surfaces_affected ?? []).map(String),
   status: 'active',
   notes: t.notes || undefined,
 });
-
-const toothIsCharted = (t: ToothRecord) =>
-  t.status !== 'healthy' || (t.surfaces_affected?.length ?? 0) > 0 || Boolean(t.notes);
 
 /** Load charted teeth from the EMR, keyed by tooth number, to overlay a chart. */
 export async function loadToothChartByNumber(patientId: string): Promise<Map<number, ToothRecord>> {
@@ -246,27 +244,16 @@ export async function loadToothChartByNumber(patientId: string): Promise<Map<num
   return new Map(entries.map((e) => [e.toothNumber, emrToothToUi(e)]));
 }
 
-/** Merge EMR-charted teeth onto a base set (which supplies the full 1-32 arch). */
-export function mergeToothChart(
-  baseTeeth: ToothRecord[],
-  emrByNumber: Map<number, ToothRecord>,
-): ToothRecord[] {
-  return baseTeeth.map((t) => emrByNumber.get(t.tooth_number) ?? t);
-}
+export { mergeToothChart };
 
-/** Upsert only teeth whose charted state actually changed. */
+/** Upsert every tooth whose charted state changed, including newly charted ones. */
 export async function syncToothChart(
   patientId: string,
   prevTeeth: ToothRecord[],
   nextTeeth: ToothRecord[],
 ): Promise<void> {
-  const prevByNum = new Map(prevTeeth.map((t) => [t.tooth_number, t]));
-  for (const t of nextTeeth) {
-    const old = prevByNum.get(t.tooth_number);
-    const changed = !old || JSON.stringify(uiToothToEmr(old)) !== JSON.stringify(uiToothToEmr(t));
-    if (changed && toothIsCharted(t)) {
-      await emrApi.upsertToothEntry(patientId, t.tooth_number, uiToothToEmr(t));
-    }
+  for (const t of teethToUpsert(prevTeeth, nextTeeth, uiToothToEmr)) {
+    await emrApi.upsertToothEntry(patientId, t.tooth_number, uiToothToEmr(t));
   }
 }
 

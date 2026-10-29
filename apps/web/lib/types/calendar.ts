@@ -3,6 +3,8 @@
  * Built from scratch for CareLoop - No external calendar libraries
  */
 
+import type { SectionState } from '../patient-record/load-state';
+
 export type CalendarView = 'day' | 'week' | 'month' | 'agenda';
 
 export type BookingSource = 'AI' | 'Manual' | 'Rescheduled';
@@ -28,7 +30,6 @@ export interface CalendarAppointment {
   source: BookingSource;
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
   notes?: string;
-  insuranceCovered: boolean;
   color?: string;
 }
 
@@ -77,96 +78,21 @@ export interface NavigationState {
   displayText: string;
 }
 
+/** Real patient details for the appointment drawer — only what the Patient API returns. */
+export interface DrawerPatient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string; // YYYY-MM-DD, '' when not recorded
+  phone: string;
+  gender: string;
+  insurance?: { payerName: string; planName: string; memberIdMasked: string };
+}
+
 export interface PatientDrawerData {
   appointment: CalendarAppointment;
-  patient: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    dateOfBirth: Date;
-    age: number;
-    address: {
-      street: string;
-      city: string;
-      state: string;
-      zip: string;
-    };
-  };
-  insurance: {
-    provider: string;
-    planName: string;
-    memberId: string;
-    coveragePercent: number;
-    policyExpiry: Date;
-  };
-  xrays: XrayImage[];
-  periodontalData: PeriodontalData;
-  dentalChart: ToothStatus[];
-  visitHistory: Visit[];
-  notes: DoctorNote[];
-}
-
-export interface XrayImage {
-  id: string;
-  type: 'Bitewing' | 'Periapical' | 'Panoramic' | 'Cephalometric';
-  date: Date;
-  thumbnailUrl: string;
-  fullUrl: string;
-  tooth?: number;
-  notes?: string;
-}
-
-export interface PeriodontalData {
-  lastExam: Date;
-  averagePocketDepth: number; // in mm
-  gingivalIndex: number; // 0-3 scale
-  bleedingPoints: number;
-  pocketDepths: {
-    tooth: number;
-    mesial: number;
-    mid: number;
-    distal: number;
-  }[];
-  recessionsPresent: boolean;
-  mobilityPresent: boolean;
-}
-
-export interface ToothStatus {
-  number: number; // 1-32 Universal numbering
-  status: 'healthy' | 'restoration' | 'decay' | 'missing' | 'implant' | 'crown';
-  surface?: string; // 'MOD', 'DO', etc.
-  notes?: string;
-  lastTreated?: Date;
-}
-
-export interface Visit {
-  id: string;
-  date: Date;
-  reason: string;
-  provider: string;
-  procedures: {
-    code: string;
-    name: string;
-    cost: number;
-  }[];
-  totalCost: number;
-  insurancePaid: number;
-  patientPaid: number;
-  notes?: string;
-  status: 'completed' | 'scheduled' | 'cancelled';
-}
-
-export interface DoctorNote {
-  id: string;
-  appointmentId: string;
-  author: string;
-  role: 'Dentist' | 'Hygienist' | 'Assistant';
-  timestamp: Date;
-  content: string;
-  isEdited: boolean;
-  editedAt?: Date;
+  /** `null` data = the appointment isn't linked to a patient record. */
+  patient: SectionState<DrawerPatient | null>;
 }
 
 export interface AnimationConfig {

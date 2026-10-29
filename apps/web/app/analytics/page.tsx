@@ -13,8 +13,6 @@ import {
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-const PRACTICE_ID = 'demo-practice';
-
 function fmt$(cents: number) {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
 }
@@ -101,11 +99,11 @@ export default function AnalyticsPage() {
     setError(null);
     try {
       const [k, p, ns, a, pat] = await Promise.all([
-        analyticsApi.kpis(PRACTICE_ID, days),
-        analyticsApi.payments(PRACTICE_ID, days),
-        analyticsApi.noShow(PRACTICE_ID, days),
-        analyticsApi.appointments(PRACTICE_ID, days),
-        analyticsApi.patients(PRACTICE_ID),
+        analyticsApi.kpis(days),
+        analyticsApi.payments(days),
+        analyticsApi.noShow(days),
+        analyticsApi.appointments(days),
+        analyticsApi.patients(),
       ]);
       setKpis(k);
       setPayments(p);

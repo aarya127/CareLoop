@@ -16,10 +16,7 @@ import {
   REMINDER_STATUS_COLORS,
 } from '@/lib/api/reminders';
 import { AppointmentFormModal } from '@/components/appointments/appointment-form-modal';
-
-// ── Demo / dev constants ────────────────────────────────────────────────────
-const DEMO_PRACTICE_ID = process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID ?? '';
-const DEMO_USER_ID = process.env.NEXT_PUBLIC_DEMO_USER_ID ?? '';
+import { useAuth } from '@/lib/auth/auth-context';
 
 // ── Status badge ────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
@@ -88,6 +85,8 @@ function ReminderBadge({
 
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function AppointmentsPage() {
+  const { user } = useAuth();
+  const practiceId = user?.practiceId ?? '';
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,10 +122,7 @@ export default function AppointmentsPage() {
   }, []);
 
   function refresh() {
-    if (!DEMO_PRACTICE_ID) {
-      setLoading(false);
-      return;
-    }
+    if (!practiceId) return;
     setLoading(true);
     const from = new Date();
     from.setDate(from.getDate() - 7);
@@ -135,7 +131,7 @@ export default function AppointmentsPage() {
 
     appointmentsApi
       .list({
-        practiceId: DEMO_PRACTICE_ID,
+        practiceId,
         from: from.toISOString(),
         to: to.toISOString(),
       })
@@ -149,7 +145,7 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     refresh();
-  }, []);
+  }, [practiceId]);
 
   async function handleCancel(appt: AppointmentRecord) {
     if (!confirm(`Cancel "${appt.title}"?`)) return;
@@ -177,7 +173,7 @@ export default function AppointmentsPage() {
       } else {
         // Schedule + send immediately
         const reminder = await remindersApi.schedule({
-          practiceId: DEMO_PRACTICE_ID,
+          practiceId,
           patientId: (appt as any).patientId ?? '',
           appointmentId: appt.id,
           channel: 'sms',
@@ -204,13 +200,6 @@ export default function AppointmentsPage() {
         </div>
         <Button onClick={() => setModalOpen(true)}>+ New Appointment</Button>
       </div>
-
-      {!DEMO_PRACTICE_ID && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm px-4 py-3 mb-4">
-          Set <code>NEXT_PUBLIC_DEMO_PRACTICE_ID</code> and <code>NEXT_PUBLIC_DEMO_USER_ID</code> in
-          your .env to connect to the real API.
-        </div>
-      )}
 
       {loading ? (
         <p className="text-muted-foreground text-sm animate-pulse">Loading…</p>
@@ -284,8 +273,8 @@ export default function AppointmentsPage() {
       <AppointmentFormModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        practiceId={DEMO_PRACTICE_ID}
-        userId={DEMO_USER_ID}
+        practiceId={practiceId}
+        userId={user?.id ?? ''}
         onCreated={(appt) => {
           setAppointments((prev) => [appt, ...prev]);
           setModalOpen(false);

@@ -96,7 +96,7 @@ export default function AdminDashboard() {
 
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/admin-overview?practiceId=demo-practice`, {
+        const res = await fetch(`${API_URL}/auth/admin-overview`, {
           credentials: 'include',
         });
         if (!res.ok) return;

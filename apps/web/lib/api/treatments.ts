@@ -1,4 +1,5 @@
 import { PUBLIC_API_URL as BASE } from '../config/api-client';
+import { ApiError } from '../http/api-error';
 
 export interface TreatmentRecord {
   id: string;
@@ -19,8 +20,8 @@ export interface TreatmentRecord {
   provider?: { id: string; name: string; specialty: string } | null;
 }
 
+// Tenant and actor come from the session server-side; never sent from the browser.
 export interface CreateTreatmentInput {
-  practiceId: string;
   patientId: string;
   appointmentId?: string;
   providerId?: string;
@@ -64,14 +65,14 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
-    throw new Error(`API ${path} → ${res.status}: ${text}`);
+    throw new ApiError(`API ${path} → ${res.status}: ${text}`, res.status);
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
 export const treatmentsApi = {
   list(params: {
-    practiceId?: string;
     patientId?: string;
     providerId?: string;
     appointmentId?: string;
@@ -88,26 +89,21 @@ export const treatmentsApi = {
     return apiFetch<TreatmentRecord>(`/treatments/${id}`);
   },
 
-  create(dto: CreateTreatmentInput, actorUserId?: string): Promise<TreatmentRecord> {
+  create(dto: CreateTreatmentInput): Promise<TreatmentRecord> {
     return apiFetch<TreatmentRecord>('/treatments', {
       method: 'POST',
       body: JSON.stringify(dto),
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
     });
   },
 
-  update(id: string, dto: UpdateTreatmentInput, actorUserId?: string): Promise<TreatmentRecord> {
+  update(id: string, dto: UpdateTreatmentInput): Promise<TreatmentRecord> {
     return apiFetch<TreatmentRecord>(`/treatments/${id}`, {
       method: 'PUT',
       body: JSON.stringify(dto),
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
     });
   },
 
-  remove(id: string, actorUserId?: string): Promise<void> {
-    return apiFetch<void>(`/treatments/${id}`, {
-      method: 'DELETE',
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
-    });
+  remove(id: string): Promise<void> {
+    return apiFetch<void>(`/treatments/${id}`, { method: 'DELETE' });
   },
 };

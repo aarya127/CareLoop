@@ -18,7 +18,7 @@ export interface PatientProfile {
   contact: PatientContact;
   preferences: PatientPreferences;
   insurance?: InsuranceInfo;
-  financial: FinancialInfo;
+  financial?: FinancialInfo;
   next_appointment?: NextAppointment;
   radiographic_records?: RadiographicRecord[]; // Simplified X-ray records for quick access
 }
@@ -52,7 +52,7 @@ export interface PatientPreferences {
 export interface InsuranceInfo {
   provider_name: string;
   coverage_type: 'private' | 'government' | 'none';
-  coverage_percent: number; // 0-100
+  coverage_percent?: number; // 0-100
   policy_number: string;
   plan_id: string;
   group_number?: string;
@@ -123,9 +123,9 @@ export interface MedicalHistory {
   current_medications: Medication[];
   systemic_conditions: SystemicCondition[];
   past_surgeries: Surgery[];
-  lifestyle_factors: LifestyleFactors;
+  lifestyle_factors?: LifestyleFactors;
   family_health_history: FamilyHealthHistory[];
-  dental_history: DentalHistory;
+  dental_history?: DentalHistory;
 }
 
 export interface Allergy {
@@ -228,7 +228,7 @@ export interface ClinicalChart {
   patient_id: string;
   last_updated: string;
   teeth: ToothRecord[];
-  gum_health_summary: GumHealthSummary;
+  gum_health_summary?: GumHealthSummary;
   treatment_plans: TreatmentPlan[];
   ai_suggestions?: AISuggestion[];
 }
@@ -393,7 +393,7 @@ export interface AIDetection {
 export interface PeriodontalRecords {
   patient_id: string;
   exams: PeriodontalExam[]; // Renamed from 'examinations' for consistency
-  summary: PeriodontalSummary;
+  summary?: PeriodontalSummary;
   treatment_history: PeriodontalTreatment[];
 }
 

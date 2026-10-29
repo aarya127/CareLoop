@@ -101,26 +101,22 @@ export interface PatientStatsResponse {
   newPatients30d: number;
 }
 
-function qs(practiceId: string, rangeDays: number) {
-  return `?practiceId=${encodeURIComponent(practiceId)}&rangeDays=${rangeDays}`;
+// The API scopes analytics to the signed-in user's practice; no practice id is sent.
+function qs(rangeDays: number) {
+  return `?rangeDays=${rangeDays}`;
 }
 
 export const analyticsApi = {
-  overview: (practiceId: string, rangeDays = 30) =>
-    get<OverviewResponse>(`/analytics/overview${qs(practiceId, rangeDays)}`),
+  overview: (rangeDays = 30) => get<OverviewResponse>(`/analytics/overview${qs(rangeDays)}`),
 
-  kpis: (practiceId: string, rangeDays = 30) =>
-    get<KpisResponse>(`/analytics/kpis${qs(practiceId, rangeDays)}`),
+  kpis: (rangeDays = 30) => get<KpisResponse>(`/analytics/kpis${qs(rangeDays)}`),
 
-  appointments: (practiceId: string, rangeDays = 30) =>
-    get<AppointmentStatsResponse>(`/analytics/appointments${qs(practiceId, rangeDays)}`),
+  appointments: (rangeDays = 30) =>
+    get<AppointmentStatsResponse>(`/analytics/appointments${qs(rangeDays)}`),
 
-  payments: (practiceId: string, rangeDays = 30) =>
-    get<PaymentsResponse>(`/analytics/payments${qs(practiceId, rangeDays)}`),
+  payments: (rangeDays = 30) => get<PaymentsResponse>(`/analytics/payments${qs(rangeDays)}`),
 
-  noShow: (practiceId: string, rangeDays = 30) =>
-    get<NoShowTrendResponse>(`/analytics/no-show${qs(practiceId, rangeDays)}`),
+  noShow: (rangeDays = 30) => get<NoShowTrendResponse>(`/analytics/no-show${qs(rangeDays)}`),
 
-  patients: (practiceId: string) =>
-    get<PatientStatsResponse>(`/analytics/patients?practiceId=${encodeURIComponent(practiceId)}`),
+  patients: () => get<PatientStatsResponse>('/analytics/patients'),
 };

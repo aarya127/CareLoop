@@ -29,7 +29,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { PatientProfile } from '@/lib/types/dental-record';
-import { format, differenceInYears, parseISO } from 'date-fns';
+import { format, differenceInYears, isValid, parseISO } from 'date-fns';
 
 interface PatientOverviewProps {
   profile: PatientProfile;
@@ -51,10 +51,14 @@ export default function PatientOverview({
   const [editedProfile, setEditedProfile] = useState(profile);
   const [showInsuranceCard, setShowInsuranceCard] = useState(false);
 
-  // Calculate age
-  const age = profile.date_of_birth
-    ? differenceInYears(new Date(), parseISO(profile.date_of_birth))
-    : profile.age || 0;
+  const dob = profile.date_of_birth ? parseISO(profile.date_of_birth) : null;
+  const validDob = dob && isValid(dob) ? dob : null;
+  const age = validDob ? differenceInYears(new Date(), validDob) : null;
+  const address = profile.contact.address;
+  const addressLine = [address?.city, address?.state, address?.postal_code]
+    .filter(Boolean)
+    .join(', ');
+  const hasAddress = Boolean(address?.street || addressLine);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -106,7 +110,9 @@ export default function PatientOverview({
               <span className="flex items-center space-x-1">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">
-                  {age} years old • Born {format(parseISO(profile.date_of_birth), 'MMM d, yyyy')}
+                  {validDob
+                    ? `${age} years old • Born ${format(validDob, 'MMM d, yyyy')}`
+                    : 'Date of birth not recorded'}
                 </span>
               </span>
               <span className="text-sm capitalize">{profile.gender}</span>
@@ -115,7 +121,7 @@ export default function PatientOverview({
         </div>
 
         <div className="flex items-center space-x-2">
-          {onCall && (
+          {onCall && profile.contact.phone && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -126,7 +132,7 @@ export default function PatientOverview({
               <PhoneCall className="w-5 h-5" />
             </motion.button>
           )}
-          {onEmail && (
+          {onEmail && profile.contact.email && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -220,7 +226,9 @@ export default function PatientOverview({
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#87CEEB]"
                   />
                 ) : (
-                  <p className="text-gray-900 font-medium">{profile.contact.email}</p>
+                  <p className="text-gray-900 font-medium">
+                    {profile.contact.email || 'Not recorded'}
+                  </p>
                 )}
               </div>
             </div>
@@ -242,7 +250,9 @@ export default function PatientOverview({
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#87CEEB]"
                   />
                 ) : (
-                  <p className="text-gray-900 font-medium">{profile.contact.phone}</p>
+                  <p className="text-gray-900 font-medium">
+                    {profile.contact.phone || 'Not recorded'}
+                  </p>
                 )}
               </div>
             </div>
@@ -303,10 +313,15 @@ export default function PatientOverview({
                   </div>
                 ) : (
                   <p className="text-gray-900">
-                    {profile.contact.address.street}
-                    <br />
-                    {profile.contact.address.city}, {profile.contact.address.state}{' '}
-                    {profile.contact.address.postal_code}
+                    {hasAddress ? (
+                      <>
+                        {address?.street}
+                        {address?.street && addressLine && <br />}
+                        {addressLine}
+                      </>
+                    ) : (
+                      'No address on file'
+                    )}
                   </p>
                 )}
               </div>
@@ -396,7 +411,9 @@ export default function PatientOverview({
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Coverage</p>
                   <p className="text-[#87CEEB] font-bold text-2xl">
-                    {profile.insurance.coverage_percent}%
+                    {profile.insurance.coverage_percent != null
+                      ? `${profile.insurance.coverage_percent}%`
+                      : '—'}
                   </p>
                 </div>
               </div>
@@ -405,12 +422,14 @@ export default function PatientOverview({
                 <div>
                   <p className="text-sm text-gray-500">Policy Number</p>
                   <p className="text-gray-900 font-medium mt-1">
-                    {profile.insurance.policy_number}
+                    {profile.insurance.policy_number || 'Not recorded'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Plan ID</p>
-                  <p className="text-gray-900 font-medium mt-1">{profile.insurance.plan_id}</p>
+                  <p className="text-gray-900 font-medium mt-1">
+                    {profile.insurance.plan_id || 'Not recorded'}
+                  </p>
                 </div>
               </div>
 
@@ -449,57 +468,70 @@ export default function PatientOverview({
             <span>Financial Summary</span>
           </h3>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
-              <div>
-                <p className="text-sm text-red-600">Outstanding Balance</p>
-                <p className="text-red-700 font-bold text-2xl">
-                  ${profile.financial.outstanding_balance.toFixed(2)}
-                </p>
-              </div>
-              {profile.financial.outstanding_balance > 0 && (
-                <AlertCircle className="w-8 h-8 text-red-500" />
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Total Lifetime Spent</p>
-                <p className="text-gray-900 font-semibold text-lg">
-                  ${profile.financial.total_lifetime_spent.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Average Visit Cost</p>
-                <p className="text-gray-900 font-semibold text-lg">
-                  ${profile.financial.average_visit_cost.toFixed(2)}
-                </p>
-              </div>
-            </div>
-
-            {profile.financial.payment_plan_active && (
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm font-medium text-blue-900 flex items-center space-x-2">
-                  <Check className="w-4 h-4" />
-                  <span>Active Payment Plan</span>
-                </p>
-                {profile.financial.payment_plan_details && (
-                  <p className="text-sm text-blue-700 mt-1">
-                    {profile.financial.payment_plan_details}
+          {!profile.financial ? (
+            <p className="text-sm text-gray-600">
+              Balances and payments are on the{' '}
+              <a
+                href={`/patients/${profile.patient_id}/billing`}
+                className="font-medium text-[#2f6f95] hover:underline"
+              >
+                billing page
+              </a>
+              .
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
+                <div>
+                  <p className="text-sm text-red-600">Outstanding Balance</p>
+                  <p className="text-red-700 font-bold text-2xl">
+                    ${profile.financial.outstanding_balance.toFixed(2)}
                   </p>
+                </div>
+                {profile.financial.outstanding_balance > 0 && (
+                  <AlertCircle className="w-8 h-8 text-red-500" />
                 )}
               </div>
-            )}
 
-            {profile.financial.last_payment_date && (
-              <div className="text-sm text-gray-600">
-                <p>
-                  Last payment: ${profile.financial.last_payment_amount?.toFixed(2)} on{' '}
-                  {format(parseISO(profile.financial.last_payment_date), 'MMM d, yyyy')}
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Total Lifetime Spent</p>
+                  <p className="text-gray-900 font-semibold text-lg">
+                    ${profile.financial.total_lifetime_spent.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Average Visit Cost</p>
+                  <p className="text-gray-900 font-semibold text-lg">
+                    ${profile.financial.average_visit_cost.toFixed(2)}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
+
+              {profile.financial.payment_plan_active && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm font-medium text-blue-900 flex items-center space-x-2">
+                    <Check className="w-4 h-4" />
+                    <span>Active Payment Plan</span>
+                  </p>
+                  {profile.financial.payment_plan_details && (
+                    <p className="text-sm text-blue-700 mt-1">
+                      {profile.financial.payment_plan_details}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {profile.financial.last_payment_date && (
+                <div className="text-sm text-gray-600">
+                  <p>
+                    Last payment: ${profile.financial.last_payment_amount?.toFixed(2)} on{' '}
+                    {format(parseISO(profile.financial.last_payment_date), 'MMM d, yyyy')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
 
         {/* Next Appointment */}

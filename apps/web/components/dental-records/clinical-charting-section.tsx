@@ -21,6 +21,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { ClinicalChart, ToothRecord } from '@/lib/types/dental-record';
+import { upsertTooth } from '@/lib/patient-record/tooth-chart';
 
 interface ClinicalChartingSectionProps {
   patientId: string;
@@ -164,6 +165,18 @@ export default function ClinicalChartingSection({
     },
   };
 
+  // A tooth with no chart entry is unknown, not healthy.
+  const chartedNumbers = new Set(clinicalChart.teeth.map((t) => t.tooth_number));
+  const notChartedConfig = {
+    color: 'bg-slate-300 border-2 border-dashed border-slate-500',
+    bgLight: 'bg-slate-100',
+    textColor: 'text-slate-700',
+    icon: Circle,
+    label: 'Not charted',
+  };
+  const configFor = (tooth: ToothRecord) =>
+    chartedNumbers.has(tooth.tooth_number) ? statusConfig[tooth.status] : notChartedConfig;
+
   // Urgency colors
   const urgencyColors = {
     routine: 'border-green-300 bg-green-50',
@@ -184,11 +197,12 @@ export default function ClinicalChartingSection({
       const found = clinicalChart.teeth.find((t) => t.tooth_number === num);
       if (found) return found;
 
+      // Placeholder so the tooth can be selected and charted; rendered as "Not charted".
       return {
         tooth_number: num,
         status: 'healthy' as const,
         tooth_name: toothNames[num],
-        color_code: '#10b981', // green-500 for healthy
+        color_code: '',
       } as ToothRecord;
     });
   };
@@ -206,6 +220,7 @@ export default function ClinicalChartingSection({
     filled: clinicalChart.teeth.filter((t) => t.status === 'filled').length,
     missing: clinicalChart.teeth.filter((t) => t.status === 'missing').length,
     needsTreatment: clinicalChart.teeth.filter((t) => t.treatment_recommended).length,
+    notCharted: 32 - chartedNumbers.size,
   };
 
   const openToothEditor = () => {
@@ -235,9 +250,7 @@ export default function ClinicalChartingSection({
     setSelectedTooth(nextTooth);
     commitClinicalChart({
       ...clinicalChart,
-      teeth: clinicalChart.teeth.map((tooth) =>
-        tooth.tooth_number === nextTooth.tooth_number ? nextTooth : tooth,
-      ),
+      teeth: upsertTooth(clinicalChart.teeth, nextTooth),
       last_updated: new Date().toISOString().slice(0, 10),
     });
     setShowToothEditor(false);
@@ -276,7 +289,7 @@ export default function ClinicalChartingSection({
   return (
     <div className="space-y-6">
       {/* Header Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -324,6 +337,16 @@ export default function ClinicalChartingSection({
               <p className="text-2xl font-bold text-orange-600">{stats.needsTreatment}</p>
             </div>
             <AlertCircle className="w-8 h-8 text-orange-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Not Charted</p>
+              <p className="text-2xl font-bold text-slate-600">{stats.notCharted}</p>
+            </div>
+            <Circle className="w-8 h-8 text-slate-400" />
           </div>
         </div>
       </div>
@@ -400,7 +423,7 @@ export default function ClinicalChartingSection({
                   <p className="text-xs text-gray-500 text-center mb-2">Right</p>
                   <div className="grid grid-cols-8 gap-1">
                     {getQuadrantTeeth('UR').map((tooth) => {
-                      const config = statusConfig[tooth.status];
+                      const config = configFor(tooth);
                       const Icon = config.icon;
                       return (
                         <motion.button
@@ -439,7 +462,7 @@ export default function ClinicalChartingSection({
                   <p className="text-xs text-gray-500 text-center mb-2">Left</p>
                   <div className="grid grid-cols-8 gap-1">
                     {getQuadrantTeeth('UL').map((tooth) => {
-                      const config = statusConfig[tooth.status];
+                      const config = configFor(tooth);
                       const Icon = config.icon;
                       return (
                         <motion.button
@@ -489,7 +512,7 @@ export default function ClinicalChartingSection({
                     {getQuadrantTeeth('LL')
                       .reverse()
                       .map((tooth) => {
-                        const config = statusConfig[tooth.status];
+                        const config = configFor(tooth);
                         const Icon = config.icon;
                         return (
                           <motion.button
@@ -530,7 +553,7 @@ export default function ClinicalChartingSection({
                     {getQuadrantTeeth('LR')
                       .reverse()
                       .map((tooth) => {
-                        const config = statusConfig[tooth.status];
+                        const config = configFor(tooth);
                         const Icon = config.icon;
                         return (
                           <motion.button
@@ -593,7 +616,7 @@ export default function ClinicalChartingSection({
           <h3 className="text-lg font-bold text-gray-900 mb-6">Tooth Status List</h3>
           <div className="space-y-3">
             {filteredTeeth.map((tooth) => {
-              const config = statusConfig[tooth.status];
+              const config = configFor(tooth);
               const Icon = config.icon;
               return (
                 <motion.div
@@ -787,12 +810,10 @@ export default function ClinicalChartingSection({
               </div>
 
               <div className="space-y-4">
-                <div className={`p-3 rounded-lg ${statusConfig[selectedTooth.status].bgLight}`}>
+                <div className={`p-3 rounded-lg ${configFor(selectedTooth).bgLight}`}>
                   <p className="text-sm font-medium text-gray-700">Status</p>
-                  <p
-                    className={`text-lg font-bold ${statusConfig[selectedTooth.status].textColor}`}
-                  >
-                    {statusConfig[selectedTooth.status].label}
+                  <p className={`text-lg font-bold ${configFor(selectedTooth).textColor}`}>
+                    {configFor(selectedTooth).label}
                   </p>
                 </div>
 

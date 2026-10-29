@@ -4,6 +4,7 @@
 // session, so no practiceId/actor is sent from the browser.
 
 import { PUBLIC_API_URL as BASE } from '../config/api-client';
+import { ApiError } from '../http/api-error';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -13,7 +14,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
-    throw new Error(`API ${path} → ${res.status}: ${text}`);
+    throw new ApiError(`API ${path} → ${res.status}: ${text}`, res.status);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;

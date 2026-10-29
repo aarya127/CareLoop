@@ -85,7 +85,6 @@ Store all secrets in AWS Secrets Manager or equivalent secret store. Do not comm
 - [ ] `GOOGLE_CLIENT_ID`
 - [ ] `GOOGLE_CLIENT_SECRET`
 - [ ] `GOOGLE_REDIRECT_URI`
-- [ ] `DEMO_USER_ID` (if demo workflows are used)
 
 ### Twilio / Voice Assistant
 

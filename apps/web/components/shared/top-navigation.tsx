@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { PUBLIC_API_URL } from '@/lib/config/api-client';
+import { useAuth } from '@/lib/auth/auth-context';
 
 type NotificationItem = {
   id: string;
@@ -24,6 +25,11 @@ type NotificationItem = {
 
 export default function TopNavigation() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const displayName = user
+    ? `${user.firstName} ${user.lastName}`.trim() || user.email
+    : 'Signed in';
+  const roleLabel = user?.role === 'admin' ? 'Administrator' : 'Team member';
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -240,8 +246,8 @@ export default function TopNavigation() {
                   <User className="w-5 h-5 text-sky-600" />
                 </div>
                 <div className="hidden lg:block text-left">
-                  <div className="text-sm font-medium text-gray-900">Dr. Smith</div>
-                  <div className="text-xs text-gray-500">Administrator</div>
+                  <div className="text-sm font-medium text-gray-900">{displayName}</div>
+                  <div className="text-xs text-gray-500">{roleLabel}</div>
                 </div>
               </button>
 
@@ -251,8 +257,8 @@ export default function TopNavigation() {
                   <div className="fixed inset-0 z-10" onClick={() => setShowProfileMenu(false)} />
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
                     <div className="px-4 py-2 border-b border-gray-100">
-                      <div className="text-sm font-medium text-gray-900">Dr. Sarah Smith</div>
-                      <div className="text-xs text-gray-500">smith@careloop.com</div>
+                      <div className="text-sm font-medium text-gray-900">{displayName}</div>
+                      <div className="text-xs text-gray-500">{user?.email}</div>
                     </div>
 
                     <Link

@@ -62,7 +62,6 @@ export interface BillingSummary {
 }
 
 export interface CreateInvoiceInput {
-  practiceId: string;
   patientId: string;
   treatmentId?: string;
   payerType?: PayerType;
@@ -82,7 +81,6 @@ export interface UpdateInvoiceInput {
 }
 
 export interface CreatePaymentInput {
-  practiceId: string;
   invoiceId: string;
   patientId: string;
   payerType?: PayerType;
@@ -148,8 +146,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 // Invoices API
 // ---------------------------------------------------------------------------
 
+// The API scopes every request to the signed-in user's practice and records
+// that user as the actor, so neither is sent from the client.
 export interface InvoiceFilter {
-  practiceId?: string;
   patientId?: string;
   status?: InvoiceStatus;
   from?: string;
@@ -173,31 +172,21 @@ export const invoicesApi = {
 
   getById: (id: string) => apiFetch<Invoice>(`/billing/invoices/${id}`),
 
-  create: (dto: CreateInvoiceInput, actorUserId?: string) =>
+  create: (dto: CreateInvoiceInput) =>
     apiFetch<Invoice>('/billing/invoices', {
       method: 'POST',
       body: JSON.stringify(dto),
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
     }),
 
-  update: (id: string, dto: UpdateInvoiceInput, actorUserId?: string) =>
+  update: (id: string, dto: UpdateInvoiceInput) =>
     apiFetch<Invoice>(`/billing/invoices/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(dto),
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
     }),
 
-  send: (id: string, actorUserId?: string) =>
-    apiFetch<Invoice>(`/billing/invoices/${id}/send`, {
-      method: 'POST',
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
-    }),
+  send: (id: string) => apiFetch<Invoice>(`/billing/invoices/${id}/send`, { method: 'POST' }),
 
-  void: (id: string, actorUserId?: string) =>
-    apiFetch<Invoice>(`/billing/invoices/${id}/void`, {
-      method: 'POST',
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
-    }),
+  void: (id: string) => apiFetch<Invoice>(`/billing/invoices/${id}/void`, { method: 'POST' }),
 };
 
 // ---------------------------------------------------------------------------
@@ -205,7 +194,6 @@ export const invoicesApi = {
 // ---------------------------------------------------------------------------
 
 export interface SummaryFilter {
-  practiceId: string;
   patientId?: string;
   from?: string;
   to?: string;
@@ -223,7 +211,6 @@ export const billingSummaryApi = {
 // ---------------------------------------------------------------------------
 
 export interface PaymentFilter {
-  practiceId?: string;
   patientId?: string;
   invoiceId?: string;
   status?: PaymentStatus;
@@ -235,24 +222,16 @@ export const paymentsApi = {
 
   getById: (id: string) => apiFetch<PaymentRecord>(`/payments/${id}`),
 
-  create: (dto: CreatePaymentInput, idempotencyKey?: string, actorUserId?: string) =>
+  create: (dto: CreatePaymentInput, idempotencyKey?: string) =>
     apiFetch<PaymentRecord>('/payments', {
       method: 'POST',
       body: JSON.stringify(dto),
-      headers: {
-        ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
-        ...(actorUserId ? { 'x-actor-user-id': actorUserId } : {}),
-      },
+      headers: idempotencyKey ? { 'idempotency-key': idempotencyKey } : {},
     }),
 
-  update: (
-    id: string,
-    dto: { status?: PaymentStatus; transactionRef?: string },
-    actorUserId?: string,
-  ) =>
+  update: (id: string, dto: { status?: PaymentStatus; transactionRef?: string }) =>
     apiFetch<PaymentRecord>(`/payments/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(dto),
-      headers: actorUserId ? { 'x-actor-user-id': actorUserId } : {},
     }),
 };

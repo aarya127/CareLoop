@@ -128,12 +128,9 @@ export function PracticeKpiDashboard() {
   const [phaseRoadmap, setPhaseRoadmap] = useState<PhaseRoadmapPayload | null>(null);
 
   const loadAnalytics = async (activeRange: '7d' | '30d' | '90d') => {
-    const res = await fetch(
-      `/api/analytics/dashboard?range=${activeRange}&practiceId=demo-practice`,
-      {
-        credentials: 'include',
-      },
-    );
+    const res = await fetch(`/api/analytics/dashboard?range=${activeRange}`, {
+      credentials: 'include',
+    });
     const payload = (await res.json()) as DashboardPayload;
 
     setData({

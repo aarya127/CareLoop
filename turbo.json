@@ -13,9 +13,7 @@
         "WEB_URL",
         "APP_BASE_URL",
         "COOKIE_SECRET",
-        "ENCRYPTION_KEY",
-        "NEXT_PUBLIC_DEMO_PRACTICE_ID",
-        "NEXT_PUBLIC_DEMO_USER_ID"
+        "ENCRYPTION_KEY"
       ]
     },
     "dev": {

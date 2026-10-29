@@ -17,16 +17,13 @@ import {
   PAYMENT_METHOD_LABELS,
 } from '@/lib/api/billing';
 
-const DEMO_PRACTICE_ID = process.env.NEXT_PUBLIC_DEMO_PRACTICE_ID ?? 'demo-practice';
-const DEMO_USER_ID = process.env.NEXT_PUBLIC_DEMO_USER_ID ?? 'user-admin';
-
 function formatCents(cents: number) {
-  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  return (cents / 100).toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
 }
 
 function formatDate(iso?: string | null) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', {
+  return new Date(iso).toLocaleDateString('en-CA', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -119,9 +116,9 @@ export default function PatientBillingPage() {
     setError(null);
     try {
       const [sum, invs, pays] = await Promise.all([
-        billingSummaryApi.get({ practiceId: DEMO_PRACTICE_ID, patientId }),
-        invoicesApi.list({ practiceId: DEMO_PRACTICE_ID, patientId }),
-        paymentsApi.list({ practiceId: DEMO_PRACTICE_ID, patientId }),
+        billingSummaryApi.get({ patientId }),
+        invoicesApi.list({ patientId }),
+        paymentsApi.list({ patientId }),
       ]);
       setSummary(sum);
       setInvoices(invs);
@@ -144,14 +141,13 @@ export default function PatientBillingPage() {
     setInvoiceSubmitting(true);
     try {
       const dto: CreateInvoiceInput = {
-        practiceId: DEMO_PRACTICE_ID,
         patientId,
         payerType: invoiceForm.payerType,
         totalAmountCents: Math.round(parseFloat(invoiceForm.totalAmountCents) * 100),
         notes: invoiceForm.notes || undefined,
         dueDate: invoiceForm.dueDate || undefined,
       };
-      await invoicesApi.create(dto, DEMO_USER_ID);
+      await invoicesApi.create(dto);
       setInvoiceForm(DEFAULT_FORM);
       setShowInvoiceForm(false);
       await loadAll();
@@ -164,7 +160,7 @@ export default function PatientBillingPage() {
 
   async function handleSendInvoice(id: string) {
     try {
-      await invoicesApi.send(id, DEMO_USER_ID);
+      await invoicesApi.send(id);
       await loadAll();
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to send invoice');
@@ -174,7 +170,7 @@ export default function PatientBillingPage() {
   async function handleVoidInvoice(id: string) {
     if (!confirm('Void this invoice? This cannot be undone.')) return;
     try {
-      await invoicesApi.void(id, DEMO_USER_ID);
+      await invoicesApi.void(id);
       await loadAll();
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to void invoice');
@@ -189,7 +185,6 @@ export default function PatientBillingPage() {
     setPaymentSubmitting(true);
     try {
       const dto: CreatePaymentInput = {
-        practiceId: DEMO_PRACTICE_ID,
         invoiceId: paymentTarget.id,
         patientId,
         payerType: paymentForm.payerType,
@@ -199,7 +194,7 @@ export default function PatientBillingPage() {
       };
       // Generate simple idempotency key from form data + timestamp
       const idemKey = `pay-${patientId}-${paymentTarget.id}-${Date.now()}`;
-      await paymentsApi.create(dto, idemKey, DEMO_USER_ID);
+      await paymentsApi.create(dto, idemKey);
       setPaymentTarget(null);
       setPaymentForm(DEFAULT_PAYMENT_FORM);
       await loadAll();
